@@ -1,0 +1,3361 @@
+#!/bin/bash
+###############################################################################
+#                                                                             #
+#     Copyright (C) 2015 Team KODI (Alwin Esch)                               #
+#     http://kodi.tv                                                          #
+#                                                                             #
+#  This program is free software: you can redistribute it and/or modify       #
+#  it under the terms of the GNU General Public License as published by       #
+#  the Free Software Foundation, either version 3 of the License, or          #
+#  (at your option) any later version.                                        #
+#                                                                             #
+#  This program is distributed in the hope that it will be useful,            #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of             #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              #
+#  GNU General Public License for more details.                               #
+#                                                                             #
+#  You should have received a copy of the GNU General Public License          #
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.      #
+#                                                                             #
+###############################################################################
+
+DIST=`grep DISTRIB_ID /etc/*-release | awk -F '=' '{print $2}'`
+BASE_PATH=$(cd $(dirname $0) ; pwd -P)
+PATH="$BASE_PATH/tools:$PATH"
+
+. $BASE_PATH/tools/tool_functions
+
+##
+# Default configurations
+MUPEL_VERSION=
+INSTALL_PREFIX=$HOME/.mupel
+
+USE_LINUX_X86_32="FALSE"
+USE_LINUX_X86_64="FALSE"
+USE_LINUX_RPBI="FALSE"
+USE_MS_WINDOWS_32="FALSE"
+USE_MS_WINDOWS_64="FALSE"
+USE_MAC_OS_X_32="FALSE"
+USE_MAC_OS_X_64="FALSE"
+USE_ANDROID_ARM="FALSE"
+USE_ANDROID_X86="FALSE"
+USE_IOS_ATV2="FALSE"
+
+RELEASE_BUILD=0
+DEBUG_BUILD=0
+
+KODI_SOURCE_URL=""
+KODI_SOURCE_BRANCH=""
+KODI_RUN_TESTS="FALSE"
+KODI_CONF_IN_DIRECT_BUILD="FALSE"
+KODI_SEL_ADDON=""
+CEF_SOURCE_URL=""
+CEF_SOURCE_BRANCH=""
+CEF_VERBOSE_BUILD="FALSE"
+DEPOT_TOOLS_URL=""
+
+INCLUDE_KODI="TRUE"
+INCLUDE_KODI_ADDONS="FALSE"
+INCLUDE_CEF="FALSE"
+INCLUDE_USER_SCRIPT="FALSE"
+
+ANDROID_SEL_AVD_ARM=
+ANDROID_SEL_AVD_x86=
+
+SUPPORT_CEF="FALSE"
+
+CPU_PROC_JOBS=8
+
+ADD_PATHS=""
+DO_CLEAN=0 #<TODO
+WAIT_TIMEOUT=30;
+SAVE_TIMEOUT=10;
+OS_START_TIMEOUT=90;
+
+##
+# Set defaults
+[ ! -d "$BASE_PATH/build" ] && mkdir "$BASE_PATH/build"
+if [ ! -f "$HOME/.mupel/mupel.conf" ];then
+{
+  bash mupel-install
+  ret=$?
+  if [[ $ret != 0 ]];then
+  {
+    exit $ret
+  } fi
+} fi
+
+. "$HOME/.mupel/mupel.conf";
+
+if [ ! -f "$BASE_PATH/versions" ];then
+{
+  showWarningDialog "\
+The needed CEF binary version file for Kodi is not present and normally included in Mupel package!
+Please fix, for the moment becomes 'undefined' used as version.
+
+It must be on file in '$BASE_PATH/versions'!
+"
+  CEF_KODI_BINARY_VERSION="undefined"
+}
+else
+  . "$BASE_PATH/versions";fi
+
+PATH="$ADD_PATHS:$PATH";
+
+###############################################################################
+# Functions
+{
+
+function parse_values()
+{
+  local field=$1
+  local id=$2
+  local value="$3"
+
+  if [ "$field" = "general" ];then
+  {
+    if [[ $id = 6 ]];then # handle 'Include Kodi' change
+      INCLUDE_KODI=${value%|};
+    elif [[ $id = 7 ]];then # handle 'Include Kodi add-ons' change
+      INCLUDE_KODI_ADDONS=${value%|};
+    elif [[ $id = 8 ]];then # handle 'Include CEF' change
+      INCLUDE_CEF=${value%|};fi
+
+    save_config=$SAVE_TIMEOUT;
+    return;
+  }
+  elif [ "$field" = "add-ons" ];then
+  {
+    . $HOME/.mupel/mupel.conf;
+    GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+    if [ -f ${BASE_PATH}/build/kodi-$GIT_USER/kodi/project/cmake/addons/bootstrap/repositories/binary-addons.txt ];then
+    {
+      if [ ! -d ${BASE_PATH}/build/kodi-$GIT_USER/kodi-repo-binary-addons ];then
+      {
+        local url=$(cat ${BASE_PATH}/build/kodi-$GIT_USER/kodi/project/cmake/addons/bootstrap/repositories/binary-addons.txt | awk -F ' ' '{print $2}');
+        local branch=$(cat ${BASE_PATH}/build/kodi-$GIT_USER/kodi/project/cmake/addons/bootstrap/repositories/binary-addons.txt | awk -F ' ' '{print $3}');
+        handleGITLoad ${BASE_PATH}/build/kodi-$GIT_USER kodi-repo-binary-addons $url $branch
+      } fi
+      addon_entries=$(cd ${BASE_PATH}/build/kodi-$GIT_USER/kodi-repo-binary-addons; ls -d */ | sed 's|[/]||g');
+    }
+    else
+      addon_entries=$(ls -1 ${BASE_PATH}/build/kodi-$GIT_USER/kodi/project/cmake/addons/addons);fi
+    targets=
+    last=""
+    for i in $addon_entries; do
+    {
+      if [ ! -z $last ];then
+        targets+="!";fi
+      last=$i
+      if [[ $i == $KODI_SEL_ADDON ]];then
+        targets+="^";fi
+      targets+="$i"
+    } done
+    targets+="!"
+
+    echo "#> msg field 9:set ${targets};"
+  }
+  elif [ "$field" = "settings" ];then
+  {
+    IFS_BU=$IFS
+    unset IFS
+
+    #####
+    # Kodi
+    if [[ $id = 1 ]] || [[ $id = 2 ]];then
+    { # handle 'kodi git url' change
+      local kodi_url=${value%|}
+      git_entries=$(git ls-remote "$kodi_url")
+      ret=$?
+      if [[ $ret = 0 ]];then
+      {
+        KODI_SOURCE_URL=$kodi_url
+
+        git_entries=$(echo "$git_entries"| grep "refs/heads" | awk -F '/' '{print $3}')
+        targets=
+        last=""
+        for i in $git_entries; do
+        {
+          if [ ! -z $last ];then
+            targets+="!";fi
+          last=$i
+          if [[ $i == $KODI_SOURCE_BRANCH ]];then
+            targets+="^";fi
+          targets+="$i"
+        } done
+        targets+="!"
+
+        [[ $id != 2 ]] && echo "#> msg field 2:set ${KODI_SOURCE_URL};"
+        echo "#> msg field 3:set ${targets};"
+        echo "#> msg field 3:enable 1;"
+      }
+      else
+        handleErrorsCodes $ret "git" "$kodi_url";fi
+    }
+    elif [[ $id = 3 ]];then
+    {
+      # Trigger for update
+      KODI_SOURCE_BRANCH=${value%|}
+    }
+    elif [[ $id = 4 ]];then
+    {
+      KODI_RUN_TESTS=${value%|}
+    }
+    elif [[ $id = 5 ]];then
+    {
+      KODI_CONF_IN_DIRECT_BUILD=${value%|}
+    }
+    #####
+    # CEF
+    elif [[ $id = 8 ]];then
+    {  # handle 'cef git url' change
+      if [[ $SUPPORT_CEF = "TRUE" ]];then
+      {
+        local cef_url=${value%|}
+
+        git_entries=$(git ls-remote "$cef_url")
+        ret=$?
+        if [[ $ret = 0 ]];then
+        {
+          CEF_SOURCE_URL=$cef_url
+          git_entries=$(echo "$git_entries"| grep "refs/heads" | awk -F '/' '{print $3}')
+          targets=
+          last=""
+          for i in $git_entries; do
+          {
+            if [ ! -z $last ];then
+              targets+="!";fi
+            last=$i
+            if [[ $i == $CEF_SOURCE_BRANCH ]];then
+              targets+="^";fi
+            targets+="$i"
+          } done
+          echo "#> msg field 8:set ${CEF_SOURCE_URL};"
+          echo "#> msg field 9:set ${targets};"
+        }
+        else
+          handleErrorsCodes $ret "git" "$cef_url";fi
+      } fi
+    }
+    elif [[ $id = 9 ]];then
+    {
+      # Trigger for update
+      CEF_SOURCE_BRANCH=${value%|}
+    }
+    elif [[ $id = 10 ]];then
+    {
+      CEF_VERBOSE_BUILD=${value%|}
+    }
+    #####
+    # MS Windows
+    elif [[ $id = 13 ]];then
+    {
+      . $HOME/.mupel/windows.conf;
+      WINDOWS_DEFAULT_RUN=${value%|}
+      saveWindowsConfigFile
+      export WINDOWS_DEFAULT_RUN
+    }
+    elif [[ $id = 14 ]];then
+    {
+      . $HOME/.mupel/windows.conf;
+      WINDOWS_SSH_USERNAME=${value%|}
+      saveWindowsConfigFile
+      export WINDOWS_SSH_USERNAME
+    }
+    elif [[ $id = 15 ]];then
+    {
+      . $HOME/.mupel/windows.conf;
+      WINDOWS_SSH_PASSWORD=${value%|}
+      saveWindowsConfigFile
+      export WINDOWS_SSH_PASSWORD
+    }
+    elif [[ $id = 16 ]];then
+    {
+      . $HOME/.mupel/windows.conf;
+      WINDOWS_BUILD_TYPE=${value%|}
+      saveWindowsConfigFile
+      export WINDOWS_BUILD_TYPE
+    }
+    #####
+    # Max OS-X
+    elif [[ $id = 19 ]];then
+    {
+      . $HOME/.mupel/mac-osx.conf;
+      MAC_OS_X_DEFAULT_RUN=${value%|}
+      saveMacOSXConfigFile
+      export MAC_OS_X_DEFAULT_RUN
+    }
+    elif [[ $id = 20 ]];then
+    {
+      . $HOME/.mupel/mac-osx.conf;
+      MAC_OS_X_SSH_USERNAME=${value%|}
+      saveMacOSXConfigFile
+      export MAC_OS_X_SSH_USERNAME
+    }
+    elif [[ $id = 21 ]];then
+    {
+      . $HOME/.mupel/mac-osx.conf;
+      MAC_OS_X_SSH_PASSWORD=${value%|}
+      saveMacOSXConfigFile
+      export MAC_OS_X_SSH_PASSWORD
+    }
+    elif [[ $id = 22 ]];then
+    {
+      . $HOME/.mupel/mac-osx.conf;
+      MAC_OS_X_BUILD_TYPE=${value%|}
+      saveMacOSXConfigFile
+      export MAC_OS_X_BUILD_TYPE
+    }
+    elif [[ $id = 23 ]];then
+    {
+      . $HOME/.mupel/mac-osx.conf;
+      IOS_ATV2_BUILD_TYPE=$(echo ${value%|} | tr '[:upper:]' '[:lower:]');
+      saveMacOSXConfigFile
+      export IOS_ATV2_BUILD_TYPE
+    }
+    #####
+    # Android
+    elif [[ $id = 26 ]];then
+    {
+      . $HOME/.mupel/android.conf;
+      ANDROID_BUILD_TYPE=${value%|}
+      saveAndroidConfigFile
+      export ANDROID_BUILD_TYPE
+    }
+    elif [[ $id = 27 ]];then
+    {
+      . $HOME/.mupel/android.conf;
+      ANDROID_SEL_AVD_ARM=$(echo ${value%|} | awk -F 'Name: ' '{print $2}' | awk -F ' - ' '{print $1}');
+      saveAndroidConfigFile
+    }
+    elif [[ $id = 28 ]];then
+    {
+      . $HOME/.mupel/android.conf;
+      ANDROID_SEL_TARGET=${value%|}
+      saveAndroidConfigFile
+
+      echo "#> msg field 27:set $(getAndroidAVDS arm);"
+      echo "#> msg field 29:set $(getAndroidAVDS x86);"
+    }
+    elif [[ $id = 29 ]];then
+    {
+      . $HOME/.mupel/android.conf;
+      ANDROID_SEL_AVD_X86=$(echo ${value%|} | awk -F 'Name: ' '{print $2}' | awk -F ' - ' '{print $1}');
+      saveAndroidConfigFile
+    }
+    #####
+    # General
+    elif [[ $id = 32 ]];then
+    {
+      value=${value%|}
+      [ -z $value ] && value=8;
+      CPU_PROC_JOBS=${value%,000000}
+    } fi
+    set IFS=$IFS_BU
+
+    save_config=$SAVE_TIMEOUT;
+    return;
+  } fi
+
+  saveConfigFile
+}
+
+function buildThreadBaseGeneralProcess()
+{
+  local stand_alone=$1
+
+  if [ -f "${BASE_PATH}/build/creation-general.log" ];then
+    mv "${BASE_PATH}/build/creation-general.log" "${BASE_PATH}/build/creation-general-`date +%F_%H-%m`.old.log";fi
+  touch "${BASE_PATH}/build/creation-general.log"
+
+  bash "${BASE_PATH}/tools/basic-system-creation.build" --temp-dir "$TEMP_DIR" >> "/dev/stdout" 2>&1 | \
+  tee "${BASE_PATH}/build/creation-general.log"
+
+  local error_value=${?}
+  if [ -f $TEMP_DIR/creation-general.failed ];then
+  {
+    rm -f $TEMP_DIR/creation-general.failed
+    showdialog --title="Warning" \
+               --image="$BASE_PATH/icons/icon-warning-128x128.png" \
+               --image-on-top --form \
+               --text="\
+Basic system creation failed!
+Systems build stopped here." \
+               --button=gtk-ok:1 2> /dev/null &
+    rm -f "$TEMP_DIR/build_thread-base_general.pid";
+    exit ${error_value}
+  } fi
+}
+
+function buildThreadBaseGeneral()
+{
+  (
+    sleep 1
+    buildThreadBaseGeneralProcess 1
+    sleep 1
+    . "$HOME/.mupel/mupel.conf";
+
+    [[ $USE_LINUX_X86_32 = "TRUE" ]]  && echo "#< msg start_build;" >> "$thread2_in"
+    [[ $USE_LINUX_X86_64 = "TRUE" ]]  && echo "#< msg start_build;" >> "$thread3_in"
+    [[ $USE_LINUX_RPBI = "TRUE" ]]    && echo "#< msg start_build;" >> "$thread4_in"
+    [[ $USE_MS_WINDOWS_32 = "TRUE" ]] ||
+    [[ $USE_MS_WINDOWS_64 = "TRUE" ]] && echo "#< msg start_build;" >> "$thread5_in"
+    [[ $USE_MAC_OS_X_32 = "TRUE" ]]   ||
+    [[ $USE_MAC_OS_X_64 = "TRUE" ]]   && echo "#< msg start_build;" >> "$thread6_in"
+    [[ $USE_ANDROID_ARM = "TRUE" ]]   ||
+    [[ $USE_ANDROID_X86 = "TRUE" ]]   && echo "#< msg start_build;" >> "$thread7_in"
+    [[ $USE_IOS_ATV2 = "TRUE" ]]      && echo "#< msg start_build;" >> "$thread8_in"
+
+    sleep 3
+
+    while :;do
+    {
+      STILL_ACTIVE=0;
+      if [[ $USE_LINUX_X86_32 = "TRUE" ]]    && [ -f "$TEMP_DIR/build_thread-linux-x86_32.pid" ];then
+        STILL_ACTIVE=1
+      elif [[ $USE_LINUX_X86_64 = "TRUE" ]]  && [ -f "$TEMP_DIR/build_thread-linux-x86_64.pid" ];then
+        STILL_ACTIVE=1
+      elif [[ $USE_LINUX_RPBI = "TRUE" ]]    && [ -f "$TEMP_DIR/build_thread-linux-rpbi.pid" ];then
+        STILL_ACTIVE=1
+      elif [[ $USE_MS_WINDOWS_32 = "TRUE" ]] && [ -f "$TEMP_DIR/build_thread-win-x86_32.pid" ];then
+        STILL_ACTIVE=1
+      elif [[ $USE_MS_WINDOWS_64 = "TRUE" ]] && [ -f "$TEMP_DIR/build_thread-win-x86_64.pid" ];then
+        STILL_ACTIVE=1
+      elif [[ $USE_MAC_OS_X_32 = "TRUE" ]]   && [ -f "$TEMP_DIR/build_thread-osx-x86_32.pid" ];then
+        STILL_ACTIVE=1
+      elif [[ $USE_MAC_OS_X_64 = "TRUE" ]]   && [ -f "$TEMP_DIR/build_thread-osx-x86_64.pid" ];then
+        STILL_ACTIVE=1
+      elif [[ $USE_ANDROID_ARM = "TRUE" ]]   && [ -f "$TEMP_DIR/build_thread-android-arm.pid" ];then
+        STILL_ACTIVE=1
+      elif [[ $USE_ANDROID_X86 = "TRUE" ]]   && [ -f "$TEMP_DIR/build_thread-android-x86.pid" ];then
+        STILL_ACTIVE=1
+      elif [[ $USE_IOS_ATV2 = "TRUE" ]]      && [ -f "$TEMP_DIR/build_thread-ios_atv2.pid" ];then
+        STILL_ACTIVE=1;fi
+
+      if [[ $STILL_ACTIVE = 0 ]];then
+      {
+        printf "${BRIGHT}${GREEN}Complete build of all available systems done${NORMAL}\n";
+
+        rm -f "$TEMP_DIR/build_thread-base_general.pid";
+        exit 0;
+      } fi
+
+      sleep 2
+    } done
+    rm -f "$TEMP_DIR/build_thread-base_general.pid";
+  ) &
+  echo $! > "$TEMP_DIR/build_thread-base_general.pid"
+
+  echo "Complete build of all installed systems started ...";
+}
+
+function buildThreadForOS()
+{
+  local system="$1"
+  local caller="$2"
+  local sleep_time="$3"
+  local direct_build_cef=$4
+  local direct_build_kodi=$5
+
+  GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+
+  if [ -f "${BASE_PATH}/build/creation-kodi-${system}.log" ];then
+    mv "${BASE_PATH}/build/creation-kodi-${system}.log" "${BASE_PATH}/build/creation-kodi-${system}-`date +%F_%H-%m`.old.log";fi
+  if [ -f "${BASE_PATH}/build/creation-cef-${system}.log" ];then
+    mv "${BASE_PATH}/build/creation-cef-${system}.log" "${BASE_PATH}/build/creation-cef-${system}-`date +%F_%H-%m`.old.log";fi
+  if [ -f "${BASE_PATH}/build/creation-user-script0-${system}.log" ];then
+    mv "${BASE_PATH}/build/creation-user-script-${system}.log" "${BASE_PATH}/build/creation-user-script-${system}-`date +%F_%H-%m`.old.log";fi
+
+  if [[ $INCLUDE_CEF = "TRUE" ]];then
+    touch "${BASE_PATH}/build/creation-cef-${system}.log";fi
+
+  if [[ $INCLUDE_KODI = "TRUE" ]];then
+    touch "${BASE_PATH}/build/creation-kodi-${system}.log";fi
+
+  if [[ $INCLUDE_USER_SCRIPT = "TRUE" ]];then
+    touch "${BASE_PATH}/build/creation-user-script-${system}.log";fi
+
+  if [[ $system = win* ]];then
+  {
+    . $HOME/.mupel/windows.conf;
+
+    local ssh_port=2222
+    local ssh_name=`echo "$WINDOWS_DEFAULT_RUN" | tr '(' '_' | tr ')' '_'`;
+
+    if [[ -z `ps aux | grep qemu-system-x86_64 | grep emu-windows-` ]];then
+    {
+      echo "Found Windows not active and becomes started now ..."
+      qemu-windows "$WINDOWS_DEFAULT_RUN" &
+      sleep 5;
+    } fi
+  } fi
+
+  if [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
+  {
+    . $HOME/.mupel/mac-osx.conf;
+
+    local ssh_port=2223
+    local ssh_name=`echo "$MAC_OS_X_DEFAULT_RUN" | tr '(' '_' | tr ')' '_'`;
+
+    if [[ -z `ps aux | grep qemu-system-x86_64 | grep emu-mac-osx-` ]];then
+    {
+      echo "Found Mac OS X not active and becomes started now ..."
+      qemu-mac-osx "$MAC_OS_X_DEFAULT_RUN" &
+      local ssh_port=2223
+      sleep 5;
+    } fi
+  } fi
+
+  if [[ $system = win* ]] || [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
+  {
+    printf "Checking ssh connection for independent OS build system (can take some seconds): ";
+    for (( j = 1; j < $OS_START_TIMEOUT; ++ j ));do
+    {
+      if [[ -z `nmap 127.0.0.1 -PN -p $ssh_port | grep open` ]];then
+        continue;fi
+
+      local os_ready=1;
+      break;
+    } done
+    if [ ! -z $os_ready ];then
+      echo "connected";
+    else
+    {
+      echo "failed, build interrupted!"
+      return 1;
+    } fi
+  } fi
+
+  (
+    sleep $sleep_time
+
+    . "$HOME/.mupel/mupel.conf";
+
+    step_cef=0
+    step_kodi=0
+    step_user=0
+    bar_position=0;
+
+    if [ ! -f "$TEMP_DIR/build_thread-base_general.pid" ] && [[ $direct_build_cef = 0 ]] && [[ $direct_build_kodi = 0 ]];then
+      buildThreadBaseGeneralProcess 0;fi
+
+    while :;do
+    {
+      if [[ $INCLUDE_CEF = "TRUE" ]] && [[ $direct_build_kodi = 0 ]];then
+      {
+        if [[ $step_cef = 0 ]];then
+        {
+          if [ ! -f "$TEMP_DIR/build_thread-cef_active" ];then
+          {
+            local direct;
+            if [[ $direct_build_cef = 1 ]];then
+              direct="--build-direct";
+            else
+              direct="";fi
+
+            touch "$TEMP_DIR/build_thread-cef_active";
+            touch "$TEMP_DIR/build_thread-cef_active-${system}";
+
+            if [[ $system = win* ]];then
+              sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -l $WINDOWS_SSH_USERNAME -- bash --login "//10.0.2.4/qemu/build/tools/cef-${system}.build" $direct >> "${BASE_PATH}/build/creation-cef-${system}.log" 2>&1 &
+            elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
+              ${BASE_PATH}/tools/cef-${system}.build $direct >> "${BASE_PATH}/build/creation-cef-${system}.log" 2>&1 &
+            else
+              $caller bash "${BASE_PATH}/tools/cef-${system}.build" --temp-dir "$TEMP_DIR" $direct >> "${BASE_PATH}/build/creation-cef-${system}.log" 2>&1 &
+            fi
+            tail -f --pid=$! "${BASE_PATH}/build/creation-cef-${system}.log"
+
+            step_cef=1;
+            rm -f "$TEMP_DIR/build_thread-cef_active";
+            rm -f "$TEMP_DIR/build_thread-cef_active-${system}";
+            if [ -f $TEMP_DIR/cef-${system}.failed ];then
+            {
+              rm $TEMP_DIR/cef-${system}.failed
+              showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
+                         --image-on-top --form --text="CEF ${system} creation failed! \nRelated build stopped." \
+                         --button=gtk-ok:1 2> /dev/null &
+              touch "$TEMP_DIR/build_thread-cef-${system}-failed.txt"
+              rm -f "$TEMP_DIR/build_thread-${system}.pid";
+              exit 1
+            } fi
+          }
+          elif [[ $step_kodi = 1 ]] && [[ $step_user = 1 ]];then
+          {
+            local progress="";
+            local bar_counter=0;
+            while [ $bar_counter -lt 10 ];do
+            {
+              let bar_counter=bar_counter+1;
+              if [[ $bar_position == $bar_counter ]];then
+                progress=${progress}$BRIGHT$GREEN"|"$NORMAL;
+              else
+                progress=${progress}".";fi
+            } done
+            let bar_position=bar_position+1;
+            if [ $bar_position -ge 10 ];then
+              bar_position=0;fi
+
+            printf "\rOther CEF build active, need finished before next start $WHITE[$NORMAL $progress $WHITE]$NORMAL";
+            sleep 2;
+            continue;
+          } fi
+        } fi
+      }
+      else
+        step_cef=1;fi
+
+      if [[ $INCLUDE_KODI = "TRUE" ]] && [[ $direct_build_cef = 0 ]];then
+      {
+        if [[ $step_kodi = 0 ]];then
+        {
+          local direct;
+          if [[ $direct_build_kodi = 1 ]];then
+            direct="--build-direct";
+          else
+            direct="";fi
+
+          if [[ $system = win* ]];then
+            sshpass -p $WINDOWS_SSH_PASSWORD ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME -- bash --login "//10.0.2.4/qemu/build/tools/kodi-${system}.build" $direct >> "${BASE_PATH}/build/creation-kodi-${system}.log" 2>&1 &
+          elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
+            ${BASE_PATH}/tools/kodi-${system}.build --temp-dir "$TEMP_DIR" $direct >> "${BASE_PATH}/build/creation-kodi-${system}.log" 2>&1 &
+          else
+            $caller bash "${BASE_PATH}/tools/kodi-${system}.build" --temp-dir "$TEMP_DIR" $direct >> "${BASE_PATH}/build/creation-kodi-${system}.log" 2>&1 &
+          fi
+          tail -f --pid=$! "${BASE_PATH}/build/creation-kodi-${system}.log";
+
+          if [ -f $TEMP_DIR/kodi-${system}.failed ];then
+          {
+            rm $TEMP_DIR/kodi-${system}.failed
+            showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
+                       --image-on-top --form --text="Kodi ${system} creation failed! \nRelated build stopped." \
+                       --button=gtk-ok:1 2> /dev/null &
+            touch "$TEMP_DIR/build_thread-${system}_failed.txt";
+            rm -f "$TEMP_DIR/build_thread-${system}.pid";
+            exit 1
+          } fi
+
+          step_kodi=1
+
+          if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-${system}/kodi.bin" ] ||
+             [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-${system}/kodiapp-x86-debug.apk" ];then
+          {
+            echo "#> msg field 1:enable 1";
+            echo "#> msg field 2:enable 1";
+            parse_values "add-ons" "${system}";
+          }
+          else
+          {
+            echo "#> msg field 1:enable 0";
+            echo "#> msg field 2:enable 0";
+          } fi
+          continue;
+        } fi
+      }
+      else
+        step_kodi=1;fi
+
+      if [[ $INCLUDE_USER_SCRIPT = "TRUE" ]] && [[ $direct_build_kodi = 0 ]] && [[ $direct_build_cef = 0 ]];then
+      {
+        if [[ $step_user = 0 ]];then
+        {
+          if [[ $system = win* ]];then
+            sshpass -p $WINDOWS_SSH_PASSWORD ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME -- bash --login "//10.0.2.4/qemu/build/tools/user-script-${system}.build" >> "${BASE_PATH}/build/creation-user-script-${system}.log" 2>&1 &
+          elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
+            ${BASE_PATH}/tools/user-script-${system}.build --temp-dir "$TEMP_DIR" >> "${BASE_PATH}/build/creation-user-script-${system}.log" 2>&1 &
+          else
+            $caller bash "${BASE_PATH}/tools/user-script-${system}.build" --temp-dir "$TEMP_DIR" >> "${BASE_PATH}/build/creation-user-script-${system}.log" 2>&1 &
+          fi
+          tail -f --pid=$! "${BASE_PATH}/build/creation-user-script-${system}.log"
+
+          step_user=1
+          if [ -f $TEMP_DIR/user_script-${system}.failed ];then
+          {
+            rm $TEMP_DIR/user_script-${system}.failed;
+            showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
+                       --image-on-top --form --text="User script ${system} creation failed! \nRelated build stopped." \
+                       --button=gtk-ok:1 2> /dev/null &
+            touch "$TEMP_DIR/build_thread-user_script_${system}_failed.txt"
+            rm -f "$TEMP_DIR/build_thread-${system}.pid";
+            exit 1
+          } fi
+        } fi
+      }
+      else
+        step_user=1;fi
+
+      if [[ $step_cef = 1 ]] && [[ $step_kodi = 1 ]] && [[ $step_user = 1 ]];then
+      {
+        printf "${BRIGHT}${GREEN}All build steps successfully performed${NORMAL}\n";
+
+        rm -f "$TEMP_DIR/build_thread-${system}.pid";
+        exit 0;
+      } fi
+
+      sleep 2
+    } done
+  ) &
+  pid=$!
+
+  echo $pid > "$TEMP_DIR/build_thread-${system}.pid"
+  echo "Build of ${system} started ...";
+}
+
+function buildThreadKodiAddonForOS()
+{
+  local system="$1"
+  local caller="$2"
+  local addon_build="$3"
+  local addon_name="$4"
+
+  if [ -f "${BASE_PATH}/build/creation-kodi-addon-${addon_name}-${system}.log" ];then
+    mv "${BASE_PATH}/build/creation-kodi-addon-${addon_name}-${system}.log" "${BASE_PATH}/build/creation-kodi-addon-${addon_name}-${system}-`date +%F_%H-%m`.old.log";fi
+
+  touch "${BASE_PATH}/build/creation-kodi-addon-${addon_name}-${system}.log"
+  (
+    sleep 3
+
+    . "$HOME/.mupel/mupel.conf";
+
+    if [[ $system = win* ]];then
+      sshpass -p $WINDOWS_SSH_PASSWORD ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME -- bash --login "//10.0.2.4/qemu/build/tools/kodi-addon-${addon_name}-${system}.build --addon $addon_name" >> "${BASE_PATH}/build/creation-kodi-addon-${system}.log" 2>&1 &
+    elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
+      ${BASE_PATH}/tools/kodi-addon-${system}.build --temp-dir "$TEMP_DIR" --addon "$addon_name" >> "${BASE_PATH}/build/creation-kodi-addon-${addon_name}-${system}.log" 2>&1 &
+    else
+      $caller bash "${BASE_PATH}/tools/kodi-${system}.build" --temp-dir "$TEMP_DIR" --addon "$addon_name" >> "${BASE_PATH}/build/creation-kodi-addon-${addon_name}-${system}.log" 2>&1 &
+    fi
+    error_value=${?}
+
+    rm -f "$TEMP_DIR/build_thread-${system}.pid";
+    if [ ${error_value} != 0 ];then
+    {
+      showdialog --title="Warning" \
+          --image="$BASE_PATH/icons/icon-warning-128x128.png" \
+          --image-on-top --form \
+          --text="Kodi add-on ${system} for ${addon_name} creation failed! \nRelated build stopped." \
+          --button=gtk-ok:1 2> /dev/null &
+      touch "$TEMP_DIR/build_thread-${system}_failed.txt"
+      exit ${error_value}
+    } fi
+  ) &
+  pid=$!
+  tail -f --pid=$pid "${BASE_PATH}/build/creation-kodi-addon-${addon_name}-${system}.log" &
+
+  echo $pid > "$TEMP_DIR/build_thread-${system}.pid"
+  echo "Build of kodi add-on ${system} for ${addon_name} started ...";
+}
+
+function getAndroidAVDS()
+{
+  local android_system=$1
+  local android_avds=
+  local android_avds_available=
+
+  if [ -f $HOME/.mupel/android.conf ];then
+  {
+    . $HOME/.mupel/android.conf;
+    if [ ! -f $ANDROID_DEV_ROOT/android-sdk-linux/tools/android ];then
+      return 1;fi
+
+    if [[ $android_system = x86 ]];then
+      android_sel_avd=$ANDROID_SEL_AVD_X86;
+    elif [[ $android_system = x86_64 ]];then
+      android_sel_avd=$ANDROID_SEL_AVD_X86_64;
+    elif [[ $android_system = arm ]];then
+      android_sel_avd=$ANDROID_SEL_AVD_ARM;
+    elif [[ $android_system = mips ]];then
+      android_sel_avd=$ANDROID_SEL_AVD_MIPS;
+    elif [[ $android_system = mips64 ]];then
+      android_sel_avd=$ANDROID_SEL_AVD_MIPS64;
+    else
+      return 1;fi
+
+    sel_target_version=$(echo $ANDROID_SEL_TARGET | awk -F '-' '{print $2}');
+
+    IFS=$'\n'
+    avd_device="-"
+    declare -a android_avds=($($ANDROID_DEV_ROOT/android-sdk-linux/tools/android list avd))
+    for (( i = 0; i < ${#android_avds[*]}; ++ i ));do
+    {
+      if [[ $(echo ${android_avds[i]} | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//') = Name* ]];then
+      {
+        avd_name=$(echo ${android_avds[i]} | awk -F ': ' '{print $2}');
+        for (( j = 1; j < 6; ++ j ));do
+        {
+          value=$(echo ${android_avds[i+j]} | awk -F ': ' '{print $2}');
+          if [[ ${android_avds[i+j]} = "  Device: "* ]];then
+            avd_device=$value;
+          elif [[ ${android_avds[i+j]} = "    Path: "* ]];then
+            avd_path=$value;
+          elif [[ ${android_avds[i+j]} = "  Target: "* ]];then
+            avd_target=$value;
+          elif [[ ${android_avds[i+j]} = " Tag/ABI: "* ]];then
+            avd_tag_abi=$value;
+          elif [[ ${android_avds[i+j]} = "    Skin: "* ]];then
+            avd_skin=$value;fi
+        } done
+
+        echo $avd_tag_abi | grep -q $android_system;
+        if [ $? != 0 ];then
+          continue;fi
+
+        if [[ $sel_target_version > $(echo $avd_target | awk -F 'API level ' '{print $2}' | awk -F ')' '{print $1}') ]];then
+          continue;fi
+
+        if [ -z $android_sel_avd ];then
+          android_sel_avd=$avd_name;fi
+        if [[ $avd_name = $android_sel_avd ]];then
+          android_avds_available+="^";fi
+        android_avds_available+="${avd_name}; API: $(echo ${avd_target} | awk -F 'level ' '{print $2}' | awk -F ')' '{print $1}'); Tag: $(echo ${avd_tag_abi} | awk -F '/' '{print $1}'); Device: ${avd_device}; ${avd_skin}!"
+      } fi
+    } done
+    android_avds_available=${android_avds_available::-1};
+    unset IFS;
+  }
+  else
+    return 1;fi
+
+  echo $android_avds_available;
+
+  return 0;
+}
+
+# cleanup
+function cleanup()
+{
+  rm -rf "$TEMP_DIR"
+
+  # Remove temp files, from it knows the threads that they are finished
+  rm -f "$thread1_in" \
+        "$thread2_in" \
+        "$thread3_in" \
+        "$thread4_in" \
+        "$thread5_in" \
+        "$thread6_in" \
+        "$thread7_in" \
+        "$thread8_in" \
+        "$thread9_in"
+  sleep 1.5
+
+  # Check after
+  if [[ ! -z $pid_thread1 ]];then
+    ps -p $pid_thread1; [[ $? = 0 ]] && killtree $pid_thread1 KILL;fi
+  if [[ ! -z $pid_thread2 ]];then
+    ps -p $pid_thread2; [[ $? = 0 ]] && killtree $pid_thread2 KILL;fi
+  if [[ ! -z $pid_thread3 ]];then
+    ps -p $pid_thread3; [[ $? = 0 ]] && killtree $pid_thread3 KILL;fi
+  if [[ ! -z $pid_thread4 ]];then
+    ps -p $pid_thread4; [[ $? = 0 ]] && killtree $pid_thread4 KILL;fi
+  if [[ ! -z $pid_thread5 ]];then
+    ps -p $pid_thread5; [[ $? = 0 ]] && killtree $pid_thread5 KILL;fi
+  if [[ ! -z $pid_thread6 ]];then
+    ps -p $pid_thread6; [[ $? = 0 ]] && killtree $pid_thread6 KILL;fi
+  if [[ ! -z $pid_thread7 ]];then
+    ps -p $pid_thread7; [[ $? = 0 ]] && killtree $pid_thread7 KILL;fi
+  if [[ ! -z $pid_thread8 ]];then
+    ps -p $pid_thread8; [[ $? = 0 ]] && killtree $pid_thread8 KILL;fi
+  if [[ ! -z $pid_thread9 ]];then
+    ps -p $pid_thread9; [[ $? = 0 ]] && killtree $pid_thread9 KILL;fi
+  if [[ ! -z $pid_thread10 ]];then
+    ps -p $pid_thread10; [[ $? = 0 ]] && killtree $pid_thread10 KILL;fi
+}
+
+function usage()
+{
+  echo "Usage: $0 [--options]"
+  echo "Options:"
+  echo "--info        Shows the information dialog"
+  echo "--help        this help message"
+  echo "Script will prompt interactively for other values."
+  exit 1
+}
+
+function process_opts()
+{
+  while test "$1" != "" ; do
+    case "$1" in
+      --info)                   showSystemInfoDialog "Multi platform build environment for Kodi on Linux (Mupel)"
+                                exit 0;;
+      --help)                   usage;;
+      *)
+        echo "invalid command-line option: $OPTARG"
+        usage
+        ;;
+    esac
+    shift
+  done
+}
+
+function getWindowsTargets()
+{
+  local windows_targets=;
+
+  if [ -f "$HOME/.mupel/windows.conf" ];then
+  {
+    . "$HOME/.mupel/windows.conf";
+
+    windows_targets=$(ls -d $HOME/.mupel/emulate/emu-windows* | awk -F"/" '{print $NF}' | tr '\n'  '!');
+    windows_targets=${windows_targets::-2};
+    windows_targets=$(echo ${windows_targets//$WINDOWS_DEFAULT_RUN/\^${WINDOWS_DEFAULT_RUN}});
+  } fi
+  echo $windows_targets;
+  return 0;
+}
+
+function getMacOSXTargets()
+{
+  local macosx_targets=;
+
+  if [ -f "$HOME/.mupel/mac-osx.conf" ];then
+  {
+    . "$HOME/.mupel/mac-osx.conf";
+
+    macosx_targets=$(ls -d $HOME/.mupel/emulate/emu-mac-osx* | awk -F"/" '{print $NF}' | tr '\n'  '!');
+    macosx_targets=${macosx_targets::-2};
+    macosx_targets=$(echo ${macosx_targets//$MAC_OS_X_DEFAULT_RUN/\^${MAC_OS_X_DEFAULT_RUN}});
+  } fi
+  echo $macosx_targets;
+  return 0;
+}
+
+function getAndroidTargets()
+{
+  local android_targets=;
+  IFS=$' '
+
+  if [ -f "$HOME/.mupel/android.conf" ];then
+  {
+    . "$HOME/.mupel/android.conf";
+
+    if [ ! -f "$ANDROID_DEV_ROOT/android-sdk-linux/tools/android" ];then
+    {
+      printf "${RED}${BRIGHT}Not possible to use android, failure in system! ${NORMAL}\n" > /dev/stderr;
+      return 1;
+    } fi
+    android_targets=$($ANDROID_DEV_ROOT/android-sdk-linux/tools/android list targets | grep "android-" | awk -F '"' '{print $2}' | tr '\n' '!');
+    android_targets=${android_targets::-2};
+    android_targets=$(echo ${android_targets//$ANDROID_SEL_TARGET/\^${ANDROID_SEL_TARGET}});
+  } fi
+  echo $android_targets;
+  return 0;
+}
+
+function showAndroidEmulatorKeyHelp()
+{
+  showdialog --skip-taskbar --on-top \
+             --title="Android Emulator Keys" \
+             --image="$BASE_PATH/icons/icon-info-128x128.png" \
+             --image-on-top --form \
+             --button=gtk-ok:0 \
+             --width=830 --show-uri --editable \
+             --text-info \
+             --text="<tt>
+  When running the emulator, use the following keypresses:
+
+    Home                    Home button
+    F2, PageUp              Menu (Soft-Left) button
+    Shift-F2, PageDown      Star (Soft-Right) button
+    Escape                  Back button
+    F3                      Call/Dial button
+    F4                      Hangup/EndCall button
+    F7                      Power button
+    F5                      Search button
+    Keypad_Plus, Ctrl-F5    Volume up button
+    Keypad_Minus, Ctrl-F6   Volume down button
+    Ctrl-Keypad_5, Ctrl-F3  Camera button
+    Keypad_7, Ctrl-F11      Switch to previous layout
+    Keypad_9, Ctrl-F12      Switch to next layout
+    F8                      Toggle cell network on/off
+    F9                      Toggle fullscreen mode
+    F6                      Toggle trackball mode
+    Delete                  Show trackball
+    Keypad_5                DPad center
+    Keypad_4                DPad left
+    Keypad_6                DPad right
+    Keypad_8                DPad up
+    Keypad_2                DPad down
+    Keypad_Multiply         Increase onion alpha
+    Keypad_Divide           Decrease onion alpha
+
+  note that NumLock must be deactivated for keypad keys to work</tt>" 2> /dev/null
+}
+
+}
+#
+###############################################################################
+
+
+###-------------------------------------------------------------------------###
+#                                                                             #
+#                            Start of process points                          #
+#                                                                             #
+[[ $DIST != "Ubuntu" ]] && [[ $DIST != "Debian" ]] && {
+  echo "${RED}${BRIGHT}Build not possible, need performed on ubuntu or debian based system (needed for install of dependencies parts)${NORMAL}" > /dev/stderr
+  exit 1 ;
+}
+
+# Check that xserver is running and user is root.
+[[ $DISPLAY ]] || {
+  echo $"${RED}${BRIGHT}There is no xserver running. Exiting...${NORMAL}";
+  exit 1;
+}
+
+# Check that we are running as a regular user
+[ "$(id -nu)" = root ] && {
+  printf "${RED}${BRIGHT}Run this script as a regular user and provide your \"sudo\" password if requested!${NORMAL}\n" > /dev/stderr
+  exit 1;
+}
+
+unset IFS;
+
+process_opts "$@";
+
+##
+# Due to sometimes problems of the big app chain from yad make sure on start of
+# them here every else is killed, due to the separate name used on this is it
+# not direct problematic on system but a hack way
+killall $basic_dialog -q;
+
+$basic_dialog --html --width=644 --height=478 --uri=/home/alwin/mupel/icons/mupel-start-image.png --undecorated --no-buttons --sticky --on-top --center --skip-taskbar &
+start_dialog_pid=$!;
+sleep 1.5
+
+SYSTEM_ACTIVE=1;
+
+DEBUG=
+KEY=$RANDOM
+if [ -z $DEBUG ];then
+{
+  TEMP_DIR=$(mktemp -d);
+}
+else
+{
+  echo "Debug mode enabled";
+  TEMP_DIR=`pwd`/tmp;
+  mkdir $TEMP_DIR;
+} fi
+
+thread1_in=${TEMP_DIR}/thread1_in
+touch ${TEMP_DIR}/thread1_in
+thread2_in=${TEMP_DIR}/thread2_in
+touch ${TEMP_DIR}/thread2_in
+thread3_in=${TEMP_DIR}/thread3_in
+touch ${TEMP_DIR}/thread3_in
+thread4_in=${TEMP_DIR}/thread4_in
+touch ${TEMP_DIR}/thread4_in
+thread5_in=${TEMP_DIR}/thread5_in
+touch ${TEMP_DIR}/thread5_in
+thread6_in=${TEMP_DIR}/thread6_in
+touch ${TEMP_DIR}/thread6_in
+thread7_in=${TEMP_DIR}/thread7_in
+touch ${TEMP_DIR}/thread7_in
+thread8_in=${TEMP_DIR}/thread8_in
+touch ${TEMP_DIR}/thread8_in
+thread9_in=${TEMP_DIR}/thread9_in
+touch ${TEMP_DIR}/thread9_in
+
+###############################################################################
+# Thread one: General handling
+{
+  (
+    PULSE_ON=0;
+    save_config=0;
+    enabled=1
+    process_active=0
+
+    while :;do
+    {
+      if [ -f ./build/global_mupel_install ];then
+      {
+        sleep 2;
+        continue;
+      } fi
+
+      . "$HOME/.mupel/mupel.conf";
+
+      # Set buttons to initial state
+      echo "#> msg field 0:visible 1;";
+      echo "#> msg field 1:visible 0;";
+      echo "#> msg field 3:visible 0;"; # Dummy
+      if [[ $USE_LINUX_X86_32 = "FALSE" ]] &&
+         [[ $USE_LINUX_X86_64 = "FALSE" ]] &&
+         [[ $USE_LINUX_RPBI = "FALSE" ]] &&
+         [[ $USE_MS_WINDOWS_32 = "FALSE" ]] &&
+         [[ $USE_MS_WINDOWS_64 = "FALSE" ]] &&
+         [[ $USE_MAC_OS_X_32 = "FALSE" ]] &&
+         [[ $USE_MAC_OS_X_64 = "FALSE" ]] &&
+         [[ $USE_ANDROID_ARM = "FALSE" ]] &&
+         [[ $USE_ANDROID_X86 = "FALSE" ]] &&
+         [[ $USE_IOS_ATV2 = "FALSE" ]];then
+      {
+        echo "#> msg field 0:enable 0;";
+        echo "#> msg field 2:visible 1;";
+        echo "#> msg field 2:enable 1;";
+        enabled=0;
+      }
+      else
+      {
+        echo "#> msg field 0:enable 1;";
+        echo "#> msg field 2:visible 0;";
+      } fi
+
+      echo "#> msg field 6:set $INCLUDE_KODI;";
+      echo "#> msg field 7:set $INCLUDE_KODI_ADDONS;";
+      echo "#> msg field 8:set $INCLUDE_CEF;";
+      [[ $SUPPORT_CEF = "TRUE" ]] && echo "#> msg field 8:enable 1;" || echo "#> msg field 8:enable 0;";
+
+      sleep 2
+      kill $start_dialog_pid
+
+      # Main loop
+      while :;do
+      {
+        if [ ! -f "$thread1_in" ];then
+          exit 0;fi
+
+        if [ -f ./build/global_mupel_install ];then
+        {
+          echo "#> msg field 2:enable 0;";
+          break;
+        } fi
+
+        if [ -z $SYSTEM_ACTIVE ];then
+          echo "#> msg field -1:values;";fi
+
+        if [[ $enabled = 0 ]] && [ -z $DEBUG ];then
+        {
+          echo "No systems available, starting install" > /dev/stderr
+          bash $BASE_PATH/mupel-install --main-msg $thread1_in;
+        } fi
+
+        proc=$(cat "$thread1_in")
+        echo -n "" > "$thread1_in";
+        IFS='\n';
+        for line in ${proc}; do
+        {
+          if [[ "$line" == "#< msg"* ]];then
+          {
+            if [[ "$line" = *"start_build"* ]];then
+            {
+              echo "#> msg pulse on;";
+              echo "#> msg field 0:visible 0;";
+              echo "#> msg field 1:visible 1;";
+              echo "#> msg field 6:enable 0;";
+              echo "#> msg field 7:enable 0;";
+              echo "#> msg field 8:enable 0;";
+              PULSE_ON=1
+
+              buildThreadBaseGeneral
+            }
+            elif [[ "$line" = *"stop_build"* ]];then
+            {
+              [[ $USE_LINUX_X86_32 = "TRUE" ]]  && echo "#< msg stop_build;" >> "$thread2_in"
+              [[ $USE_LINUX_X86_64 = "TRUE" ]]  && echo "#< msg stop_build;" >> "$thread3_in"
+              [[ $USE_LINUX_RPBI = "TRUE" ]]    && echo "#< msg stop_build;" >> "$thread4_in"
+              [[ $USE_MS_WINDOWS_32 = "TRUE" ]] ||
+              [[ $USE_MS_WINDOWS_64 = "TRUE" ]] && echo "#< msg stop_build;" >> "$thread5_in"
+              [[ $USE_MAC_OS_X_32 = "TRUE" ]]   ||
+              [[ $USE_MAC_OS_X_64 = "TRUE" ]]   && echo "#< msg stop_build;" >> "$thread6_in"
+              [[ $USE_ANDROID_ARM = "TRUE" ]]   ||
+              [[ $USE_ANDROID_X86 = "TRUE" ]]   && echo "#< msg stop_build;" >> "$thread7_in"
+              [[ $USE_IOS_ATV2 = "TRUE" ]]      && echo "#< msg stop_build;" >> "$thread8_in"
+
+              if [ -f "$TEMP_DIR/build_thread-base_general.pid" ];then
+              {
+                pid_to_kill=$(cat "$TEMP_DIR/build_thread-base_general.pid");
+                ps -p $pid_to_kill > /dev/null
+                if [[ $? = 0 ]];then
+                {
+                  killtree $pid_to_kill KILL;
+                  kill $pid_to_kill
+                } fi
+                rm -f "$TEMP_DIR/build_thread-base_general.pid"
+                killall git
+                killall python
+                rm -f "$TEMP_DIR/.tempLoggerActive"
+              } fi
+              echo ""
+              if [[ $PULSE_ON = 1 ]];then
+              {
+                echo "#> msg pulse off;";
+                PULSE_ON=0;
+              } fi
+              echo "#> msg percent 0;";
+              echo "#> msg field 0:visible 1;";
+              echo "#> msg field 1:visible 0;";
+              echo "#> msg field 6:enable 1;";
+              echo "#> msg field 7:enable 1;";
+              echo "#> msg field 8:enable 1;";
+            }
+            elif [[ "$line" = *"field"* ]];then {
+              IFS=$'\n'; for p in ${line}; do
+                id=$(echo ${p} | awk -F ' ' '{print $4}' | awk -F ':' '{print $1}')
+                value=$(echo ${p#*:} | awk -F ';' '{print $1}')
+                IFS=$'|';
+                if [[ "$id" -ge "0" ]];then
+                  parse_values "general" $id "$value"
+                else
+                  id2=0
+                  IFS=$'|';
+                  for value2 in ${value}; do
+                  {
+                    parse_values "general" $id2 "$value2"
+                    ((id2++))
+                  } done;
+                fi; IFS=$'\n';
+              done; unset IFS;
+              save_config=$SAVE_TIMEOUT;
+              [ -z $SYSTEM_ACTIVE ] && exit 0;
+            }
+            else {
+              echo "Wrong command! $line" > /dev/stderr
+            } fi
+          }
+          else
+          {
+            echo "$line"
+          } fi
+        } done
+
+        if [ -f "$TEMP_DIR/build_thread-base_general.pid" ];then
+        {
+          process_active=1
+        }
+        elif [[ $process_active != 0 ]];then
+        {
+          #echo "#< msg stop_build;" >> "$thread1_in";
+          process_active=0;
+        } fi
+
+        # Perform if needed save of configuration file
+        if [[ $save_config > 0 ]];then
+        {
+          ((save_config--))
+          if [[ $save_config = 0 ]];then
+          {
+            saveConfigFile;
+            save_config=0
+          }
+          else
+          {
+            sleep 0.1;
+            continue;
+          } fi
+        } fi
+
+        sleep 0.5;
+      } done
+    } done
+  ) | \
+  yad-mupel-x86_64 --plug=$KEY --tabnum=1 --form \
+            --text="General settings" \
+            --pulsate \
+            --xcom-log=$thread1_in \
+            --field="Start build all:FBTN@0,8,0,2" "bash -c 'echo \"#< msg start_build;\" > $thread1_in'" \
+            --field="Stop build all:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build;\" > $thread1_in'" \
+            --field="Create and install Mupel system:FBTN@0,8,4,6" "bash $BASE_PATH/mupel-install --main-msg $thread1_in" \
+            --field="dummy:FBTN@0,1,6,8" "" \
+            --field="Clear log:FBTN@8,8,6,8" "bash -c 'echo \"#> msg field 10:clear;\" >> $thread1_in'" \
+            --field=":lbl@0,8,10,12" \
+            --field="Include Kodi:chk@0,0,12,14" $INCLUDE_KODI \
+            --field="Include Kodi add-ons:chk@2,2,12,14" $INCLUDE_KODI_ADDONS \
+            --field="Include CEF:chk@4,4,12,14" $INCLUDE_CEF \
+            --field="Build log:termproc@0,9,16,18" "" > /dev/null 2>&1 &
+  pid_thread1=$!
+}
+#
+###############################################################################
+
+TAB_LIST=
+TAB_NUM=2
+
+###############################################################################
+# Thread two: Handle Linux 32 bit
+if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
+{
+  (
+    sleep 0.5;
+
+    pulse_on=0;
+    save_config=0;
+    process_active=0
+
+    while :;do
+    {
+      if [ -f ./build/global_mupel_install ];then
+      {
+        [ -z $SYSTEM_ACTIVE ] && exit 0;
+        sleep 2;
+        continue;
+      } fi
+
+      if [ ! -f "$HOME/.mupel/mupel.conf" ];then
+      {
+        sleep 0.5;
+        continue;
+      } fi
+
+      . "$HOME/.mupel/mupel.conf";
+      export KODI_SEL_ADDON
+      GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+
+      # Set buttons to initial state
+      echo "#> msg field 0:visible 1;";
+      echo "#> msg field 1:visible 1;";
+      echo "#> msg field 2:visible 1;";
+      echo "#> msg field 3:visible 1;";
+      echo "#> msg field 4:visible 0;";
+      if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/kodi.bin" ];then
+      {
+        kodi_direct=1
+        parse_values "add-ons" "linux-x86_32"
+      }
+      else
+        kodi_direct=0;fi
+      echo "#> msg field 1:enable $kodi_direct;";
+      echo "#> msg field 3:enable $kodi_direct;";
+      echo "#> msg field 7:enable $kodi_direct;";
+      echo "#> msg field 8:enable 1;";
+      echo "#> msg field 9:enable $kodi_direct;";
+
+      if [ -f "${BASE_PATH}/build/.cef-linux-x86_32.active" ];then
+        cef_direct=1
+      else
+        cef_direct=0;fi
+      echo "#> msg field 2:enable $cef_direct;";
+
+      # Main loop
+      while :;do
+      {
+        if [ ! -f "$thread2_in" ];then
+          exit 0;fi
+
+        if [ -f ./build/global_mupel_install ];then
+        {
+          [ -z $SYSTEM_ACTIVE ] && exit 0;
+          break;
+        } fi
+
+        if [ -z $SYSTEM_ACTIVE ];then
+          echo "#> msg field -1:values;";fi
+
+        proc="$(cat "$thread2_in")"
+        echo -n "" > "$thread2_in";
+        IFS=$'\n';
+        for line in ${proc}; do
+        {
+          if [[ "$line" == "#< msg"* ]];then
+          {
+            if [[ "$line" = *"start_direct_build_kodi"* ]];then
+              is_direct_kodi=1
+            else
+              is_direct_kodi=0;fi
+            if [[ "$line" = *"start_direct_build_cef"* ]];then
+              is_direct_cef=1
+            else
+              is_direct_cef=0;fi
+
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+            {
+              echo "#> msg pulse on;";
+              echo "#> msg field 0:visible 0;";
+              echo "#> msg field 1:visible 0;";
+              echo "#> msg field 2:visible 0;";
+              echo "#> msg field 3:visible 0;";
+              echo "#> msg field 4:visible 1;";
+              echo "#> msg field 7:enable 0;";
+              echo "#> msg field 8:enable 0;";
+              echo "#> msg field 9:enable 0;";
+              pulse_on=1
+
+              buildThreadForOS "linux-x86_32" "${USE_LINUX_X86_DISTR}32" 5 $is_direct_cef $is_direct_kodi
+            }
+            elif [[ "$line" = *"start_addon_build"* ]];then
+            {
+              echo "#> msg pulse on;";
+              echo "#> msg field 0:visible 0;";
+              echo "#> msg field 1:visible 0;";
+              echo "#> msg field 2:visible 0;";
+              echo "#> msg field 3:visible 0;";
+              echo "#> msg field 4:visible 1;";
+              echo "#> msg field 7:enable 0;";
+              echo "#> msg field 8:enable 0;";
+              echo "#> msg field 9:enable 0;";
+              pulse_on=1
+
+              buildThreadKodiAddonForOS "linux-x86_32" "${USE_LINUX_X86_DISTR}32" 1 "$KODI_SEL_ADDON"
+            }
+            elif [[ "$line" = *"stop_build"* ]];then
+            {
+              if [ -f "$TEMP_DIR/build_thread-linux-x86_32.pid" ];then
+              {
+                pid_to_kill=$(cat "$TEMP_DIR/build_thread-linux-x86_32.pid");
+                ps -p $pid_to_kill > /dev/null
+                if [[ $? = 0 ]];then
+                {
+                  killtree $pid_to_kill KILL;
+                  kill $pid_to_kill
+                } fi
+                rm -f "$TEMP_DIR/build_thread-linux-x86_32.pid"
+              } fi
+
+              echo ""
+              if [[ $pulse_on = 1 ]];then
+              {
+                echo "#> msg pulse off;";
+                pulse_on=0;
+              } fi
+              echo "#> msg percent 0;";
+              echo "#> msg field 0:visible 1;";
+              echo "#> msg field 1:visible 1;";
+              echo "#> msg field 2:visible 1;";
+              echo "#> msg field 3:visible 1;";
+              echo "#> msg field 4:visible 0;";
+              GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+              if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/kodi.bin" ];then
+                kodi_direct=1
+              else
+                kodi_direct=0;fi
+              echo "#> msg field 1:enable $kodi_direct;";
+              echo "#> msg field 3:enable $kodi_direct;";
+              echo "#> msg field 7:enable $kodi_direct;";
+              echo "#> msg field 8:enable 1;";
+              echo "#> msg field 9:enable $kodi_direct;";
+              if [ -f "${BASE_PATH}/build/.cef-linux-x86_32.active" ];then
+                cef_direct=1
+              else
+                cef_direct=0;fi
+              echo "#> msg field 2:enable $cef_direct;";
+            }
+            elif [[ "$line" = *"field 7:"* ]];then
+            {
+              enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
+              echo "#> msg field 7:enable $enable;"
+            }
+            elif [[ "$line" = *"field 8:"* ]];then
+            {
+              KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
+              if [[ $KODI_SEL_ADDON != "(null)" ]];then
+              {
+                export KODI_SEL_ADDON
+                saveConfigFile;
+              } fi
+            }
+            elif [[ "$line" = *"field"* ]];then
+            {
+              IFS=$'\n'; for p in ${line}; do
+                id=$(echo ${p} | awk -F ' ' '{print $4}' | awk -F ':' '{print $1}')
+                value=$(echo ${p#*:} | awk -F ';' '{print $1}')
+                IFS=$'|';
+                if [[ "$id" -ge "0" ]];then
+                  parse_values "linux-x86_32" $id "$value"
+                else
+                  id2=0
+                  IFS=$'|';
+                  for value2 in ${value}; do
+                    parse_values "linux-x86_32" $id2 "$value2"
+                    ((id2++))
+                  done;
+                fi; IFS=$'\n';
+              done; unset IFS;
+              saveConfigFile;
+              [ -z $SYSTEM_ACTIVE ] && exit 0;
+            }
+            else
+              echo "Wrong command! $line" > /dev/stderr;fi
+          }
+          else
+          {
+            echo "$line"
+          } fi
+        } done
+
+        if [ -f "$TEMP_DIR/build_thread-linux-x86_32.pid" ];then
+        {
+          process_active=1
+        }
+        elif [[ $process_active != 0 ]];then
+        {
+          echo "#< msg stop_build;" >> "$thread2_in";
+          process_active=0;
+        } fi
+
+        if [[ $cef_direct = 1 ]] && [ ! -f "${BASE_PATH}/build/.cef-linux-x86_32.active" ];then
+        {
+          cef_direct=0
+          echo "#> msg field 2:enable $cef_direct;";
+        } fi
+
+        # Perform if needed save of configuration file
+        if [[ $save_config > 0 ]];then
+        {
+          ((save_config--))
+          if [[ $save_config = 0 ]];then
+          {
+            saveConfigFile;
+            save_config=0
+          }
+          else
+          {
+            sleep 0.1;
+            continue;
+          } fi
+        } fi
+
+        sleep 0.75;
+      } done
+    }
+    done
+  ) | \
+  yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
+             --text="Linux x86-32 build" \
+             --pulsate \
+             --xcom-log=$thread2_in \
+             --field="Build complete:FBTN@0,1,0,2" "bash -c 'echo \"#< msg start_build\" > $thread2_in'" \
+             --field="Build kodi direct:FBTN@2,3,0,2" "bash -c 'echo \"#< msg start_direct_build_kodi\" > $thread2_in'" \
+             --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" > $thread2_in'" \
+             --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread2_in'" \
+             --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread2_in'" \
+             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread2_in'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER ${BASE_PATH}/build/creation-kodi-linux-x86_32.log ${BASE_PATH}/build/creation-general.log ${BASE_PATH}/build/creation-cef-linux-x86_32.log;'" \
+             --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-linux-x86_32 $thread2_in" \
+             --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread2_in'" \
+             --field="Add-on:CB@7,8,4,6" '' \
+             --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
+  pid_thread2=$!
+
+  TAB_LIST+="--tab=Linux-x86-32 "
+  ((TAB_NUM++))
+} fi
+#
+###############################################################################
+
+###############################################################################
+# Thread three: Handle Linux 64 bit
+if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
+{
+  (
+    sleep 0.5;
+
+    pulse_on=0;
+    save_config=0;
+    process_active=0
+
+    while :;do
+    {
+      if [ -f ./build/global_mupel_install ];then
+      {
+        [ -z $SYSTEM_ACTIVE ] && exit 0;
+        sleep 2;
+        continue;
+      } fi
+
+      if [ ! -f "$HOME/.mupel/mupel.conf" ];then
+      {
+        sleep 0.5;
+        continue;
+      } fi
+
+      . "$HOME/.mupel/mupel.conf";
+      export KODI_SEL_ADDON
+
+      # Set buttons to initial state
+      echo "#> msg field 0:visible 1;";
+      echo "#> msg field 1:visible 1;";
+      echo "#> msg field 2:visible 1;";
+      echo "#> msg field 3:visible 1;";
+      echo "#> msg field 4:visible 0;";
+      GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+      if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/kodi.bin" ];then
+      {
+        kodi_direct=1
+        parse_values "add-ons" "linux-x86_64"
+      }
+      else
+        kodi_direct=0;fi
+      echo "#> msg field 1:enable $kodi_direct;";
+      echo "#> msg field 3:enable $kodi_direct;";
+      echo "#> msg field 7:enable $kodi_direct;";
+      echo "#> msg field 8:enable 1;";
+      echo "#> msg field 9:enable $kodi_direct;";
+
+      if [ -f "${BASE_PATH}/build/.cef-linux-x86_64.active" ];then
+        cef_direct=1
+      else
+        cef_direct=0;fi
+      echo "#> msg field 2:enable $cef_direct;";
+
+      # Main loop
+      while :;do
+      {
+        if [ ! -f "$thread3_in" ];then
+          exit 0;fi
+
+        if [ -f ./build/global_mupel_install ];then
+        {
+          [ -z $SYSTEM_ACTIVE ] && exit 0;
+          break;
+        } fi
+
+        if [ -z $SYSTEM_ACTIVE ];then
+          echo "#> msg field -1:values;";fi
+
+        proc="$(cat "$thread3_in")"
+        echo -n "" > "$thread3_in";
+        IFS=$'\n';
+        for line in ${proc}; do
+        {
+          if [[ "$line" == "#< msg"* ]];then
+          {
+            if [[ "$line" = *"start_direct_build_kodi"* ]];then
+              is_direct_kodi=1
+            else
+              is_direct_kodi=0;fi
+            if [[ "$line" = *"start_direct_build_cef"* ]];then
+              is_direct_cef=1
+            else
+              is_direct_cef=0;fi
+
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+            {
+              echo "#> msg pulse on;";
+              echo "#> msg field 0:visible 0;";
+              echo "#> msg field 1:visible 0;";
+              echo "#> msg field 2:visible 0;";
+              echo "#> msg field 3:visible 0;";
+              echo "#> msg field 4:visible 1;";
+              echo "#> msg field 7:enable 0;";
+              echo "#> msg field 8:enable 0;";
+              echo "#> msg field 9:enable 0;";
+              pulse_on=1
+
+              buildThreadForOS "linux-x86_64" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
+            }
+            elif [[ "$line" = *"start_addon_build"* ]];then
+            {
+              echo "#> msg pulse on;";
+              echo "#> msg field 0:visible 0;";
+              echo "#> msg field 1:visible 0;";
+              echo "#> msg field 2:visible 0;";
+              echo "#> msg field 3:visible 0;";
+              echo "#> msg field 4:visible 1;";
+              echo "#> msg field 7:enable 0;";
+              echo "#> msg field 8:enable 0;";
+              echo "#> msg field 9:enable 0;";
+              pulse_on=1
+
+              buildThreadKodiAddonForOS "linux-x86_64" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON"
+            }
+            elif [[ "$line" = *"stop_build"* ]];then
+            {
+              if [ -f "$TEMP_DIR/build_thread-linux-x86_64.pid" ];then
+              {
+                pid_to_kill=$(cat "$TEMP_DIR/build_thread-linux-x86_64.pid");
+                ps -p $pid_to_kill > /dev/null
+                if [[ $? = 0 ]];then
+                {
+                  killtree $pid_to_kill KILL;
+                  kill $pid_to_kill
+                } fi
+                rm -f "$TEMP_DIR/build_thread-linux-x86_64.pid"
+              } fi
+
+              echo ""
+              if [[ $pulse_on = 1 ]];then
+              {
+                echo "#> msg pulse off;";
+                pulse_on=0;
+              } fi
+              echo "#> msg percent 0;";
+              echo "#> msg field 0:visible 1;";
+              echo "#> msg field 1:visible 1;";
+              echo "#> msg field 2:visible 1;";
+              echo "#> msg field 3:visible 1;";
+              echo "#> msg field 4:visible 0;";
+              GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+              if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/kodi.bin" ];then
+                kodi_direct=1
+              else
+                kodi_direct=0;fi
+              echo "#> msg field 1:enable $kodi_direct;";
+              echo "#> msg field 3:enable $kodi_direct;";
+              echo "#> msg field 7:enable $kodi_direct;";
+              echo "#> msg field 8:enable 1;";
+              echo "#> msg field 9:enable $kodi_direct;";
+              if [ -f "${BASE_PATH}/build/.cef-linux-x86_64.active" ];then
+                cef_direct=1
+              else
+                cef_direct=0;fi
+              echo "#> msg field 2:enable $cef_direct;";
+            }
+            elif [[ "$line" = *"field 7:"* ]];then
+            {
+              enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
+              echo "#> msg field 6:enable $enable;"
+            }
+            elif [[ "$line" = *"field 9:"* ]];then
+            {
+              KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
+              if [[ $KODI_SEL_ADDON != "(null)" ]];then
+              {
+                export KODI_SEL_ADDON
+                saveConfigFile;
+              } fi
+            }
+            elif [[ "$line" = *"field"* ]];then
+            {
+              IFS=$'\n'; for p in ${line}; do
+                id=$(echo ${p} | awk -F ' ' '{print $4}' | awk -F ':' '{print $1}')
+                value=$(echo ${p#*:} | awk -F ';' '{print $1}')
+                IFS=$'|';
+                if [[ "$id" -ge "0" ]];then
+                  parse_values "linux-x86_64" $id "$value"
+                else
+                  id2=0
+                  IFS=$'|';
+                  for value2 in ${value}; do
+                    parse_values "linux-x86_64" $id2 "$value2"
+                    ((id2++))
+                  done;
+                fi; IFS=$'\n';
+              done; unset IFS;
+              saveConfigFile;
+              [ -z $SYSTEM_ACTIVE ] && exit 0;
+            }
+            else
+              echo "Wrong command! $line" > /dev/stderr;fi
+          }
+          else
+          {
+            echo "$line"
+          } fi
+        } done
+
+        if [ -f "$TEMP_DIR/build_thread-linux-x86_64.pid" ];then
+        {
+          process_active=1
+        }
+        elif [[ $process_active != 0 ]];then
+        {
+          echo "#< msg stop_build;" >> "$thread3_in";
+          process_active=0;
+        } fi
+
+        if [[ $cef_direct = 1 ]] && [ ! -f "${BASE_PATH}/build/.cef-linux-x86_64.active" ];then
+        {
+          cef_direct=0
+          echo "#> msg field 2:enable $cef_direct;";
+        } fi
+
+        # Perform if needed save of configuration file
+        if [[ $save_config > 0 ]];then
+        {
+          ((save_config--))
+          if [[ $save_config = 0 ]];then
+          {
+            saveConfigFile;
+            save_config=0
+          }
+          else
+          {
+            sleep 0.1;
+            continue;
+          } fi
+        } fi
+
+        sleep 0.75;
+      } done
+    }
+    done
+  ) | \
+  yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
+             --text="Linux x86-64 build" \
+             --pulsate \
+             --xcom-log=$thread3_in \
+             --field="Build complete:FBTN@0,1,0,2" "bash -c 'echo \"#< msg start_build\" > $thread3_in'" \
+             --field="Build kodi direct:FBTN@2,3,0,2" "bash -c 'echo \"#< msg start_direct_build_kodi\" > $thread3_in'" \
+             --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" > $thread3_in'" \
+             --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread3_in'" \
+             --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread3_in'" \
+             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread3_in'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER ${BASE_PATH}/build/creation-kodi-linux-x86_64.log ${BASE_PATH}/build/creation-general.log ${BASE_PATH}/build/creation-cef-linux-x86_64.log;'" \
+             --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-linux-x86_64 $thread3_in" \
+             --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread3_in'" \
+             --field="Add-on:CB@7,8,4,6" '' \
+             --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
+  pid_thread3=$!
+
+  TAB_LIST+="--tab=Linux-x86-64 "
+  ((TAB_NUM++))
+} fi
+#
+###############################################################################
+
+###############################################################################
+# Thread four: Handle Linux Raspberry PI
+if [[ $USE_LINUX_RPBI = "TRUE" ]];then
+{
+  (
+    sleep 0.5;
+
+    pulse_on=0;
+    save_config=0;
+    process_active=0
+
+    while :;do
+    {
+      if [ -f ./build/global_mupel_install ];then
+      {
+        [ -z $SYSTEM_ACTIVE ] && exit 0;
+        sleep 2;
+        continue;
+      } fi
+
+      if [ ! -f "$HOME/.mupel/mupel.conf" ];then
+      {
+        sleep 0.5;
+        continue;
+      } fi
+
+      . "$HOME/.mupel/mupel.conf";
+      export KODI_SEL_ADDON
+
+      # Set buttons to initial state
+      echo "#> msg field 0:visible 1;";
+      echo "#> msg field 1:visible 1;";
+      echo "#> msg field 2:visible 1;";
+      echo "#> msg field 3:visible 1;";
+      echo "#> msg field 4:visible 0;";
+      GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+      if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/kodi.bin" ];then
+      {
+        kodi_direct=1
+        parse_values "add-ons" "linux-rpbi"
+      }
+      else
+        kodi_direct=0;fi
+      echo "#> msg field 1:enable $kodi_direct;";
+      echo "#> msg field 3:enable $kodi_direct;";
+      echo "#> msg field 7:enable $kodi_direct;";
+      echo "#> msg field 8:enable 1;";
+      echo "#> msg field 9:enable $kodi_direct;";
+
+      if [ -f "${BASE_PATH}/build/.cef-linux-rpbi.active" ];then
+        cef_direct=1
+      else
+        cef_direct=0;fi
+      echo "#> msg field 2:enable $cef_direct;";
+
+      # Main loop
+      while :;do
+      {
+        if [ ! -f "$thread4_in" ];then
+          exit 0;fi
+
+        if [ -f ./build/global_mupel_install ];then
+        {
+          [ -z $SYSTEM_ACTIVE ] && exit 0;
+          break;
+        } fi
+
+        if [ -z $SYSTEM_ACTIVE ];then
+          echo "#> msg field -1:values;";fi
+
+        proc="$(cat "$thread4_in")"
+        echo -n "" > "$thread4_in";
+        IFS=$'\n';
+        for line in ${proc}; do
+        {
+          if [[ "$line" == "#< msg"* ]];then
+          {
+            if [[ "$line" = *"start_direct_build_kodi"* ]];then
+              is_direct_kodi=1
+            else
+              is_direct_kodi=0;fi
+            if [[ "$line" = *"start_direct_build_cef"* ]];then
+              is_direct_cef=1
+            else
+              is_direct_cef=0;fi
+
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+            {
+              echo "#> msg pulse on;";
+              echo "#> msg field 0:visible 0;";
+              echo "#> msg field 1:visible 0;";
+              echo "#> msg field 2:visible 0;";
+              echo "#> msg field 3:visible 0;";
+              echo "#> msg field 4:visible 1;";
+              echo "#> msg field 7:enable 0;";
+              echo "#> msg field 8:enable 0;";
+              echo "#> msg field 9:enable 0;";
+              pulse_on=1
+
+              buildThreadForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}32" 5 $is_direct_cef $is_direct_kodi
+            }
+            elif [[ "$line" = *"start_addon_build"* ]];then
+            {
+              echo "#> msg pulse on;";
+              echo "#> msg field 0:visible 0;";
+              echo "#> msg field 1:visible 0;";
+              echo "#> msg field 2:visible 0;";
+              echo "#> msg field 3:visible 0;";
+              echo "#> msg field 4:visible 1;";
+              echo "#> msg field 7:enable 0;";
+              echo "#> msg field 8:enable 0;";
+              echo "#> msg field 9:enable 0;";
+              pulse_on=1
+
+              buildThreadKodiAddonForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON"
+            }
+            elif [[ "$line" = *"stop_build"* ]];then
+            {
+              if [ -f "$TEMP_DIR/build_thread-linux-rpbi.pid" ];then
+              {
+                pid_to_kill=$(cat "$TEMP_DIR/build_thread-linux-rpbi.pid");
+                ps -p $pid_to_kill > /dev/null
+                if [[ $? = 0 ]];then
+                {
+                  killtree $pid_to_kill KILL;
+                  kill $pid_to_kill
+                } fi
+                rm -f "$TEMP_DIR/build_thread-linux-rpbi.pid"
+              } fi
+
+              echo ""
+              if [[ $pulse_on = 1 ]];then
+              {
+                echo "#> msg pulse off;";
+                pulse_on=0;
+              } fi
+              echo "#> msg percent 0;";
+              echo "#> msg field 0:visible 1;";
+              echo "#> msg field 1:visible 1;";
+              echo "#> msg field 2:visible 1;";
+              echo "#> msg field 3:visible 1;";
+              echo "#> msg field 4:visible 0;";
+              GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+              if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/kodi.bin" ];then
+                kodi_direct=1
+              else
+                kodi_direct=0;fi
+              echo "#> msg field 1:enable $kodi_direct;";
+              echo "#> msg field 3:enable $kodi_direct;";
+              echo "#> msg field 7:enable $kodi_direct;";
+              echo "#> msg field 8:enable 1;";
+              echo "#> msg field 9:enable $kodi_direct;";
+              if [ -f "${BASE_PATH}/build/.cef-linux-rpbi.active" ];then
+                cef_direct=1
+              else
+                cef_direct=0;fi
+              echo "#> msg field 2:enable $cef_direct;";
+            }
+            elif [[ "$line" = *"field 7:"* ]];then
+            {
+              enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
+              echo "#> msg field 6:enable $enable;"
+            }
+            elif [[ "$line" = *"field 9:"* ]];then
+            {
+              KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
+              if [[ $KODI_SEL_ADDON != "(null)" ]];then
+              {
+                export KODI_SEL_ADDON
+                saveConfigFile;
+              } fi
+            }
+            elif [[ "$line" = *"field"* ]];then
+            {
+              IFS=$'\n'; for p in ${line}; do
+                id=$(echo ${p} | awk -F ' ' '{print $4}' | awk -F ':' '{print $1}')
+                value=$(echo ${p#*:} | awk -F ';' '{print $1}')
+                IFS=$'|';
+                if [[ "$id" -ge "0" ]];then
+                  parse_values "linux-rpbi" $id "$value"
+                else
+                  id2=0
+                  IFS=$'|';
+                  for value2 in ${value}; do
+                    parse_values "linux-rpbi" $id2 "$value2"
+                    ((id2++))
+                  done;
+                fi; IFS=$'\n';
+              done; unset IFS;
+              saveConfigFile;
+              [ -z $SYSTEM_ACTIVE ] && exit 0;
+            }
+            else
+              echo "Wrong command! $line" > /dev/stderr;fi
+          }
+          else
+          {
+            echo "$line"
+          } fi
+        } done
+
+        if [ -f "$TEMP_DIR/build_thread-linux-rpbi.pid" ];then
+        {
+          process_active=1
+        }
+        elif [[ $process_active != 0 ]];then
+        {
+          echo "#< msg stop_build;" >> "$thread4_in";
+          process_active=0;
+        } fi
+
+        if [[ $cef_direct = 1 ]] && [ ! -f "${BASE_PATH}/build/.cef-linux-rpbi.active" ];then
+        {
+          cef_direct=0
+          echo "#> msg field 2:enable $cef_direct;";
+        } fi
+
+        # Perform if needed save of configuration file
+        if [[ $save_config > 0 ]];then
+        {
+          ((save_config--))
+          if [[ $save_config = 0 ]];then
+          {
+            saveConfigFile;
+            save_config=0
+          }
+          else
+          {
+            sleep 0.1;
+            continue;
+          } fi
+        } fi
+
+        sleep 0.75;
+      } done
+    }
+    done
+  ) | \
+  yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
+             --text="Linux Raspberry PI build" \
+             --pulsate \
+             --xcom-log=$thread4_in \
+             --field="Build complete:FBTN@0,1,0,2" "bash -c 'echo \"#< msg start_build\" > $thread4_in'" \
+             --field="Build kodi direct:FBTN@2,3,0,2" "bash -c 'echo \"#< msg start_direct_build_kodi\" > $thread4_in'" \
+             --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" > $thread4_in'" \
+             --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread4_in'" \
+             --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread4_in'" \
+             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread4_in'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER ${BASE_PATH}/build/creation-kodi-linux-rpbi.log ${BASE_PATH}/build/creation-general.log ${BASE_PATH}/build/creation-cef-linux-rpbi.log;'" \
+             --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-linux-rpbi $thread4_in" \
+             --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread4_in'" \
+             --field="Add-on:CB@7,8,4,6" '' \
+             --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
+  pid_thread4=$!
+
+  TAB_LIST+="--tab=Linux-Raspberry-PI "
+  ((TAB_NUM++))
+} fi
+#
+###############################################################################
+
+###############################################################################
+# Thread five: Handle Windows
+if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
+{
+  (
+    sleep 0.5;
+
+    pulse_on=0;
+    save_config=0;
+    process_active=0
+
+    while :;do
+    {
+      if [ -f ./build/global_mupel_install ];then
+      {
+        [ -z $SYSTEM_ACTIVE ] && exit 0;
+        sleep 2;
+        continue;
+      } fi
+
+      if [ ! -f "$HOME/.mupel/mupel.conf" ];then
+      {
+        sleep 0.5;
+        continue;
+      } fi
+
+      . "$HOME/.mupel/mupel.conf";
+      . "$HOME/.mupel/windows.conf";
+      export KODI_SEL_ADDON
+
+      # Set buttons to initial state
+      echo "#> msg field 0:visible 1;";
+      echo "#> msg field 1:visible 1;";
+      echo "#> msg field 2:visible 1;";
+      echo "#> msg field 3:visible 1;";
+      echo "#> msg field 4:visible 0;";
+      GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+      if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-win-${WINDOWS_BUILD_TYPE}/kodi.bin" ];then
+      {
+        kodi_direct=1
+        parse_values "add-ons" "win-${WINDOWS_BUILD_TYPE}"
+      }
+      else
+        kodi_direct=0;fi
+      echo "#> msg field 1:enable $kodi_direct;";
+      echo "#> msg field 3:enable $kodi_direct;";
+      echo "#> msg field 7:enable $kodi_direct;";
+      echo "#> msg field 7:visible 0;"; # Hide "Launch Kodi" until a good way is found to start on windows
+      echo "#> msg field 8:enable 1;";
+      echo "#> msg field 9:enable $kodi_direct;";
+
+      if [ -f "${BASE_PATH}/build/.cef-win-${WINDOWS_BUILD_TYPE}.active" ];then
+        cef_direct=1
+      else
+        cef_direct=0;fi
+      echo "#> msg field 2:enable $cef_direct;";
+
+      # Main loop
+      while :;do
+      {
+        if [ ! -f "$thread5_in" ];then
+          exit 0;fi
+
+        if [ -f ./build/global_mupel_install ];then
+        {
+          [ -z $SYSTEM_ACTIVE ] && exit 0;
+          break;
+        } fi
+
+        if [ -z $SYSTEM_ACTIVE ];then
+          echo "#> msg field -1:values;";fi
+
+        proc="$(cat "$thread5_in")"
+        echo -n "" > "$thread5_in";
+        IFS=$'\n';
+        for line in ${proc}; do
+        {
+          if [[ "$line" == "#< msg"* ]];then
+          {
+            if [[ "$line" = *"start_direct_build_kodi"* ]];then
+              is_direct_kodi=1
+            else
+              is_direct_kodi=0;fi
+            if [[ "$line" = *"start_direct_build_cef"* ]];then
+              is_direct_cef=1
+            else
+              is_direct_cef=0;fi
+
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+            {
+              echo "#> msg pulse on;";
+              echo "#> msg field 0:visible 0;";
+              echo "#> msg field 1:visible 0;";
+              echo "#> msg field 2:visible 0;";
+              echo "#> msg field 3:visible 0;";
+              echo "#> msg field 4:visible 1;";
+              echo "#> msg field 7:enable 0;";
+              echo "#> msg field 8:enable 0;";
+              echo "#> msg field 9:enable 0;";
+              pulse_on=1
+
+              buildThreadForOS "win-${WINDOWS_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
+            }
+            elif [[ "$line" = *"start_addon_build"* ]];then
+            {
+              echo "#> msg pulse on;";
+              echo "#> msg field 0:visible 0;";
+              echo "#> msg field 1:visible 0;";
+              echo "#> msg field 2:visible 0;";
+              echo "#> msg field 3:visible 0;";
+              echo "#> msg field 4:visible 1;";
+              echo "#> msg field 7:enable 0;";
+              echo "#> msg field 8:enable 0;";
+              echo "#> msg field 9:enable 0;";
+              pulse_on=1
+
+              buildThreadKodiAddonForOS "win-${WINDOWS_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON"
+            }
+            elif [[ "$line" = *"stop_build"* ]];then
+            {
+              if [ -f "$TEMP_DIR/build_thread-win-${WINDOWS_BUILD_TYPE}.pid" ];then
+              {
+                pid_to_kill=$(cat "$TEMP_DIR/build_thread-win-${WINDOWS_BUILD_TYPE}.pid");
+                ps -p $pid_to_kill > /dev/null
+                if [[ $? = 0 ]];then
+                {
+                  killtree $pid_to_kill KILL;
+                  kill $pid_to_kill
+                } fi
+                rm -f "$TEMP_DIR/build_thread-win-${WINDOWS_BUILD_TYPE}.pid"
+              } fi
+
+              echo ""
+              if [[ $pulse_on = 1 ]];then
+              {
+                echo "#> msg pulse off;";
+                pulse_on=0;
+              } fi
+              echo "#> msg percent 0;";
+              echo "#> msg field 0:visible 1;";
+              echo "#> msg field 1:visible 1;";
+              echo "#> msg field 2:visible 1;";
+              echo "#> msg field 3:visible 1;";
+              echo "#> msg field 4:visible 0;";
+              GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+              if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-win-${WINDOWS_BUILD_TYPE}/kodi.bin" ];then
+                kodi_direct=1
+              else
+                kodi_direct=0;fi
+              echo "#> msg field 1:enable $kodi_direct;";
+              echo "#> msg field 3:enable $kodi_direct;";
+              echo "#> msg field 7:enable $kodi_direct;";
+              echo "#> msg field 8:enable 1;";
+              echo "#> msg field 9:enable $kodi_direct;";
+              if [ -f "${BASE_PATH}/build/.cef-win-${WINDOWS_BUILD_TYPE}.active" ];then
+                cef_direct=1
+              else
+                cef_direct=0;fi
+              echo "#> msg field 2:enable $cef_direct;";
+            }
+            elif [[ "$line" = *"field 7:"* ]];then
+            {
+              enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
+              echo "#> msg field 6:enable $enable;"
+            }
+            elif [[ "$line" = *"field 9:"* ]];then
+            {
+              KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
+              if [[ $KODI_SEL_ADDON != "(null)" ]];then
+              {
+                #echo ----------------------KODI_SEL_ADDON=$KODI_SEL_ADDON > /dev/stderr
+                export KODI_SEL_ADDON
+                saveConfigFile;
+              } fi
+            }
+            elif [[ "$line" = *"field"* ]];then
+            {
+              IFS=$'\n'; for p in ${line}; do
+                id=$(echo ${p} | awk -F ' ' '{print $4}' | awk -F ':' '{print $1}')
+                value=$(echo ${p#*:} | awk -F ';' '{print $1}')
+                IFS=$'|';
+                if [[ "$id" -ge "0" ]];then
+                  parse_values "win-${WINDOWS_BUILD_TYPE}" $id "$value"
+                else
+                  id2=0
+                  IFS=$'|';
+                  for value2 in ${value}; do
+                    parse_values "win-${WINDOWS_BUILD_TYPE}" $id2 "$value2"
+                    ((id2++))
+                  done;
+                fi; IFS=$'\n';
+              done; unset IFS;
+              saveConfigFile;
+              [ -z $SYSTEM_ACTIVE ] && exit 0;
+            }
+            else
+              echo "Wrong command! $line" > /dev/stderr;fi
+          }
+          else
+          {
+            echo "$line"
+          } fi
+        } done
+
+        if [ -f "$TEMP_DIR/build_thread-win-${WINDOWS_BUILD_TYPE}.pid" ];then
+        {
+          process_active=1
+        }
+        elif [[ $process_active != 0 ]];then
+        {
+          echo "#< msg stop_build;" >> "$thread5_in";
+          process_active=0;
+        } fi
+
+        if [[ $cef_direct = 1 ]] && [ ! -f "${BASE_PATH}/build/.cef-win-${WINDOWS_BUILD_TYPE}.active" ];then
+        {
+          cef_direct=0
+          echo "#> msg field 2:enable $cef_direct;";
+        } fi
+
+        # Perform if needed save of configuration file
+        if [[ $save_config > 0 ]];then
+        {
+          ((save_config--))
+          if [[ $save_config = 0 ]];then
+          {
+            saveConfigFile;
+            save_config=0
+          }
+          else
+          {
+            sleep 0.1;
+            continue;
+          } fi
+        } fi
+
+        sleep 0.75;
+      } done
+    }
+    done
+  ) | \
+  yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
+             --text="Windows build" \
+             --pulsate \
+             --xcom-log=$thread5_in \
+             --field="Build complete:FBTN@0,1,0,2" "bash -c 'echo \"#< msg start_build\" > $thread5_in'" \
+             --field="Build kodi direct:FBTN@2,3,0,2" "bash -c 'echo \"#< msg start_direct_build_kodi\" > $thread5_in'" \
+             --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" > $thread5_in'" \
+             --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread5_in'" \
+             --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread5_in'" \
+             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread5_in'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER ${BASE_PATH}/build/creation-kodi-win-${WINDOWS_BUILD_TYPE}.log ${BASE_PATH}/build/creation-general.log ${BASE_PATH}/build/creation-cef-win-${WINDOWS_BUILD_TYPE}.log;'" \
+             --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-win32 $thread5_in" \
+             --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread5_in'" \
+             --field="Add-on:CB@7,8,4,6" '' \
+             --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
+  pid_thread5=$!
+
+  TAB_LIST+="--tab=Microsoft-Windows "
+  ((TAB_NUM++))
+} fi
+#
+###############################################################################
+
+###############################################################################
+# Thread six: Handle Mac OS X
+if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
+{
+  (
+    sleep 0.5;
+
+    pulse_on=0;
+    save_config=0;
+    process_active=0
+
+    while :;do
+    {
+      if [ -f ./build/global_mupel_install ];then
+      {
+        [ -z $SYSTEM_ACTIVE ] && exit 0;
+        sleep 2;
+        continue;
+      } fi
+
+      if [ ! -f "$HOME/.mupel/mupel.conf" ];then
+      {
+        sleep 0.5;
+        continue;
+      } fi
+
+      . "$HOME/.mupel/mupel.conf";
+      . "$HOME/.mupel/mac-osx.conf";
+      export KODI_SEL_ADDON
+
+      # Set buttons to initial state
+      echo "#> msg field 0:visible 1;";
+      echo "#> msg field 1:visible 1;";
+      echo "#> msg field 2:visible 1;";
+      echo "#> msg field 3:visible 1;";
+      echo "#> msg field 4:visible 0;";
+      GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+      if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-osx-${MAC_OS_X_BUILD_TYPE}/kodi.bin" ];then
+      {
+        kodi_direct=1
+        parse_values "add-ons" "osx-${MAC_OS_X_BUILD_TYPE}"
+      }
+      else
+        kodi_direct=0;fi
+      echo "#> msg field 1:enable $kodi_direct;";
+      echo "#> msg field 3:enable $kodi_direct;";
+      echo "#> msg field 7:enable $kodi_direct;";
+      echo "#> msg field 8:enable 1;";
+      echo "#> msg field 9:enable $kodi_direct;";
+
+      if [ -f "${BASE_PATH}/build/.cef-osx-${MAC_OS_X_BUILD_TYPE}.active" ];then
+        cef_direct=1
+      else
+        cef_direct=0;fi
+      echo "#> msg field 2:enable $cef_direct;";
+
+      # Main loop
+      while :;do
+      {
+        if [ ! -f "$thread6_in" ];then
+          exit 0;fi
+
+        if [ -f ./build/global_mupel_install ];then
+        {
+          [ -z $SYSTEM_ACTIVE ] && exit 0;
+          break;
+        } fi
+
+        if [ -z $SYSTEM_ACTIVE ];then
+          echo "#> msg field -1:values;";fi
+
+        proc="$(cat "$thread6_in")"
+        echo -n "" > "$thread6_in";
+        IFS=$'\n';
+        for line in ${proc}; do
+        {
+          if [[ "$line" == "#< msg"* ]];then
+          {
+            if [[ "$line" = *"start_direct_build_kodi"* ]];then
+              is_direct_kodi=1
+            else
+              is_direct_kodi=0;fi
+            if [[ "$line" = *"start_direct_build_cef"* ]];then
+              is_direct_cef=1
+            else
+              is_direct_cef=0;fi
+
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+            {
+              echo "#> msg pulse on;";
+              echo "#> msg field 0:visible 0;";
+              echo "#> msg field 1:visible 0;";
+              echo "#> msg field 2:visible 0;";
+              echo "#> msg field 3:visible 0;";
+              echo "#> msg field 4:visible 1;";
+              echo "#> msg field 7:enable 0;";
+              echo "#> msg field 8:enable 0;";
+              echo "#> msg field 9:enable 0;";
+              pulse_on=1
+
+              buildThreadForOS "osx-${MAC_OS_X_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
+            }
+            elif [[ "$line" = *"start_addon_build"* ]];then
+            {
+              echo "#> msg pulse on;";
+              echo "#> msg field 0:visible 0;";
+              echo "#> msg field 1:visible 0;";
+              echo "#> msg field 2:visible 0;";
+              echo "#> msg field 3:visible 0;";
+              echo "#> msg field 4:visible 1;";
+              echo "#> msg field 7:enable 0;";
+              echo "#> msg field 8:enable 0;";
+              echo "#> msg field 9:enable 0;";
+              pulse_on=1
+
+              buildThreadKodiAddonForOS "osx-${MAC_OS_X_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON"
+            }
+            elif [[ "$line" = *"stop_build"* ]];then
+            {
+              if [ -f "$TEMP_DIR/build_thread-osx-${MAC_OS_X_BUILD_TYPE}.pid" ];then
+              {
+                pid_to_kill=$(cat "$TEMP_DIR/build_thread-osx-${MAC_OS_X_BUILD_TYPE}.pid");
+                ps -p $pid_to_kill > /dev/null
+                if [[ $? = 0 ]];then
+                {
+                  killtree $pid_to_kill KILL;
+                  kill $pid_to_kill
+                } fi
+                rm -f "$TEMP_DIR/build_thread-osx-${MAC_OS_X_BUILD_TYPE}.pid"
+              } fi
+
+              echo ""
+              if [[ $pulse_on = 1 ]];then
+              {
+                echo "#> msg pulse off;";
+                pulse_on=0;
+              } fi
+              echo "#> msg percent 0;";
+              echo "#> msg field 0:visible 1;";
+              echo "#> msg field 1:visible 1;";
+              echo "#> msg field 2:visible 1;";
+              echo "#> msg field 3:visible 1;";
+              echo "#> msg field 4:visible 0;";
+              GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+              if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-osx-${MAC_OS_X_BUILD_TYPE}/kodi.bin" ];then
+                kodi_direct=1
+              else
+                kodi_direct=0;fi
+              echo "#> msg field 1:enable $kodi_direct;";
+              echo "#> msg field 3:enable $kodi_direct;";
+              echo "#> msg field 7:enable $kodi_direct;";
+              echo "#> msg field 8:enable 1;";
+              echo "#> msg field 9:enable $kodi_direct;";
+              if [ -f "${BASE_PATH}/build/.cef-osx-${MAC_OS_X_BUILD_TYPE}.active" ];then
+                cef_direct=1
+              else
+                cef_direct=0;fi
+              echo "#> msg field 2:enable $cef_direct;";
+            }
+            elif [[ "$line" = *"field 7:"* ]];then
+            {
+              enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
+              echo "#> msg field 6:enable $enable;"
+            }
+            elif [[ "$line" = *"field 9:"* ]];then
+            {
+              KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
+              if [[ $KODI_SEL_ADDON != "(null)" ]];then
+              {
+                export KODI_SEL_ADDON
+                saveConfigFile;
+              } fi
+            }
+            elif [[ "$line" = *"field"* ]];then
+            {
+              IFS=$'\n'; for p in ${line}; do
+                id=$(echo ${p} | awk -F ' ' '{print $4}' | awk -F ':' '{print $1}')
+                value=$(echo ${p#*:} | awk -F ';' '{print $1}')
+                IFS=$'|';
+                if [[ "$id" -ge "0" ]];then
+                  parse_values "osx-${MAC_OS_X_BUILD_TYPE}" $id "$value"
+                else
+                  id2=0
+                  IFS=$'|';
+                  for value2 in ${value}; do
+                    parse_values "osx-${MAC_OS_X_BUILD_TYPE}" $id2 "$value2"
+                    ((id2++))
+                  done;
+                fi; IFS=$'\n';
+              done; unset IFS;
+              saveConfigFile;
+              [ -z $SYSTEM_ACTIVE ] && exit 0;
+            }
+            else
+              echo "Wrong command! $line" > /dev/stderr;fi
+          }
+          else
+          {
+            echo "$line"
+          } fi
+        } done
+
+        if [ -f "$TEMP_DIR/build_thread-osx-${MAC_OS_X_BUILD_TYPE}.pid" ];then
+        {
+          process_active=1
+        }
+        elif [[ $process_active != 0 ]];then
+        {
+          echo "#< msg stop_build;" >> "$thread6_in";
+          process_active=0;
+        } fi
+
+        if [[ $cef_direct = 1 ]] && [ ! -f "${BASE_PATH}/build/.cef-osx-${MAC_OS_X_BUILD_TYPE}.active" ];then
+        {
+          cef_direct=0
+          echo "#> msg field 2:enable $cef_direct;";
+        } fi
+
+        # Perform if needed save of configuration file
+        if [[ $save_config > 0 ]];then
+        {
+          ((save_config--))
+          if [[ $save_config = 0 ]];then
+          {
+            saveConfigFile;
+            save_config=0
+          }
+          else
+          {
+            sleep 0.1;
+            continue;
+          } fi
+        } fi
+
+        sleep 0.75;
+      } done
+    }
+    done
+  ) | \
+  yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
+             --text="Mac OS X build" \
+             --pulsate \
+             --xcom-log=$thread6_in \
+             --field="Build complete:FBTN@0,1,0,2" "bash -c 'echo \"#< msg start_build\" > $thread6_in'" \
+             --field="Build kodi direct:FBTN@2,3,0,2" "bash -c 'echo \"#< msg start_direct_build_kodi\" > $thread6_in'" \
+             --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" > $thread6_in'" \
+             --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread6_in'" \
+             --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread6_in'" \
+             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread6_in'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER ${BASE_PATH}/build/creation-kodi-osx-${MAC_OS_X_BUILD_TYPE}.log ${BASE_PATH}/build/creation-general.log ${BASE_PATH}/build/creation-cef-osx-${MAC_OS_X_BUILD_TYPE}.log;'" \
+             --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-osx32 $thread6_in" \
+             --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread6_in'" \
+             --field="Add-on:CB@7,8,4,6" '' \
+             --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
+  pid_thread6=$!
+
+  TAB_LIST+="--tab=Mac-OS-X "
+  ((TAB_NUM++))
+} fi
+#
+###############################################################################
+
+###############################################################################
+# Thread seven: Handle Android
+if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
+{
+  (
+    sleep 0.5;
+
+    pulse_on=0;
+    save_config=0;
+    process_active=0
+
+    while :;do
+    {
+      if [ -f ./build/global_mupel_install ];then
+      {
+        [ -z $SYSTEM_ACTIVE ] && exit 0;
+        sleep 2;
+        continue;
+      } fi
+
+      if [ ! -f "$HOME/.mupel/mupel.conf" ];then
+      {
+        sleep 0.5;
+        continue;
+      } fi
+
+      . "$HOME/.mupel/mupel.conf";
+      export KODI_SEL_ADDON
+
+      # Set buttons to initial state
+      echo "#> msg field 0:visible 1;";
+      echo "#> msg field 1:visible 1;";
+      echo "#> msg field 2:visible 1;";
+      echo "#> msg field 3:visible 1;";
+      echo "#> msg field 4:visible 0;";
+      GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+      if [ -f $BASE_PATH/build/kodi-$GIT_USER/kodi-android-x86/*.apk ];then
+      {
+        kodi_direct=1
+        parse_values "add-ons" "android-x86"
+      }
+      else
+        kodi_direct=0;fi
+      echo "#> msg field 1:enable $kodi_direct;";
+      echo "#> msg field 3:enable $kodi_direct;";
+      echo "#> msg field 7:enable $kodi_direct;";
+      echo "#> msg field 8:enable 1;";
+      echo "#> msg field 9:enable $kodi_direct;";
+
+      if [ -f "${BASE_PATH}/build/.cef-android-${ANDROID_BUILD_TYPE}.active" ];then
+        cef_direct=1
+      else
+        cef_direct=0;fi
+      echo "#> msg field 2:enable $cef_direct;";
+
+      # Main loop
+      while :;do
+      {
+        if [ ! -f "$thread7_in" ];then
+          exit 0;fi
+
+        if [ -f ./build/global_mupel_install ];then
+        {
+          [ -z $SYSTEM_ACTIVE ] && exit 0;
+          break;
+        } fi
+
+        if [ -z $SYSTEM_ACTIVE ];then
+          echo "#> msg field -1:values;";fi
+
+        proc="$(cat "$thread7_in")"
+        echo -n "" > "$thread7_in";
+        IFS=$'\n';
+        for line in ${proc}; do
+        {
+          if [[ "$line" == "#< msg"* ]];then
+          {
+            if [[ "$line" = *"start_direct_build_kodi"* ]];then
+              is_direct_kodi=1
+            else
+              is_direct_kodi=0;fi
+            if [[ "$line" = *"start_direct_build_cef"* ]];then
+              is_direct_cef=1
+            else
+              is_direct_cef=0;fi
+
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+            {
+              echo "#> msg pulse on;";
+              echo "#> msg field 0:visible 0;";
+              echo "#> msg field 1:visible 0;";
+              echo "#> msg field 2:visible 0;";
+              echo "#> msg field 3:visible 0;";
+              echo "#> msg field 4:visible 1;";
+              echo "#> msg field 7:enable 0;";
+              echo "#> msg field 8:enable 0;";
+              echo "#> msg field 9:enable 0;";
+              pulse_on=1
+
+              buildThreadForOS "android-${ANDROID_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
+            }
+            elif [[ "$line" = *"start_addon_build"* ]];then
+            {
+              echo "#> msg pulse on;";
+              echo "#> msg field 0:visible 0;";
+              echo "#> msg field 1:visible 0;";
+              echo "#> msg field 2:visible 0;";
+              echo "#> msg field 3:visible 0;";
+              echo "#> msg field 4:visible 1;";
+              echo "#> msg field 7:enable 0;";
+              echo "#> msg field 8:enable 0;";
+              echo "#> msg field 9:enable 0;";
+              pulse_on=1
+
+              buildThreadKodiAddonForOS "android-${ANDROID_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON"
+            }
+            elif [[ "$line" = *"stop_build"* ]];then
+            {
+              if [ -f "$TEMP_DIR/build_thread-android-${ANDROID_BUILD_TYPE}.pid" ];then
+              {
+                pid_to_kill=$(cat "$TEMP_DIR/build_thread-android-${ANDROID_BUILD_TYPE}.pid");
+                ps -p $pid_to_kill > /dev/null
+                if [[ $? = 0 ]];then
+                {
+                  killtree $pid_to_kill KILL;
+                  kill $pid_to_kill
+                } fi
+                rm -f "$TEMP_DIR/build_thread-android-${ANDROID_BUILD_TYPE}.pid"
+              } fi
+
+              echo ""
+              if [[ $pulse_on = 1 ]];then
+              {
+                echo "#> msg pulse off;";
+                pulse_on=0;
+              } fi
+              echo "#> msg percent 0;";
+              echo "#> msg field 0:visible 1;";
+              echo "#> msg field 1:visible 1;";
+              echo "#> msg field 2:visible 1;";
+              echo "#> msg field 3:visible 1;";
+              echo "#> msg field 4:visible 0;";
+              GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+              if [ -f $BASE_PATH/build/kodi-$GIT_USER/kodi-android-${ANDROID_BUILD_TYPE}/*.apk ];then
+                kodi_direct=1
+              else
+                kodi_direct=0;fi
+              echo "#> msg field 1:enable $kodi_direct;";
+              echo "#> msg field 3:enable $kodi_direct;";
+              echo "#> msg field 7:enable $kodi_direct;";
+              echo "#> msg field 8:enable 1;";
+              echo "#> msg field 9:enable $kodi_direct;";
+              if [ -f "${BASE_PATH}/build/.cef-android-${ANDROID_BUILD_TYPE}.active" ];then
+                cef_direct=1
+              else
+                cef_direct=0;fi
+              echo "#> msg field 2:enable $cef_direct;";
+            }
+            elif [[ "$line" = *"depclean"* ]];then
+            {
+              showWarningDialog_YesNo "<b>All extra files on kodi not included in GIT becomes removed! \n\nAre you sure?</b>"
+              if [ $? = 0 ];then
+              {
+                echo "#> msg field 7:enable 0;";
+                GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+                git -C "$BASE_PATH/build/kodi-$GIT_USER/kodi-android-${ANDROID_BUILD_TYPE}" clean -dffx;
+                echo "Cleanup done"
+                echo "#> msg field 7:enable 1;";
+                echo "#> msg field 1:enable 0;";
+                echo "#> msg field 3:enable 0;";
+                echo "#> msg field 7:enable 0;";
+                echo "#> msg field 9:enable 0;";
+              } fi
+            }
+            elif [[ "$line" = *"field 7:"* ]];then
+            {
+              enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
+              echo "#> msg field 6:enable $enable;"
+            }
+            elif [[ "$line" = *"field 9:"* ]];then
+            {
+              KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
+              if [[ $KODI_SEL_ADDON != "(null)" ]];then
+              {
+                export KODI_SEL_ADDON
+                saveConfigFile;
+              } fi
+            }
+            elif [[ "$line" = *"field"* ]];then
+            {
+              IFS=$'\n'; for p in ${line}; do
+                id=$(echo ${p} | awk -F ' ' '{print $4}' | awk -F ':' '{print $1}')
+                value=$(echo ${p#*:} | awk -F ';' '{print $1}')
+                IFS=$'|';
+                if [[ "$id" -ge "0" ]];then
+                  parse_values "android-${ANDROID_BUILD_TYPE}" $id "$value"
+                else
+                  id2=0
+                  IFS=$'|';
+                  for value2 in ${value}; do
+                    parse_values "android-${ANDROID_BUILD_TYPE}" $id2 "$value2"
+                    ((id2++))
+                  done;
+                fi; IFS=$'\n';
+              done; unset IFS;
+              saveConfigFile;
+              [ -z $SYSTEM_ACTIVE ] && exit 0;
+            }
+            else
+              echo "Wrong command! $line" > /dev/stderr;fi
+          }
+          else
+          {
+            echo "$line"
+          } fi
+        } done
+
+        if [ -f "$TEMP_DIR/build_thread-android-${ANDROID_BUILD_TYPE}.pid" ];then
+        {
+          process_active=1
+        }
+        elif [[ $process_active != 0 ]];then
+        {
+          echo "#< msg stop_build;" >> "$thread7_in";
+          process_active=0;
+        } fi
+
+        if [[ $cef_direct = 1 ]] && [ ! -f "${BASE_PATH}/build/.cef-android-${ANDROID_BUILD_TYPE}.active" ];then
+        {
+          cef_direct=0
+          echo "#> msg field 2:enable $cef_direct;";
+        } fi
+
+        # Perform if needed save of configuration file
+        if [[ $save_config > 0 ]];then
+        {
+          ((save_config--))
+          if [[ $save_config = 0 ]];then
+          {
+            saveConfigFile;
+            save_config=0
+          }
+          else
+          {
+            sleep 0.1;
+            continue;
+          } fi
+        } fi
+
+        sleep 0.75;
+      } done
+    }
+    done
+  ) | \
+  yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
+             --text="Android" \
+             --pulsate \
+             --xcom-log=$thread7_in \
+             --field="Build complete:FBTN@0,1,0,2" "bash -c 'echo \"#< msg start_build\" > $thread7_in'" \
+             --field="Build kodi direct:FBTN@2,3,0,2" "bash -c 'echo \"#< msg start_direct_build_kodi\" > $thread7_in'" \
+             --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" > $thread7_in'" \
+             --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread7_in'" \
+             --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread7_in'" \
+             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread7_in'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER ${BASE_PATH}/build/creation-kodi-android-${ANDROID_BUILD_TYPE}.log ${BASE_PATH}/build/creation-general.log ${BASE_PATH}/build/creation-cef-android-${ANDROID_BUILD_TYPE}.log;'" \
+             --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-android-${ANDROID_BUILD_TYPE} $thread7_in" \
+             --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread7_in'" \
+             --field="Add-on:CB@7,8,4,6" '' \
+             --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
+  pid_thread8=$!
+
+  TAB_LIST+="--tab=Android "
+  ((TAB_NUM++))
+} fi
+#
+###############################################################################
+
+###############################################################################
+# Thread nine: Handle IOS ATV2
+if [[ $USE_IOS_ATV2 = "TRUE" ]];then
+{
+  (
+    sleep 0.5;
+
+    pulse_on=0;
+    save_config=0;
+    process_active=0
+
+    while :;do
+    {
+      if [ -f ./build/global_mupel_install ];then
+      {
+        [ -z $SYSTEM_ACTIVE ] && exit 0;
+        sleep 2;
+        continue;
+      } fi
+
+      if [ ! -f "$HOME/.mupel/mupel.conf" ];then
+      {
+        sleep 0.5;
+        continue;
+      } fi
+
+      . "$HOME/.mupel/mupel.conf";
+      . "$HOME/.mupel/mac-osx.conf";
+      export KODI_SEL_ADDON
+
+      # Set buttons to initial state
+      echo "#> msg field 0:visible 1;";
+      echo "#> msg field 1:visible 1;";
+      echo "#> msg field 2:visible 1;";
+      echo "#> msg field 3:visible 1;";
+      echo "#> msg field 4:visible 0;";
+      GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+      if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-${IOS_ATV2_BUILD_TYPE}/kodi.bin" ];then
+      {
+        kodi_direct=1
+        parse_values "add-ons" "${IOS_ATV2_BUILD_TYPE}"
+      }
+      else
+        kodi_direct=0;fi
+      echo "#> msg field 1:enable $kodi_direct;";
+      echo "#> msg field 3:enable $kodi_direct;";
+      echo "#> msg field 7:enable $kodi_direct;";
+      echo "#> msg field 8:enable 1;";
+      echo "#> msg field 9:enable $kodi_direct;";
+
+      if [ -f "${BASE_PATH}/build/.cef-${IOS_ATV2_BUILD_TYPE}.active" ];then
+        cef_direct=1
+      else
+        cef_direct=0;fi
+      echo "#> msg field 2:enable $cef_direct;";
+
+      # Main loop
+      while :;do
+      {
+        if [ ! -f "$thread8_in" ];then
+          exit 0;fi
+
+        if [ -f ./build/global_mupel_install ];then
+        {
+          [ -z $SYSTEM_ACTIVE ] && exit 0;
+          break;
+        } fi
+
+        if [ -z $SYSTEM_ACTIVE ];then
+          echo "#> msg field -1:values;";fi
+
+        proc="$(cat "$thread8_in")"
+        echo -n "" > "$thread8_in";
+        IFS=$'\n';
+        for line in ${proc}; do
+        {
+          if [[ "$line" == "#< msg"* ]];then
+          {
+            if [[ "$line" = *"start_direct_build_kodi"* ]];then
+              is_direct_kodi=1
+            else
+              is_direct_kodi=0;fi
+            if [[ "$line" = *"start_direct_build_cef"* ]];then
+              is_direct_cef=1
+            else
+              is_direct_cef=0;fi
+
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+            {
+              echo "#> msg pulse on;";
+              echo "#> msg field 0:visible 0;";
+              echo "#> msg field 1:visible 0;";
+              echo "#> msg field 2:visible 0;";
+              echo "#> msg field 3:visible 0;";
+              echo "#> msg field 4:visible 1;";
+              echo "#> msg field 7:enable 0;";
+              echo "#> msg field 8:enable 0;";
+              echo "#> msg field 9:enable 0;";
+              pulse_on=1
+
+              buildThreadForOS "${IOS_ATV2_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
+            }
+            elif [[ "$line" = *"start_addon_build"* ]];then
+            {
+              echo "#> msg pulse on;";
+              echo "#> msg field 0:visible 0;";
+              echo "#> msg field 1:visible 0;";
+              echo "#> msg field 2:visible 0;";
+              echo "#> msg field 3:visible 0;";
+              echo "#> msg field 4:visible 1;";
+              echo "#> msg field 7:enable 0;";
+              echo "#> msg field 8:enable 0;";
+              echo "#> msg field 9:enable 0;";
+              pulse_on=1
+
+              buildThreadKodiAddonForOS "${IOS_ATV2_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON"
+            }
+            elif [[ "$line" = *"stop_build"* ]];then
+            {
+              if [ -f "$TEMP_DIR/build_thread-${IOS_ATV2_BUILD_TYPE}.pid" ];then
+              {
+                pid_to_kill=$(cat "$TEMP_DIR/build_thread-${IOS_ATV2_BUILD_TYPE}.pid");
+                ps -p $pid_to_kill > /dev/null
+                if [[ $? = 0 ]];then
+                {
+                  killtree $pid_to_kill KILL;
+                  kill $pid_to_kill
+                } fi
+                rm -f "$TEMP_DIR/build_thread-${IOS_ATV2_BUILD_TYPE}.pid"
+              } fi
+
+              echo ""
+              if [[ $pulse_on = 1 ]];then
+              {
+                echo "#> msg pulse off;";
+                pulse_on=0;
+              } fi
+              echo "#> msg percent 0;";
+              echo "#> msg field 0:visible 1;";
+              echo "#> msg field 1:visible 1;";
+              echo "#> msg field 2:visible 1;";
+              echo "#> msg field 3:visible 1;";
+              echo "#> msg field 4:visible 0;";
+              GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+              if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-${IOS_ATV2_BUILD_TYPE}/kodi.bin" ];then
+                kodi_direct=1
+              else
+                kodi_direct=0;fi
+              echo "#> msg field 1:enable $kodi_direct;";
+              echo "#> msg field 3:enable $kodi_direct;";
+              echo "#> msg field 7:enable $kodi_direct;";
+              echo "#> msg field 8:enable 1;";
+              echo "#> msg field 9:enable $kodi_direct;";
+              if [ -f "${BASE_PATH}/build/.cef-${IOS_ATV2_BUILD_TYPE}.active" ];then
+                cef_direct=1
+              else
+                cef_direct=0;fi
+              echo "#> msg field 2:enable $cef_direct;";
+            }
+            elif [[ "$line" = *"field 7:"* ]];then
+            {
+              enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
+              echo "#> msg field 7:enable $enable;"
+            }
+            elif [[ "$line" = *"field 9:"* ]];then
+            {
+              KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
+              if [[ $KODI_SEL_ADDON != "(null)" ]];then
+              {
+                export KODI_SEL_ADDON
+                saveConfigFile;
+              } fi
+            }
+            elif [[ "$line" = *"field"* ]];then
+            {
+              IFS=$'\n'; for p in ${line}; do
+                id=$(echo ${p} | awk -F ' ' '{print $4}' | awk -F ':' '{print $1}')
+                value=$(echo ${p#*:} | awk -F ';' '{print $1}')
+                IFS=$'|';
+                if [[ "$id" -ge "0" ]];then
+                  parse_values "${IOS_ATV2_BUILD_TYPE}" $id "$value"
+                else
+                  id2=0
+                  IFS=$'|';
+                  for value2 in ${value}; do
+                    parse_values "${IOS_ATV2_BUILD_TYPE}" $id2 "$value2"
+                    ((id2++))
+                  done;
+                fi; IFS=$'\n';
+              done; unset IFS;
+              saveConfigFile;
+              [ -z $SYSTEM_ACTIVE ] && exit 0;
+            }
+            else
+              echo "Wrong command! $line" > /dev/stderr;fi
+          }
+          else
+          {
+            echo "$line"
+          } fi
+        } done
+
+        if [ -f "$TEMP_DIR/build_thread-${IOS_ATV2_BUILD_TYPE}.pid" ];then
+        {
+          process_active=1
+        }
+        elif [[ $process_active != 0 ]];then
+        {
+          echo "#< msg stop_build;" >> "$thread8_in";
+          process_active=0;
+        } fi
+
+        if [[ $cef_direct = 1 ]] && [ ! -f "${BASE_PATH}/build/.cef-${IOS_ATV2_BUILD_TYPE}.active" ];then
+        {
+          cef_direct=0
+          echo "#> msg field 2:enable $cef_direct;";
+        } fi
+
+        # Perform if needed save of configuration file
+        if [[ $save_config > 0 ]];then
+        {
+          ((save_config--))
+          if [[ $save_config = 0 ]];then
+          {
+            saveConfigFile;
+            save_config=0
+          }
+          else
+          {
+            sleep 0.1;
+            continue;
+          } fi
+        } fi
+
+        sleep 0.75;
+      } done
+    }
+    done
+  ) | \
+  yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
+             --text="iOS/ATV2" \
+             --pulsate \
+             --xcom-log=$thread8_in \
+             --field="Build complete:FBTN@0,1,0,2" "bash -c 'echo \"#< msg start_build\" > $thread8_in'" \
+             --field="Build kodi direct:FBTN@2,3,0,2" "bash -c 'echo \"#< msg start_direct_build_kodi\" > $thread8_in'" \
+             --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" > $thread8_in'" \
+             --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread8_in'" \
+             --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread8_in'" \
+             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread8_in'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER ${BASE_PATH}/build/creation-kodi-${IOS_ATV2_BUILD_TYPE}.log ${BASE_PATH}/build/creation-general.log ${BASE_PATH}/build/creation-cef-${IOS_ATV2_BUILD_TYPE}.log;'" \
+             --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-ios-atv2 $thread8_in" \
+             --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread8_in'" \
+             --field="Add-on:CB@7,8,4,6" '' \
+             --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
+  pid_thread9=$!
+
+  TAB_LIST+="--tab=iOS/ATV2 "
+  ((TAB_NUM++))
+} fi
+#
+###############################################################################
+
+###############################################################################
+# Thread ten: Handle Settings
+
+if [ -f $HOME/.mupel/android.conf ];then
+  . $HOME/.mupel/android.conf;fi
+if [ -f $HOME/.mupel/windows.conf ];then
+. $HOME/.mupel/windows.conf;fi
+if [ -f $HOME/.mupel/mac-osx.conf ];then
+. $HOME/.mupel/mac-osx.conf;fi
+
+{
+  (
+    while :;do
+    {
+      if [ -f ./build/global_mupel_install ];then
+      {
+        [ -z $SYSTEM_ACTIVE ] && exit 0;
+        sleep 2;
+        continue;
+      } fi
+
+      if [ ! -f "$HOME/.mupel/mupel.conf" ];then
+      {
+        sleep 0.5;
+        continue;
+      } fi
+
+      . "$HOME/.mupel/mupel.conf";
+
+      [[ $SUPPORT_CEF = "TRUE" ]] && use_it=1 || use_it=0
+      echo "#> msg field 9:visible $use_it;"
+      echo "#> msg field 10:visible $use_it;"
+
+      [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]] && use_it=1 || use_it=0
+      echo "#> msg field 13:visible $use_it;"
+      echo "#> msg field 14:visible $use_it;"
+      echo "#> msg field 15:visible $use_it;"
+      [[ $USE_MS_WINDOWS_32 = "TRUE" ]] && [[ $USE_MS_WINDOWS_64 = "TRUE" ]] && use_it=1 || use_it=0
+      echo "#> msg field 16:visible $use_it;"
+      targets="x86_32!x86_64"
+      targets=$(echo ${targets//$WINDOWS_BUILD_TYPE/\^${WINDOWS_BUILD_TYPE}});
+      echo "#> msg field 16:set $targets;"
+
+      [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]] && use_it=1 || use_it=0
+      echo "#> msg field 19:visible $use_it;"
+      echo "#> msg field 20:visible $use_it;"
+      echo "#> msg field 21:visible $use_it;"
+      [[ $USE_MAC_OS_X_32 = "TRUE" ]] && [[ $USE_MAC_OS_X_64 = "TRUE" ]] && use_it=1 || use_it=0
+      echo "#> msg field 22:visible $use_it;"
+      targets="x86_32!x86_64"
+      targets=$(echo ${targets//$MAC_OS_X_BUILD_TYPE/\^${MAC_OS_X_BUILD_TYPE}});
+      echo "#> msg field 22:set $targets;"
+      selected=$(echo $IOS_ATV2_BUILD_TYPE | tr '[:lower:]' '[:upper:]');
+      targets="IOS!ATV2";
+      targets=$(echo ${targets//$selected/\^${selected}});
+      echo "#> msg field 23:set $targets;";
+
+      [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]] && use_it=1 || use_it=0
+      echo "#> msg field 26:visible $use_it;"
+      echo "#> msg field 28:visible $use_it;"
+      echo "#> msg field 30:visible $use_it;"
+      [[ $USE_ANDROID_ARM = "TRUE" ]] && use_it=1 || use_it=0
+      echo "#> msg field 27:visible $use_it;"
+      [[ $USE_ANDROID_X86 = "TRUE" ]] && use_it=1 || use_it=0
+      echo "#> msg field 29:visible $use_it;"
+
+      echo "#> msg field 2:enable 1;"
+      parse_values "settings" 1 "$KODI_SOURCE_URL";
+      parse_values "settings" 7 "$CEF_SOURCE_URL";
+      echo "#> msg field 10:set $CEF_VERBOSE_BUILD;";
+      echo "#> msg field 32:set $CPU_PROC_JOBS;"
+
+      # Main loop
+      while :;do
+      {
+        if [ ! -f "$thread9_in" ];then
+          exit 0;fi
+
+        if [ -f ./build/global_mupel_install ];then
+        {
+          [ -z $SYSTEM_ACTIVE ] && exit 0;
+          break;
+        } fi
+
+        proc=$(cat "$thread9_in")
+        echo -n "" > "$thread9_in";
+        IFS=$'\n';
+        for line in ${proc}; do
+        {
+          echo "--- $line" > /dev/stderr
+          if [[ "$line" == "#< msg"* ]];then
+          {
+            if [[ "$line" = *"field"* ]];then
+            {
+              IFS=$'\n';
+              for p in ${line}; do
+              {
+                id=$(echo ${p} | awk -F ' ' '{print $4}' | awk -F ':' '{print $1}')
+                value=$(echo ${p#*:} | awk -F ';' '{print $1}')
+                IFS=$'|';
+                if [[ "$id" -ge "0" ]];then
+                  parse_values "settings" $id "$value"
+                else
+                  id2=0
+                  IFS=$'|'; for value2 in ${value}; do
+                    parse_values "settings" $id2 "$value2"
+                    ((id2++))
+                  done;
+                  [ -z $SYSTEM_ACTIVE ] && exit 0;
+                fi; IFS=$'\n';
+                SAVE_CONFIG=1
+              } done; unset IFS;
+            }
+            elif [[ "$line" = *"android_emu_keys"* ]];then
+            {
+              showAndroidEmulatorKeyHelp &
+            }
+            elif [[ "$line" = *"jenkins"* ]];then
+            {
+              showdialog --title="Mupel - Jenkins place" \
+                         --width=520 --height=474 --html \
+                         --uri=${BASE_PATH}/icons/jenkins-holiday.png \
+                         --text="<i><span size=\"large\">Hi, I'm still in holiday</span></i>" \
+                         --button=gtk-ok:0 &
+            }
+            elif [[ "$line" = *"open_avd_control"* ]];then
+            {
+              . $HOME/.mupel/android.conf;
+              $ANDROID_DEV_ROOT/android-sdk-linux/tools/android avd
+
+              echo "#> msg field 26:set $(getAndroidAVDS arm);"
+              echo "#> msg field 28:set $(getAndroidAVDS x86);"
+            }
+            else
+              echo "Wrong command! $line" > /dev/stderr;fi
+          } fi
+        } done;
+        unset IFS
+
+        # Perform if needed save of configuration file
+        if [[ $SAVE_CONFIG > 0 ]];then
+        {
+          ((SAVE_CONFIG--))
+          if [[ $SAVE_CONFIG = 0 ]];then
+          {
+            saveConfigFile;
+            SAVE_CONFIG=0
+          }
+          else
+          {
+            sleep 0.1;
+            continue;
+          } fi
+        } fi
+        sleep 1
+      } done
+    } done
+  ) | \
+  yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
+             --text="Settings" \
+             --pulsate \
+             --xcom-log=$thread9_in \
+             --field=":LBL@0,8,0,2" '' \
+             --field="<b>Kodi:</b>:LBL@0,8,2,4" '' \
+             --field="Repository:@0,5,4,6" "$KODI_SOURCE_URL" \
+             --field="Branch:CB@7,8,4,6" '' \
+             --field="Run tests:CHK@0,1,6,8" "$KODI_RUN_TESTS" \
+             --field="Include configure in direct build:CHK@2,3,6,8" "$KODI_CONF_IN_DIRECT_BUILD" \
+             --field=":LBL@0,1,10,12" '' \
+             --field="<b>CEF (Chromium embedded framwork):</b>:LBL@0,1,12,14" '' \
+              --field="Repository:@0,5,14,16" "$CEF_SOURCE_URL" \
+             --field="Branch:CB@7,8,14,16" '' \
+             --field="Verbose build:CHK@0,1,16,18" "$CEF_VERBOSE_BUILD" \
+             --field=":LBL@0,8,18,20" '' \
+             --field="<b>Windows settings:</b>:LBL@0,8,20,22" '' \
+             --field="Build and emulation system target:CB@0,1,22,24" "$(getWindowsTargets)" \
+             --field="Username (ssh):@2,3,22,24" "$WINDOWS_SSH_USERNAME" \
+             --field="Password (ssh):H@5,6,22,24" "$WINDOWS_SSH_PASSWORD" \
+             --field="Build type:CB@7,8,22,24" 'x86_32!x86_64' \
+             --field=":LBL@0,8,24,26" '' \
+             --field="<b>Mac OS X settings:</b>:LBL@0,8,26,28" '' \
+             --field="Build and emulation system target:CB@0,1,28,30" "$(getMacOSXTargets)" \
+             --field="Username (ssh):@2,3,28,30" "$MAC_OS_X_SSH_USERNAME" \
+             --field="Password (ssh):H@5,6,28,30" "$MAC_OS_X_SSH_PASSWORD" \
+             --field="Build type:CB@7,8,28,30" 'x86_32!x86_64' \
+             --field="iOS/ATV2 builds:CB@0,1,30,32" 'IOS!ATV2' \
+             --field=":LBL@0,8,32,34" '' \
+             --field="<b>Android settings:</b>:LBL@0,6,34,36" '' \
+             --field="Build type:CB@7,8,34,36" 'arm!x86' \
+             --field="ARM AVD emulation system:CB@0,6,36,38" "$(getAndroidAVDS arm)" \
+             --field="Build system target:CB@7,8,36,38" "$(getAndroidTargets)" \
+             --field="x86 AVD emulation system:CB@0,6,38,40" "$(getAndroidAVDS x86)" \
+             --field="Android Virtual Device (AVD) Manager:FBTN@7,8,38,40" "bash -c 'echo \"#< msg open_avd_control\" >> $thread9_in'" \
+             --field=":LBL@0,8,40,42" '' \
+             --field="CPU process jobs:NUM@0,8,42,44" "${CPU_PROC_JOBS}!1..32" \
+             --field=":XTALK" '' > /dev/null &
+  pid_thread10=$!
+  ((TAB_NUM++))
+}
+#
+###############################################################################
+
+###############################################################################
+# Thread eleven: Handle help
+{
+  yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
+             --text="Help" \
+             --field="Android emulator keys:FBTN" "bash -c 'echo \"#< msg android_emu_keys\" >> $thread9_in'" \
+             --field="What does jenkins?:FBTN" "bash -c 'echo \"#< msg hello_jenkins\" >> $thread9_in'" \
+             --field="About:FBTN" "bash ./mupel --info" > /dev/null &
+  ((TAB_NUM++))
+}
+#
+###############################################################################
+
+###############################################################################
+# Thread main
+{
+yad-mupel-x86_64 --notebook \
+      --width=1024 --height=768 \
+      --title="Mupel" \
+      --window-icon="$BASE_PATH/icons/icon-kodi-48x48.png" \
+      --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
+      --image-on-top \
+      --text="\
+<i><span size=\"larger\">Multi platform build environment for Kodi on Linux (Mupel)</span></i>
+<i>Version:</i> $MUPEL_VERSION" \
+      --key=$KEY \
+      --tab-pos=left \
+      --tab="General" \
+      $TAB_LIST \
+      --tab="Settings" \
+      --tab="Help" \
+      --button=gtk-ok:0 > /dev/null 2>&1
+
+unset SYSTEM_ACTIVE
+}
+#
+###############################################################################
+
+cleanup > /dev/null
+
+exit

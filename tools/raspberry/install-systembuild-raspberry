@@ -1,0 +1,1127 @@
+#!/bin/bash
+###############################################################################
+#                                                                             #
+#     Copyright (C) 2015 Team KODI                                            #
+#     http://kodi.tv                                                          #
+#                                                                             #
+#  This program is free software: you can redistribute it and/or modify       #
+#  it under the terms of the GNU General Public License as published by       #
+#  the Free Software Foundation, either version 3 of the License, or          #
+#  (at your option) any later version.                                        #
+#                                                                             #
+#  This program is distributed in the hope that it will be useful,            #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of             #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              #
+#  GNU General Public License for more details.                               #
+#                                                                             #
+#  You should have received a copy of the GNU General Public License          #
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.      #
+#                                                                             #
+###############################################################################
+#                                                                             #
+# Copyright (c) 2012 The Chromium Authors. All rights reserved.               #
+# Use of this source code is governed by a BSD-style license that can be      #
+# found in the LICENSE file.                                                  #
+#                                                                             #
+###############################################################################
+
+BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/../.. ; pwd -P)}
+
+. "$HOME/.mupel/mupel.conf"
+. "$BASE_PATH/tools/tool_functions"
+. "$BASE_PATH/tools/tool_install_functions"
+
+INSTALL_PREFIX="$HOME/.mupel"
+
+RPI_IMAGE_SRC_URL="http://downloads.raspberrypi.org/raspbian/images/raspbian-2015-05-07/2015-05-05-raspbian-wheezy.zip"
+RPI_IMAGE_SHA1="cb799af077930ff7cbcfaa251b4c6e25b11483de"
+RPI_DISC_SIZE=12
+RPI_KERNEL="$BASE_PATH/tools/raspberry/kernel-qemu-arm6.bin"
+target="raspberry"
+
+if [ -f "$HOME/.config/user-dirs.dirs" ];then
+{
+  . "$HOME/.config/user-dirs.dirs"
+  DESKTOP_DIR="$XDG_DESKTOP_DIR"
+  DOWNLOAD_DIR="$XDG_DOWNLOAD_DIR"
+  TEMPLATES_DIR="$XDG_TEMPLATES_DIR"
+  PUBLICSHARE_DIR="$XDG_PUBLICSHARE_DIR"
+  DOCUMENTS_DIR="$XDG_DOCUMENTS_DIR"
+  MUSIC_DIR="$XDG_MUSIC_DIR"
+  PICTURES_DIR="$XDG_PICTURES_DIR"
+  VIDEOS_DIR="$XDG_VIDEOS_DIR"
+}
+else
+{
+  DESKTOP_DIR=$HOME
+} fi
+
+
+usage()
+{
+  echo "usage: ${0##*/} [-g group,...] [-s] [-u]"
+  echo "-b dir       additional directories that should be bind mounted,"
+  echo '             or "NONE".'
+  echo "             Default: if local filesystems present, ask user for help"
+  echo "-f           if set install is related to a flow and several messages becomes not used"
+  echo "-g group,... groups that can use the chroot unauthenticated"
+  echo "             Default: '${admin}' and current user's group ('$(id -gn)')"
+  echo "-l file      store log messages"
+  echo "-n           no install of build dependencies now"
+  echo "-h           this help message"
+}
+
+process_opts()
+{
+  local OPTNAME OPTIND OPTERR OPTARG
+  while getopts ":b:fg:l:hn" OPTNAME; do
+    case "$OPTNAME" in
+      b)
+        if [ "${OPTARG}" = "NONE" ] && [ -z "${bind_mounts}" ];then
+          bind_mounts="${OPTARG}"
+        else
+        {
+          if [ "${bind_mounts}" = "NONE" ] || [ "${OPTARG}" = "${OPTARG#/}" ] || [ ! -d "${OPTARG}" ];then
+          {
+            echo "Invalid -b option(s)"
+            usage
+            exit 1
+          } fi
+          bind_mounts="${bind_mounts}
+${OPTARG} ${OPTARG} none rw,bind 0 0"
+        } fi
+        ;;
+      f)
+        full_install_flow="y"
+        ;;
+      l)
+        main_msg="$OPTARG"
+        ;;
+      g)
+        [ -n "${OPTARG}" ] &&
+          chroot_groups="${chroot_groups}${chroot_groups:+,}${OPTARG}"
+        ;;
+      n)
+        no_install_build_deps="y"
+        ;;
+      h)
+        usage
+        exit 0
+        ;;
+      \:)
+        echo "'-$OPTARG' needs an argument."
+        usage
+        exit 1
+        ;;
+      *)
+        echo "invalid command-line option: $OPTARG"
+        usage
+        exit 1
+        ;;
+    esac
+  done
+
+  if [ $# -ge ${OPTIND} ]; then
+    eval echo "Unexpected command line argument: \${${OPTIND}}"
+    usage
+    exit 1
+  fi
+}
+
+function is_network_drive()
+{
+  stat -c %T -f "$1/" 2>/dev/null |
+    egrep -qs '^nfs|cifs|smbfs'
+}
+
+function exit_build()
+{
+  local ret=$1
+  [ ! -z $TEMP_DIR ] && rm -rf $TEMP_DIR
+  exit $ret
+}
+
+###-------------------------------------------------------------------------###
+#                                                                             #
+#                            Start of process points                          #
+#                                                                             #
+
+DIST=`grep DISTRIB_ID /etc/*-release | awk -F '=' '{print $2}'`
+[ $DIST != "Ubuntu" ] && [ $DIST != "Debian" ] && {
+  echo "${RED}${BRIGHT}Build not possible, need performed on ubuntu or debian based system (needed for install of dependencies parts)${NORMAL}" >&2;
+  exit 1 ;
+}
+
+# Check that xserver is running and user is root.
+[[ $DISPLAY ]] || {
+  echo $"${RED}${BRIGHT}There is no xserver running. Exiting...${NORMAL}";
+  exit 1;
+}
+
+# Check that we are running as a regular user
+[ "$(id -nu)" = root ] && {
+  printf "${RED}${BRIGHT}Run this script as a regular user and provide your \"sudo\" password if requested!${NORMAL}\n" >&2;
+  exit 1;
+}
+
+TEMP_DIR=`mktemp -d`
+main_msg_tmp=${TEMP_DIR}/install.log
+build_log=${BASE_PATH}/build/install.log
+touch $build_log
+
+process_opts "$@"
+
+[ -z $main_msg ] && main_msg=/dev/stdout
+
+###
+# Check for missing packages
+#
+
+packages=""
+which xarchiver >/dev/null
+[ "$?" != "0" ] && packages="$packages xarchiver"
+which samba >/dev/null
+[ "$?" != "0" ] && packages="$packages samba"
+which vdeq >/dev/null
+[ "$?" != "0" ] && packages="$packages vde2"
+which qemu-system-arm >/dev/null
+[ "$?" != "0" ] && packages="$packages qemu-system-arm"
+which qemu-arm-static >/dev/null
+[ "$?" != "0" ] && packages="$packages qemu-user-static"
+
+# Install needed packages
+if [[ ! -z $packages ]];then
+{
+  while :; do
+  {
+    touch "${main_msg}"
+    (
+      touch "${TEMP_DIR}/build_active"
+      sudo apt-get update
+      sudo -A -- apt-get -y -q install $packages;
+      [ ${PIPESTATUS[0]} != 0 ] && exit 1;
+
+      rm -f "${TEMP_DIR}/build_active";
+      sleep 5;
+      exit 0;
+    ) | sed -u "s/.*/# &/ w ${main_msg_tmp}" >> ${main_msg} &
+    pid=$!;
+
+    tail -f --pid=$pid ${main_msg_tmp} |
+      showdialog --title="Install" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress --width=600 \
+                 --text="Install needed packages for windows emulation and usage ..." \
+                 --pulsate --enable-log --log-height=300 --button=gtk-cancel:1 \
+                 --auto-close 2> /dev/null;
+    ret=$?;
+    cat $main_msg_tmp >> $build_log
+    if [[ $ret != 0 ]];then
+    {
+      ps -p $pid;
+      [[ $? = 0 ]] && killtree $pid KILL;
+    }
+    elif [ -f "${TEMP_DIR}/build_active" ];then
+    {
+      ret=1;
+    } fi
+    rm -f "${TEMP_DIR}/build_active";
+
+    if [[ $ret != 0 ]];then
+    {
+      showWarningDialog_YesNo "Installation of packages failed! \n\nTry again?";
+      [ $? != 0 ] && exit_build $ret;
+    }
+    else
+      break;fi
+  } done
+} fi
+
+showInfoDialog "
+  Rasperry PI emulation
+_________________________________________________________________________________________
+
+  This script will help you through the process of installing a
+  ${target} PI in a chroot environment. You will
+  have to provide your \"sudo\" password when requested.
+" 5
+
+# Error handler
+trap 'evaluate_ret_error 1; exit_build 1' INT TERM QUIT HUP
+trap 'sudo -A -- apt-get clean; tput bel; echo; echo Failed' EXIT
+
+MOUNTPOINT="$INSTALL_PREFIX/emulate/data_share/base"
+
+if [ -z $RASPBERRY_DESKTOP_ICON_PATH ];then
+  RASPBERRY_DESKTOP_ICON_PATH=$DESKTOP_DIR;fi
+
+if [ ! -f $RPI_KERNEL ];then
+{
+  showQuestionDialog "\
+Your required linux ARM kernel is missing!
+Do you want to select one from a file?"
+  [ $? != 0 ] && exit_build 1
+  RPI_KERNEL=`showdialog --title="Selection of a Raspberry PI linux kernel" --file --file-filter="*.bin" --width=640 --height=480 2> /dev/null`
+} fi
+
+while :; do
+{
+  install_values=$(showdialog --form --title="Raspberry PI system installer" \
+                             --window-icon="$BASE_PATH/icons/icon-kodi-48x48.png" \
+                             --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
+                             --field="<i><span size=\"large\">Raspberry PI build / emulation system installation</span></i>:LBL" "" \
+                             --field=":LBL" "" \
+                             --field="Set used virtual hard disk size in GByte:NUM" "$RPI_DISC_SIZE" \
+                             --field="Where to store desktop icon:DIR" "$RASPBERRY_DESKTOP_ICON_PATH" \
+                             --field=":LBL" "" \
+                             --field="\
+     Copyright (C) 2015 Team KODI
+     http://kodi.tv
+
+     GNU General Public License, Version 3
+     see http://www.gnu.org/licenses/:LBL" "" \
+                             --field=":LBL" "" \
+                             --center 2> /dev/null);
+  if [ $? != 0 ];then
+  {
+    showWarningDialog_YesNo "Are you sure to exit install?"
+    [ $? = 0 ] && exit_build 1
+  }
+  else
+    break;fi
+} done
+
+RPI_DISC_SIZE=$(echo $install_values | awk -F '|' '{print $3}' | awk -F ',' '{print $1}')
+RASPBERRY_DESKTOP_ICON_PATH=$(echo $install_values | awk -F '|' '{print $4}')
+
+first_run=1;
+while :; do
+{
+  if [ $first_run = 0 ];then
+    RPI_DISC_SIZE=`showdialog --title="Virtual HD size" --entry --text="Set used virtual disk\nsize in GByte (minimum 5)" --entry-text="$RPI_DISC_SIZE" 2> /dev/null`;fi
+  first_run=0;
+  if [[ ${RPI_DISC_SIZE} -lt 5 ]];then
+  {
+    evaluate_ret_error 1 "Selected hard disk size of $RPI_DISC_SIZE is not enough, minimum 5 GByte needed"
+    showWarningDialog_YesNo "Do you want to try again?"
+    [ $? != 0 ] && exit_build 1
+  }
+  else
+    break;fi
+} done
+
+{
+  touch "${main_msg}"
+  (
+    touch "${TEMP_DIR}/build_active"
+    printf "\n ------ Install of RaspberryPI started ------\n\n"
+
+    # Install any missing applications that this script relies on. If these packages
+    # are already installed, don't force another "apt-get install". That would
+    # prevent them from being auto-removed, if they ever become eligible for that.
+    # And as this script only needs the packages once, there is no good reason to
+    # introduce a hard dependency on things such as dchroot and debootstrap.
+    echo "-----------------------------------------------------------------------------"
+    echo "Checking for missing dependencies"
+    dep=
+    for i in dchroot debootstrap libwww-perl;do
+      [ -d /usr/share/doc/"$i" ] || dep="$dep $i"
+    done
+    echo "OK"
+    echo "-----------------------------------------------------------------------------"
+    echo ""
+
+    sudo -A -- apt-get -y install $dep schroot;
+
+    # Don't accidentally overwrite an existing installation
+    [ -d $INSTALL_PREFIX/emulate/"${target}" ] &&
+    {
+      while :; do
+        label="This chroot already exists on your machine."
+        if schroot -l --all-sessions 2>&1 |
+           sed 's/^session://' |
+           grep -qs "^${target}-"; then
+          label="$label
+
+    And it appears to be in active use. Terminate all programs that
+    are currently using the chroot environment and then re-run this
+    script.
+
+    If you still get an error message, you might have stale mounts
+    that you forgot to delete. You can always clean up mounts by
+    executing \"${target} -c\".
+
+    If removed continue with yes, no cancel build."
+          showQuestionDialog "$label"
+          [ $? != 0 ] && exit_build 1
+          continue
+        fi
+        label="$label
+
+    What would you like to do?"
+        choice=$(showdialog --list \
+                            --text="$label" \
+                            --title="Raspberry PI already present" \
+                            --radiolist \
+                            --column "Use" \
+                            --column "Type" \
+                            --print-column=2 \
+                            FALSE "Abort" \
+                            FALSE "Overwrite" \
+                            FALSE "Delete" \
+                            --width=400 --height=390 2> /dev/null)
+        [ $? != 0 ] && exit_build 1
+        case "${choice}" in
+          "Abort|") exit_build 1;;
+          "Overwrite|")
+               sudo -A -- rm -rf $INSTALL_PREFIX/emulate/${target};
+               break;;
+          "Delete|")
+               sudo -A -- rm -rf $INSTALL_PREFIX/emulate/${target}      \
+                                    /usr/local/bin/${target}   \
+                                    /etc/schroot/mount-${target}   \
+                                    /etc/schroot/script-${target}  \
+                                    /etc/schroot/${target}
+               sudo -A -- sed -ni '/^[[]'"${target}"']$/,${
+                                   :1;n;/^[[]/b2;b1;:2;p;n;b2};p' \
+                                 "/etc/schroot/schroot.conf"
+               trap '' INT TERM QUIT HUP
+               trap '' EXIT
+               showdialog --text="Deleted!" 2> /dev/null
+               [ -z $full_install_flow ] && exit_build 0
+               exit_build 1;;
+        esac
+      done
+    }
+    mkdir -p $INSTALL_PREFIX/emulate/${target}
+    mkdir -p $INSTALL_PREFIX/emulate/data_share/base
+    mkdir -p $INSTALL_PREFIX/emulate/data_share/mount
+
+    [[ "x`cat /proc/mounts | grep ${MOUNTPOINT}/boot`" != "x" ]] && sudo -A -- umount -l "${MOUNTPOINT}/boot"
+    [[ "x`cat /proc/mounts | grep ${MOUNTPOINT}/dev/pts`" != "x" ]] && sudo -A -- umount -l "${MOUNTPOINT}/dev/pts"
+    [[ "x`cat /proc/mounts | grep ${MOUNTPOINT}/sys`" != "x" ]] && sudo -A -- umount -l "${MOUNTPOINT}/sys"
+    [[ "x`cat /proc/mounts | grep ${MOUNTPOINT}/proc`" != "x" ]] && sudo -A -- umount -l "${MOUNTPOINT}/proc"
+    if [[ "x`cat /proc/mounts | grep ${MOUNTPOINT}`" != "x" ]]; then
+      [ -e "${MOUNTPOINT}/etc/ld.so.preload" ] && sudo -A -- sed -i 's/^#//' "${MOUNTPOINT}/etc/ld.so.preload"
+      sudo -A -- umount -l "${MOUNTPOINT}"
+    fi
+
+    # Ask user about ther used folders to pass to windows
+    create_data_share "Raspberry PI" "raspberry"
+
+    # Select the source of the image
+    while :; do
+      RPI_IMAGE_SRC_URL=$(showdialog --title="Raspberry PI Download URL" --text="Set package URL for download:" --entry --width=640 --entry-text="$RPI_IMAGE_SRC_URL" 2> /dev/null)
+      valid=`validateUrl $RPI_IMAGE_SRC_URL`
+      if [[ $valid != "true" ]];then
+        showWarningDialog_YesNo "Selection URL not valid! \n\nTry again?"
+        [ $? != 0 ] && exit 1
+        continue
+      else
+        break
+      fi
+    done
+
+    set RPI_IMAGE_SRC_URL=$RPI_IMAGE_SRC_URL
+
+    rm -f "${TEMP_DIR}/build_active";
+    exit 0;
+  ) | sed -u "s/.*/# &/ w ${main_msg_tmp}" >> ${main_msg} &
+  pid=$!
+}
+{
+  tail -f --pid=$pid ${main_msg} |
+    showdialog --title="Install Raspberry PI" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress \
+               --width=600 \
+               --text="Setting up environment to use Raspberry PI emulation ..." \
+               --pulsate --enable-log --log-height=300 --button=gtk-cancel:1 \
+               --auto-close > /dev/null
+  ret=$?
+  cat $main_msg_tmp >> $build_log
+  clean_schroot
+  if [[ $ret != 0 ]];then
+    showErrorDialog "\"RaspberryPI\" installation cancelled.\nExiting"
+    ps -p $pid
+    [[ $? = 0 ]] && killtree $pid KILL
+    rm -f "${TEMP_DIR}/build_active"
+    exit_build 1
+  elif [ -f "${TEMP_DIR}/build_active" ];then
+    showErrorDialog "\"RaspberryPI\" installation failed.\nExiting"
+    rm -f "${TEMP_DIR}/build_active"
+    exit_build 1
+  fi
+}
+
+[ ! -d "$HOME/Downloads" ] && mkdir "$HOME/Downloads"
+IMAGE_ARCHIVE_FILE="$HOME/Downloads/${RPI_IMAGE_SRC_URL##*/}"
+IMAGE_FILE="${IMAGE_ARCHIVE_FILE%.*}.img"
+GPI_IMAGE="$INSTALL_PREFIX/emulate/${target}/rpi-tmpl.img"
+
+# Download Image. This takes some time
+if [ ! -f "${IMAGE_FILE}" ]; then
+{
+  set -o pipefail
+  wget "${RPI_IMAGE_SRC_URL}" -O "${IMAGE_ARCHIVE_FILE}" 2>&1 | \
+  sed -u 's/^[a-zA-Z\-].*//; s/.* \{1,2\}\([0-9]\{1,3\}\)%.*/\1\n#Downloading... \1%/; s/^20[0-9][0-9].*/#Done./' | \
+  showdialog --image="$BASE_PATH/icons/icon-install-128x128.png" --progress \
+             --percentage=0 --title="Download" --text="Download Raspbian base image ..." \
+             --auto-close  --width=480 2> /dev/null
+
+  while :; do
+  {
+    RPI_IMAGE_SHA1=$(showdialog --title="Download Raspberry PI sha1sum" --text="Set package sha1sum for download:" --entry --width=640 --entry-text="$RPI_IMAGE_SHA1" 2> /dev/null)
+    touch "$TEMP_DIR/raspberry-sha1sum.txt"
+    sha1sum ${IMAGE_ARCHIVE_FILE} | cut -d " " -f1 > "$TEMP_DIR/raspberry-sha1sum.txt" &
+    tail -f --pid=$! "$build_log" |
+        showdialog --image="$BASE_PATH/icons/icon-install-128x128.png" --progress \
+                   --percentage=0 --title="Raspberry PI check" --text="Checking package sha1sum ..." \
+                   --pulsate --auto-close  --width=480 2> /dev/null
+    SHA1SUM=`cat "$TEMP_DIR/raspberry-sha1sum.txt"`
+
+    if [ x"${RPI_IMAGE_SHA1}" != x"${SHA1SUM}" ]; then
+    {
+      showWarningDialog_YesNo "\
+  SHA1 checksum error
+  ${SHA1SUM} != ${RPI_IMAGE_SHA1}
+
+  Select again?"
+      [ $? != 0 ] && exit_build 1
+    }
+    else
+      break;fi
+  } done
+
+  sudo -A -- rm -f "${GPI_IMAGE}"
+
+  xarchiver -e "${IMAGE_ARCHIVE_FILE}" -x "${IMAGE_ARCHIVE_FILE%/*}"
+  rm -f "${IMAGE_ARCHIVE_FILE}"
+} fi
+
+# Check for non-standard file system mount points and ask the user whether
+# they should be imported into the chroot environment
+# We limit to the first 26 mount points that much some basic heuristics,
+# because a) that allows us to enumerate choices with a single character,
+# and b) if we find more than 26 mount points, then these are probably
+# false-positives and something is very unusual about the system's
+# configuration. No need to spam the user with even more information that
+# is likely completely irrelevant.
+mounts="$(awk '$2 != "/" && $2 !~ "^/boot" && $2 !~ "^/home" &&
+               $2 !~ "^/media" && $2 !~ "^/run" &&
+               ($3 ~ "ext[2-4]" || $3 == "reiserfs" || $3 == "btrfs" ||
+               $3 == "xfs" || $3 == "jfs" || $3 == "u?msdos" ||
+               $3 == "v?fat" || $3 == "hfs" || $3 == "ntfs" ||
+               $3 ~ "nfs[4-9]?" || $3 == "smbfs" || $3 == "cifs") {
+                 print $2
+               }' /proc/mounts |
+          head -n26)"
+if [ -n "${mounts}" ]; then
+{
+  targets=
+  for i in $mounts; do
+    targets=`printf "$targets OFF %s" "$i"`;done
+
+  mounts=$(showdialog --list --checklist \
+                      --title="Raspberry PI system" \
+                      --text="\
+You appear to have non-standard mount points that you
+might want to import into the chroot environment.
+
+Select mount points that you want to be included or
+ignore" \
+                      --column "Use" \
+                      --column "Point" $targets \
+                      --print-column=2 \
+                      --width=400 --height=390 2> /dev/null)
+} fi
+IFS='|'; for m in ${mounts}; do
+{
+  bind_mounts="${bind_mounts}$m $m none rw,bind 0 0
+"
+} done; unset IFS
+
+# Remove stale entry from /etc/schroot/schroot.conf. Entries start
+# with the target name in square brackets, followed by an arbitrary
+# number of lines. The entry stops when either the end of file has
+# been reached, or when the beginning of a new target is encountered.
+# This means, we cannot easily match for a range of lines in
+# "sed". Instead, we actually have to iterate over each line and check
+# whether it is the beginning of a new entry.
+sudo -A -- sed -ni '/^[[]'"${target}"']$/,${:1;n;/^[[]/b2;b1;:2;p;n;b2};p'       \
+         /etc/schroot/schroot.conf
+
+if [ ! -e "${GPI_IMAGE}" ]; then
+{
+  {
+    touch "${main_msg}"
+    (
+      touch "${TEMP_DIR}/build_active"
+      echo "Virtual disk rework started"
+
+      cp -f "${IMAGE_FILE}" "${GPI_IMAGE}"
+
+      # Resize image to 10GB
+      truncate --size $((${RPI_DISC_SIZE}*1024*1024*1024)) ${GPI_IMAGE}
+      PART_START=$(/sbin/parted ${GPI_IMAGE} -ms unit s p | grep "^2" | cut -f 2 -d:)
+      PART_START="${PART_START%?}"
+      [ "$PART_START" ] || exit 1
+      /sbin/fdisk ${GPI_IMAGE} <<EOF
+p
+d
+2
+n
+p
+2
+$PART_START
+
+p
+w
+EOF
+
+      OFFSET_ROOT=`/sbin/sfdisk -uS -l "${GPI_IMAGE}" 2>/dev/null | grep img2 | awk '{print $2}'`
+      OFFSET_ROOT=$((512*${OFFSET_ROOT}))
+      LOOP_DEV="`sudo -A -- /sbin/losetup -f --show -o ${OFFSET_ROOT} ${GPI_IMAGE}`"
+
+      sudo -A -- /sbin/e2fsck -f -y ${LOOP_DEV}
+      sudo -A -- /sbin/resize2fs ${LOOP_DEV}
+      sync
+
+      sleep 3
+      sudo -A -- /sbin/losetup -d ${LOOP_DEV}
+      rm -f "${TEMP_DIR}/build_active";
+      sleep 1
+      exit 0
+    ) | sed -u "s/.*/# &/ w ${main_msg_tmp}" >> ${main_msg} &
+    pid=$!
+  }
+  {
+    tail -f --pid=$pid ${main_msg} |
+      showdialog --title="Install Raspberry PI" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress \
+                 --width=600 \
+                 --text="Setting up ${target} architecture disk..." \
+                 --pulsate --enable-log --log-height=300 --button=gtk-cancel:1 \
+                 --auto-close > /dev/null
+    ret=$?
+    cat $main_msg_tmp >> $build_log
+    if [[ $ret != 0 ]];then
+      showErrorDialog "Image rework cancelled.\nExiting"
+      ps -p $pid
+      [[ $? = 0 ]] && killtree $pid KILL
+      rm -f "${TEMP_DIR}/build_active"
+      exit_build 1
+    elif [ -f "${TEMP_DIR}/build_active" ];then
+      showErrorDialog "Image rework failed.\nExiting"
+      rm -f "${TEMP_DIR}/build_active"
+      exit_build 1
+    fi
+  }
+} fi
+
+{
+  touch "${main_msg}"
+  (
+    touch "${TEMP_DIR}/build_active"
+
+    printf "\n ------ Install of Raspberry PI system started ------\n"
+    echo "#"
+    echo " Add new entry to /etc/schroot/schroot.conf"
+    if [ -z "${chroot_groups}" ]; then
+      chroot_groups="${admin},$(id -gn)"
+    fi
+
+    fstab="/etc/schroot/${target}/fstab"
+
+    if [ -e "${GPI_IMAGE}" ]; then
+      if [ x"`file "${GPI_IMAGE}" | grep "partition 1" | grep "partition 2"`" == x"" ]; then
+        showErrorDialog "File '${GPI_IMAGE}' does not seem to be a valid image file."
+        exit 1
+      fi
+      if [ ! -d "${MOUNTPOINT}" ]; then
+        showErrorDialog "Mountpoint directory '${MOUNTPOINT}' does not exist."
+        exit 1
+      fi
+
+      OFFSET_BOOT=`sfdisk -uS -l "${GPI_IMAGE}" 2>/dev/null | grep img1 | awk '{print $2}'`
+      OFFSET_ROOT=`sfdisk -uS -l "${GPI_IMAGE}" 2>/dev/null | grep img2 | awk '{print $2}'`
+
+      sudo -A -- mount -o loop,offset=$((512*${OFFSET_ROOT})) "${GPI_IMAGE}" "${MOUNTPOINT}"
+      sudo -A -- mount -o loop,offset=$((512*${OFFSET_BOOT})) "${GPI_IMAGE}" "${MOUNTPOINT}/boot"
+
+      sudo -A -- cp -f /usr/bin/qemu-arm-static "${MOUNTPOINT}/usr/bin/qemu-arm-static"
+      if [[ -z `sudo -A -- grep "Kodi-Raspberry" ${MOUNTPOINT}/root/.bashrc` ]];then
+        [ -e "${MOUNTPOINT}/etc/ld.so.preload" ] && sudo -A -- sed -i 's/^/#/' "${MOUNTPOINT}/etc/ld.so.preload"
+        sudo -A -- sh -c "echo \"export LC_ALL=C\" > \"${MOUNTPOINT}/etc/environment\""
+        sudo -A -- sh -c "echo \"export LC_ALL=C\" >> \"${MOUNTPOINT}/root/.bashrc\""
+        sudo -A -- sh -c "echo 'export PS1=\"(Kodi-Raspberry) \$PS1\"' >> \"${MOUNTPOINT}/root/.bashrc\""
+      fi
+
+      #sudo -A -- chmod 777 "${GPI_IMAGE}"; [ $? != 0 ] && exit 1;
+      #sudo -A -- chown root:root "${GPI_IMAGE}"; [ $? != 0 ] && exit 1;
+      install ${RPI_KERNEL} $INSTALL_PREFIX/emulate/raspberry/kernel-qemu-raspberry.bin; [ $? != 0 ] && exit 1;
+
+      sleep 3
+
+      sudo -A -- umount "${MOUNTPOINT}/boot"
+      sudo -A -- umount "${MOUNTPOINT}"
+    else
+      showErrorDialog "Image file '${GPI_IMAGE}' not found."
+      exit 1
+    fi
+
+    ##
+    # Create home folder for it. Hack way which becomes set on every
+    # schroot
+#    mkdir -p "${HOME}/.chroot_${target}_home/${USER}"
+
+    sudo -A -- cp -ar /etc/schroot/minimal /etc/schroot/${target}
+    sudo -A -- sh -c 'cat >>/etc/schroot/schroot.conf' << EOF
+
+[${target}]
+description=Raspberry Kodi Environment
+type=directory
+directory=$INSTALL_PREFIX/emulate/${target}/mount
+users=root
+groups=${chroot_groups}
+root-groups=${chroot_groups}
+profile=${target}
+
+EOF
+
+    echo "${GPI_IMAGE}      /               auto    loop,offset=$((512*${OFFSET_ROOT})) 0       0" |
+      sudo -A -- sh -c 'cat >'"${fstab}"
+
+    echo "${GPI_IMAGE}      /boot           auto    loop,offset=$((512*${OFFSET_BOOT})) 0       0" |
+      sudo -A -- sh -c 'cat >>'"${fstab}"
+
+    echo "-----------------------------------------------------------------------------"
+    echo "Add the extra mount points that the user told us about"
+    [ -n "${bind_mounts}" -a "${bind_mounts}" != "NONE" ] &&
+      printf "${bind_mounts}" | sudo -A -- sh -c 'cat >>'"${fstab}"
+    echo "OK"
+    echo "-----------------------------------------------------------------------------"
+    echo ""
+
+    echo "-----------------------------------------------------------------------------"
+    echo "If this system has a \"/media\" mountpoint, import it into the chroot"
+    echo "environment. Most modern distributions use this mount point to"
+    echo "automatically mount devices such as CDROMs, USB sticks, etc..."
+    if [ -d /media ] && ! grep -qs '^/media' "${fstab}";then
+      echo '/media /media none rw,rbind 0 0' | sudo -A -- sh -c 'cat >>'"${fstab}";fi
+    echo "OK"
+    echo "-----------------------------------------------------------------------------"
+    echo ""
+
+    # Share /dev/shm, /run and /run/shm.
+    grep -qs '^/dev/pts' "${fstab}" ||
+      echo '/dev/pts        /dev/pts        none    rw,bind         0       0' |
+        sudo -A -- sh -c 'cat >>'"${fstab}"
+    grep -qs '^/proc' "${fstab}" ||
+      echo '/proc           /proc           none    rw,bind         0       0' |
+        sudo -A -- sh -c 'cat >>'"${fstab}"
+    grep -qs '^/sys' "${fstab}" ||
+      echo '/sys            /sys            none    rw,bind         0       0' |
+        sudo -A -- sh -c 'cat >>'"${fstab}"
+    grep -qs '^/tmp' "${fstab}" ||
+      echo 'tmpfs           /tmp            tmpfs   defaults        0       0' |
+        sudo -A -- sh -c 'cat >>'"${fstab}"
+    grep -qs '^/home' "${fstab}" ||
+      echo '/home           /home           none    rw,bind         0       0' |
+        sudo -A -- sh -c 'cat >>'"${fstab}"
+
+    echo "-----------------------------------------------------------------------------"
+    echo "Share Pulse Audio"
+    if ! grep -qs '^/run/shm/dbus' "${fstab}" && [ -d /var/lib/dbus ];then
+    {
+      echo '/var/lib/dbus /var/lib/dbus none rw,bind 0 0'   | sudo -A -- sh -c 'cat >>'"${fstab}";
+      echo '/var/run/dbus /var/run/dbus none rw,bind 0 0'   | sudo -A -- sh -c 'cat >>'"${fstab}";
+      echo '/run/user/1000 /run/user/1000 none rw,bind 0 0' | sudo -A -- sh -c 'cat >>'"${fstab}";
+    } fi
+    echo "OK"
+    echo "-----------------------------------------------------------------------------"
+    echo ""
+
+#    echo "-----------------------------------------------------------------------------"
+#    echo "Set up a special directory that changes contents depending on the target that is executing."
+#    d="$(readlink -f "${HOME}/chroot" 2>/dev/null || echo "${HOME}/chroot")"
+#    s="${d}/.${target}"
+#    echo "${s} ${d} none rw,bind 0 0" |
+#      sudo -A -- sh -c 'cat >>'"${fstab}"
+#    mkdir -p "${s}"
+#    echo "OK"
+#    echo "-----------------------------------------------------------------------------"
+#    echo ""
+
+    echo "-----------------------------------------------------------------------------"
+    echo " Install a helper script to launch qemu"
+    sudo -A -- sh -c 'cat > /usr/local/bin/qemu-'"${target}" << EOF
+#!/bin/bash
+
+qemu-system-arm \\
+  -kernel $INSTALL_PREFIX/emulate/${target}/kernel-qemu-raspberry.bin \\
+  -cpu arm1176 \\
+  -m 256 \\
+  -M versatilepb \\
+  -append "root=/dev/sda2 panic=1 rw" \\
+  -hda $INSTALL_PREFIX/emulate/${target}/rpi-tmpl.img \\
+  -net nic \\
+  -net user \\
+  -sdl \\
+  -redir tcp:2222::22
+EOF
+
+    sudo -A -- chown root:root /usr/local/bin/qemu-"${target}"
+    sudo -A -- chmod 755 /usr/local/bin/qemu-"${target}"
+    echo "OK"
+    echo "-----------------------------------------------------------------------------"
+    echo ""
+
+    echo "-----------------------------------------------------------------------------"
+    echo "Install a helper script to launch commands in the chroot"
+    sudo -A -- sh -c 'cat > /usr/local/bin/'"${target%bit}" << EOF
+#!/bin/bash
+
+export SUDO_ASKPASS="$BASE_PATH/tools/sudo-askpass"
+EOF
+    sudo -A -- sh -c 'cat >> /usr/local/bin/'"${target%bit}" << 'EOF'
+chroot="${0##*/}"
+
+wrap()
+{
+  # Word-wrap the text passed-in on stdin. Optionally, on continuation lines
+  # insert the same number of spaces as the number of characters in the
+  # parameter(s) passed to this function.
+  # If the "fold" program cannot be found, or if the actual width of the
+  # terminal cannot be determined, this function doesn't attempt to do any
+  # wrapping.
+  local f="$(type -P fold)"
+  [ -z "${f}" ] && { cat; return; }
+  local c="$(stty -a </dev/tty 2>/dev/null |
+             sed 's/.*columns[[:space:]]*\([0-9]*\).*/\1/;t;d')"
+  [ -z "${c}" ] && { cat; return; }
+  local i="$(echo "$*"|sed 's/./ /g')"
+  local j="$(printf %s "${i}"|wc -c)"
+  if [ "${c}" -gt "${j}" ]; then
+    dd bs=1 count="${j}" 2>/dev/null
+    "${f}" -sw "$((${c}-${j}))" | sed '2,$s/^/'"${i}"'/'
+  else
+    "${f}" -sw "${c}"
+  fi
+}
+
+help() {
+  echo "Usage ${0##*/} [-h|--help] [-c|--clean] [-C|--clean-all] [-l|--list] [--] args" | wrap "Usage ${0##*/} "
+  echo "  help:      print this message"                                                | wrap "             "
+  echo "  list:      list all known chroot environments"                                | wrap "             "
+  echo "  clean:     remove all old chroot sessions for \"${chroot}\""                  | wrap "             "
+  echo "  clean-all: remove all old chroot sessions for all environments"               | wrap "             "
+  exit 0
+}
+
+clean() {
+  local s t rc
+  rc=0
+  for s in $(schroot -l --all-sessions); do
+    if [ -n "$1" ]; then
+      t="${s#session:}"
+      [ "${t#${chroot}-}" == "${t}" ] && continue
+    fi
+    if ls -l /proc/*/{cwd,fd} 2>/dev/null |
+       fgrep -qs "/var/lib/schroot/mount/${t}"; then
+      echo "Session \"${t}\" still has active users, not cleaning up" | wrap
+      rc=1
+      continue
+    fi
+    sudo -A -- schroot -c "${s}" -e || rc=1
+  done
+  return ${rc}
+}
+
+list() {
+  for e in $(schroot -l); do
+    e="${e#chroot:}"
+    [ -x "/usr/local/bin/${e}" ] || continue
+    if schroot -l --all-sessions 2>/dev/null |
+       sed 's/^session://' |
+       grep -qs "^${e}-"; then
+      echo "${e} is currently active"
+    else
+      echo "${e}"
+    fi
+  done
+  exit 0
+}
+
+while [ "$#" -ne 0 ]; do
+  case "$1" in
+    --)             shift; break;;
+    -h|--help)      shift; help;;
+    -l|--list)      shift; list;;
+    -c|--clean)     shift; clean "${chroot}"; exit ${?};;
+    -C|--clean-all) shift; clean; exit ${?};;
+    *)              break;;
+  esac
+done
+
+# Start a new chroot session and keep track of the session id. We inject this
+# id into all processes that run inside the chroot. Unless they go out of their
+# way to clear their environment, we can then later identify our child and
+# grand-child processes by scanning their environment.
+session="$(schroot -c "${chroot}" -b)"
+export CHROOT_SESSION_ID="${session}"
+
+# Set GOMA_TMP_DIR for better handling of goma inside chroot.
+export GOMA_TMP_DIR="/tmp/goma_tmp_$CHROOT_SESSION_ID"
+mkdir -p "$GOMA_TMP_DIR"
+
+if [ $# -eq 0 ]; then
+  # Run an interactive shell session
+  schroot -c "${session}" -r -p
+else
+  # Run a command inside of the chroot environment
+  p="$1"; shift
+  schroot -c "${session}" -r -p "$p" -- "$@"
+fi
+rc=$?
+
+# Compute the inode of the root directory inside of the chroot environment.
+i=$(schroot -c "${session}" -r -p ls -- -id /proc/self/root/. |
+     awk '{ print $1 }') 2>/dev/null
+
+pids=$({ ls -id1 /proc/*/root/. 2>/dev/null |
+       sed -e 's,^[^0-9]*'$i'.*/\([1-9][0-9]*\)/.*$,\1,
+               t
+               d';
+       } | sort | uniq -u) >/dev/null 2>&1
+
+for j in $pids; do
+  if [ -e /proc/$j/environ ] && [[ -n `grep -s CHROOT_SESSION_ID /proc/$j/environ` ]];then
+    k="$( ( xargs -0 -n1 </proc/$j/environ ) 2>/dev/null | sed 's/^CHROOT_SESSION_ID=/x/;t1;d;:1;q')"
+    if [ "${k#x}" == "${session}" ]; then
+      kill -9 $j
+    fi
+  fi
+done
+
+# End the chroot session. This should clean up all temporary files. But if we
+# earlier failed to terminate all (daemon) processes inside of the session,
+# deleting the session could fail. When that happens, the user has to manually
+# clean up the stale files by invoking us with "--clean" after having killed
+# all running processes.
+schroot -c "${session}" -e
+# Since no goma processes are running, we can remove goma directory.
+rm -rf "$GOMA_TMP_DIR"
+
+clean "${chroot}"
+exit $rc
+EOF
+
+    sudo -A -- chown root:root /usr/local/bin/"${target}"
+    sudo -A -- chmod 755 /usr/local/bin/"${target}"
+
+#    echo "-----------------------------------------------------------------------------"
+#    echo "Check whether ~/chroot is on a (slow) network file system and offer to"
+#    echo "relocate it. Also offer relocation, if the user appears to have multiple"
+#    echo "spindles (as indicated by \"${bind_mount}\" being non-empty)."
+#    echo "We only offer this option, if it doesn\'t look as if a chroot environment"
+#    echo "is currently active. Otherwise, relocation is unlikely to work and it"
+#    echo "can be difficult for the user to recover from the failed attempt to relocate"
+#    echo "the ~/chroot directory."
+#    echo "We don't aim to solve this problem for every configuration,"
+#    echo "but try to help with the common cases. For more advanced configuration"
+#    echo "options, the user can always manually adjust things."
+#    mkdir -p "${HOME}/chroot/"
+#    if [ ! -h "${HOME}/chroot" ] &&
+#       ! egrep -qs '^[^[:space:]]*/chroot' /etc/fstab &&
+#       { [ -n "${bind_mounts}" -a "${bind_mounts}" != "NONE" ] ||
+#         isNetworkDrive "${HOME}/chroot"; } &&
+#       ! egrep -qs '/var/lib/[^/]*chroot/.*/chroot' /proc/mounts;then
+#    {
+#      echo "${HOME}/chroot is currently located on the same device as your"
+#      echo "home directory."
+#      echo "This might not be what you want. Do you want me to move it somewhere"
+#      echo "else?"
+#      # If the computer has multiple spindles, many users configure all or part of
+#      # the secondary hard disk to be writable by the primary user of this machine.
+#      # Make some reasonable effort to detect this type of configuration and
+#      # then offer a good location for where to put the ~/chroot directory.
+#      suggest=
+#      for i in $(echo "${bind_mounts}"|cut -d ' ' -f 1); do
+#        if [ -d "$i" -a -w "$i" -a \( ! -a "$i/chroot" -o -w "$i/chroot/." \) ] &&
+#           ! isNetworkDrive "$i"; then
+#          suggest="$i"
+#        else
+#          for j in "$i/"*; do
+#            if [ -d "$j" -a -w "$j" -a \
+#                 \( ! -a "$j/chroot" -o -w "$j/chroot/." \) ] &&
+#               ! isNetworkDrive "$j"; then
+#              suggest="$j"
+#            else
+#              for k in "$j/"*; do
+#                if [ -d "$k" -a -w "$k" -a \
+#                     \( ! -a "$k/chroot" -o -w "$k/chroot/." \) ] &&
+#                   ! isNetworkDrive "$k"; then
+#                  suggest="$k"
+#                  break
+#                fi
+#              done
+#            fi
+#            [ -n "${suggest}" ] && break
+#          done
+#        fi
+#        [ -n "${suggest}" ] && break
+#      done
+#      def_suggest="${HOME}"
+#      if [ -n "${suggest}" ]; then
+#        # For home directories that reside on network drives, make our suggestion
+#        # the default option. For home directories that reside on a local drive,
+#        # require that the user manually enters the new location.
+#        if isNetworkDrive "${HOME}"; then
+#          def_suggest="${suggest}"
+#        else
+#          showdialog --title="Info" \
+#                     --image="$BASE_PATH/icons/icon-info-128x128.png" \
+#                     --width=640 \
+#                     --text="\
+#${HOME}/chroot is currently located on the same device
+#as your home directory.
+#This might not be what you want. Do you want me to move
+#it somewhere else?
+#
+#A good location would probably be in \"${suggest}\""
+#        fi
+#      fi
+#      while :; do
+#      {
+#        dir=$(showdialog --title="Location" --entry --text="Physical location [${def_suggest}]:");
+#        [ -z "${dir}" ] && dir="${def_suggest}"
+#        [ "${dir%%/}" == "${HOME%%/}" ] && break
+#        if ! [ -d "${dir}" -a -w "${dir}" ] || [ -a "${dir}/chroot" -a ! -w "${dir}/chroot/." ];then
+#        {
+#          showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
+#                     --image-on-top --form \
+#                     --text="Cannot write to ${dir}/chroot. Please try again" \
+#                     --button=gtk-ok:0
+#        }
+#        else
+#        {
+#          mv "${HOME}/chroot" "${dir}/chroot";
+#          ln -s "${dir}/chroot" "${HOME}/chroot";
+#          for i in $(list_all_chroots);do
+#            sudo -A -- "$i" mkdir -p "${dir}/chroot";done
+#          sudo -A -- sed -i "s,${HOME}/chroot,${dir}/chroot,g" /etc/schroot/mount-*
+#          break;
+#        } fi
+#      } done
+#    } fi
+#    echo "OK"
+#    echo "-----------------------------------------------------------------------------"
+#    echo ""
+
+    ICON_NAME=qemu-raspberry-pi
+    TMP_DIR=`mktemp --directory`
+    DESKTOP_FILE=$TMP_DIR/qemu-raspberry-pi.desktop
+    cat > $DESKTOP_FILE << EOF
+[Desktop Entry]
+Comment[de_DE]=Start Raspberry PI emulation
+Comment=Start Raspberry PI emulation
+Exec=qemu-raspberry
+GenericName[de_DE]=
+GenericName=
+Icon=$INSTALL_PREFIX/icons/icon-raspberry-pi-128x128.png
+MimeType=
+Name=QEmu Raspberry PI
+Path=
+StartupNotify=true
+Terminal=false
+TerminalOptions=
+Type=Application
+Version=1.0
+X-DBUS-ServiceName=
+X-DBUS-StartupType=
+X-KDE-SubstituteUID=false
+X-KDE-Username=
+X-MultipleArgs=false
+EOF
+
+    xdg-desktop-menu  install --novendor --noupdate $DESKTOP_FILE
+    xdg-icon-resource install --novendor --size  32 "$BASE_PATH/icons/icon-raspberry-pi-32x32.png"   $ICON_NAME
+    xdg-icon-resource install --novendor --size  48 "$BASE_PATH/icons/icon-raspberry-pi-48x48.png"   $ICON_NAME
+    xdg-icon-resource install --novendor --size  64 "$BASE_PATH/icons/icon-raspberry-pi-64x64.png"   $ICON_NAME
+    xdg-icon-resource install --novendor --size 128 "$BASE_PATH/icons/icon-raspberry-pi-128x128.png" $ICON_NAME
+    xdg-desktop-menu  forceupdate
+
+    if [ ! -z $RASPBERRY_DESKTOP_ICON_PATH ];then
+      cp $DESKTOP_FILE $RASPBERRY_DESKTOP_ICON_PATH;fi
+
+    rm $DESKTOP_FILE
+    rm -R $TMP_DIR
+
+    printf "\n ------------------ Basic installation finished -----------------\n\n"
+    rm -f "${TEMP_DIR}/build_active";
+    sleep 10
+
+    exit 0
+  ) | sed -u "s/.*/# &/ w ${main_msg_tmp}" >> ${main_msg} &
+  pid=$!
+}
+{
+  tail -f --pid=$pid ${main_msg} |
+    showdialog --title="Install Raspberry PI chroot" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress \
+               --width=600 \
+               --text="Installing parts for Raspberry architecture ..." \
+               --pulsate --enable-log --log-height=300 --button=gtk-cancel:1 \
+               --auto-close > /dev/null
+  ret=$?
+  cat $main_msg_tmp >> $build_log
+  if [[ $ret != 0 ]];then
+    showErrorDialog "Installation cancelled.\nExiting"
+    ps -p $pid
+    [[ $? = 0 ]] && killtree $pid KILL
+    rm -f "${TEMP_DIR}/build_active"
+    exit_build 1
+  elif [ -f "${TEMP_DIR}/build_active" ];then
+    showErrorDialog "Installation failed.\nExiting"
+    rm -f "${TEMP_DIR}/build_active"
+    exit_build 1
+  fi
+}
+
+trap '' INT TERM QUIT HUP
+trap '' EXIT
+
+# Let the user know what we did
+showdialog --title="Automatic build environment" \
+           --image="$BASE_PATH/icons/icon-info-128x128.png" \
+           --image-on-top --form \
+           --button=gtk-ok:0 \
+           --width=830 --show-uri --editable \
+           --text-info \
+           --text="<tt>
+     <i><span size=\"large\">Successfully installed Rasperry PI emulation</span></i>
+_________________________________________________________________________________________
+
+     You can run programs inside of the chroot by invoking the
+     <b>\"/usr/local/bin/${target}\"</b> command.
+
+     This command can be used with arguments, in order to just run a single
+     program inside of the chroot environment (e.g. <b>\"${target} make chrome\"</b>)
+     or without arguments, in order to run an interactive shell session inside
+     of the chroot environment.
+
+     If you need to run things as <b>\"root\"</b>, you can use <b>\"sudo\"</b> (e.g. try
+     <b>\"sudo ${target} apt-get update\"</b>).
+
+     Your home directory is shared between the host and the chroot. But I
+     configured <b>\"${HOME}/chroot\"</b> to be private to the chroot environment.
+     You can use it for files that need to differ between environments. This
+     would be a good place to store binaries that you have built from your
+     source files.
+
+     For Kodi, this probably means you want to make your <b>\"out\"</b> directory a
+     symbolic link that points somewhere inside of <b>\"${HOME}/chroot\"</b>.
+_________________________________________________________________________________________
+
+     Copyright (C) 2015 Team KODI
+     <u><span foreground=\"blue\">http://kodi.tv</span></u>
+
+     GNU General Public License, Version 3
+     see <u><span foreground=\"blue\">http://www.gnu.org/licenses/</span></u></tt>" 2> /dev/null
+
+exit_build 0

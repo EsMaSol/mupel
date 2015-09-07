@@ -1,0 +1,109 @@
+#!/bin/bash -e
+###############################################################################
+#                                                                             #
+#     Copyright (C) 2015 Team KODI                                            #
+#     http://kodi.tv                                                          #
+#                                                                             #
+#  This program is free software: you can redistribute it and/or modify       #
+#  it under the terms of the GNU General Public License as published by       #
+#  the Free Software Foundation, either version 3 of the License, or          #
+#  (at your option) any later version.                                        #
+#                                                                             #
+#  This program is distributed in the hope that it will be useful,            #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of             #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              #
+#  GNU General Public License for more details.                               #
+#                                                                             #
+#  You should have received a copy of the GNU General Public License          #
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.      #
+#                                                                             #
+###############################################################################
+
+BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
+
+. "${HOME}/.mupel/mupel.conf";
+
+[ -z $1 ] && [ -z $2 ] && exit 1
+USED_SYSTEM=$1
+IN_DATA_ARRAY=$2
+
+trap 'trapError ${LINENO};' ERR
+
+if [ -f "${BASE_PATH}/build/run-${USED_SYSTEM}.log" ];then
+  mv "${BASE_PATH}/build/run-${USED_SYSTEM}.log" "${BASE_PATH}/build/run-${USED_SYSTEM}-`date +%F_%H-%m`.old.log";fi
+touch "${BASE_PATH}/build/run-${USED_SYSTEM}.log"
+
+(
+GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+echo "#< msg field 7:enable 0;" >> $IN_DATA_ARRAY;
+case "$USED_SYSTEM" in
+  kodi-linux-x86_32)
+    if [ ! -f $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/active ];then
+    {
+      touch $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/active
+      ${USE_LINUX_X86_DISTR}32 $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/kodi.bin
+      rm $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/active
+    } fi
+    ;;
+  kodi-linux-x86_64)
+    if [ ! -f $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/active ];then
+    {
+      touch $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/active
+      ${USE_LINUX_X86_DISTR}64 $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/kodi.bin
+      rm $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/active
+    } fi
+    ;;
+  kodi-android-arm)
+    if [ ! -f $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/active ];then
+    {
+      touch $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/active
+      . $HOME/.mupel/android.conf;
+
+      $HOME/.mupel/android/android-sdk-linux/tools/emulator -avd $ANDROID_SEL_AVD_ARM -sdcard ~/.mupel/android/sdcard-arm.img >> $IN_DATA_ARRAY 2>&1 &
+      echo "${BRIGHT}${WHITE}Kodi Android ARM started ...${NORMAL}" >> $IN_DATA_ARRAY
+      echo " ${YELLOW}Attention:${NORMAL} Load can takes a bit!" >> $IN_DATA_ARRAY
+      adb wait-for-device
+      echo "${BRIGHT}${WHITE}Kodi Android ARM boot up done ...${NORMAL}" >> $IN_DATA_ARRAY
+      if [ -f $HOME/.android/avd/$ANDROID_SEL_AVD_X86.avd/need_kodi_update_arm ];then
+      {
+        echo " - New Kodi Android ARM build becomes installed on emulation ..." >> $IN_DATA_ARRAY
+        adb -e install -r `ls -1 -t $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/*.apk | head -1` >> $IN_DATA_ARRAY 2>&1
+        rm -f $HOME/.android/avd/$ANDROID_SEL_AVD_X86.avd/need_kodi_update_arm
+        printf $CURS_UP
+        log_success_msg
+      } fi
+      adb logcat -s Kodi:V >> $IN_DATA_ARRAY 2>&1
+
+      rm $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/active
+    } fi
+    ;;
+  kodi-android-x86)
+    if [ ! -f $BASE_PATH/build/kodi-$GIT_USER/kodi-android-x86/active ];then
+    {
+      touch $BASE_PATH/build/kodi-$GIT_USER/kodi-android-x86/active
+      . $HOME/.mupel/android.conf;
+
+      $HOME/.mupel/android/android-sdk-linux/tools/emulator -avd $ANDROID_SEL_AVD_X86 -sdcard ~/.mupel/android/sdcard-x86.img -qemu -enable-kvm >> $IN_DATA_ARRAY 2>&1 &
+      echo "${BRIGHT}${WHITE}Kodi Android x86 started ...${NORMAL}" >> $IN_DATA_ARRAY
+      echo " ${YELLOW}Attention:${NORMAL} Load can takes a bit!" >> $IN_DATA_ARRAY
+      adb wait-for-device
+      echo "${BRIGHT}${WHITE}Kodi Android x86 boot up done ...${NORMAL}" >> $IN_DATA_ARRAY
+      if [ -f $HOME/.android/avd/$ANDROID_SEL_AVD_X86.avd/need_kodi_update_x86 ];then
+      {
+        echo " - New Kodi Android x86 build becomes installed on emulation ..." >> $IN_DATA_ARRAY
+        adb -e install -r `ls -1 -t $BASE_PATH/build/kodi-$GIT_USER/kodi-android-x86/*.apk | head -1` >> $IN_DATA_ARRAY 2>&1
+        rm -f $HOME/.android/avd/$ANDROID_SEL_AVD_X86.avd/need_kodi_update_x86
+        printf $CURS_UP
+        log_success_msg
+      } fi
+      adb logcat -s Kodi:V >> $IN_DATA_ARRAY 2>&1
+
+      rm $BASE_PATH/build/kodi-$GIT_USER/kodi-android-x86/active
+    } fi
+    ;;
+esac
+echo "#< msg field 7:enable 1;" >> $IN_DATA_ARRAY;
+) | \
+tee "${BASE_PATH}/build/run-${USED_SYSTEM}.log"
+
+trap '' ERR

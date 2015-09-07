@@ -1,0 +1,353 @@
+#!/bin/bash -e
+###############################################################################
+#                                                                             #
+#     Copyright (C) 2015 Team KODI                                            #
+#     http://kodi.tv                                                          #
+#                                                                             #
+#  This program is free software: you can redistribute it and/or modify       #
+#  it under the terms of the GNU General Public License as published by       #
+#  the Free Software Foundation, either version 3 of the License, or          #
+#  (at your option) any later version.                                        #
+#                                                                             #
+#  This program is distributed in the hope that it will be useful,            #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of             #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              #
+#  GNU General Public License for more details.                               #
+#                                                                             #
+#  You should have received a copy of the GNU General Public License          #
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.      #
+#                                                                             #
+###############################################################################
+
+BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
+
+. "${HOME}/.mupel/mupel.conf";
+. "$HOME/.mupel/mac-osx.conf";
+. "${BASE_PATH}/tools/tool_functions";
+
+DEBUG_BUILD="--enable-debug=no"
+BUILD_SYSTEM="osx-x86_32"
+TEMP_DIR=
+INSTALL_DIR_TYPE="Release"
+CHANGE_CMD=
+
+##
+# Usage help function return as string the available values
+function usage()
+{
+  echo "Usage: $0 [--options]"
+  echo "Options:"
+  echo "--debug           build debug version"
+  echo "--addon <name>    start a build of given add-on directly, usable during"
+  echo "                  programming time"
+  echo "--build-direct    if inserted kodi becomes direct build without perform of pre"
+  echo "                  steps, becomes possible after one time the complete build"
+  echo "                  was done. Usable during programming to reduce time"
+  echo "--temp-dir <dir>  the temporary directory to store parts, if not set becomes"
+  echo "                  newcreated. This value is used from 'mupel' to have same dir."
+  echo "--help            this help message"
+  echo "Note:"
+  echo "  This scripts are normally called from GUI interface, but also possible to use"
+  echo "  direct with the right options set."
+  exit 1
+}
+##
+
+##
+# Function to process given input variables
+function process_opts()
+{
+  while test "$1" != "" ; do
+    case "$1" in
+      --build-direct)
+        DIRECT_KODI_BUILD=1
+        ;;
+      --debug)
+        DEBUG_BUILD="--enable-debug=yes"
+        INSTALL_DIR_TYPE="Debug"
+        ;;
+      --addon)
+        case "$2" in
+            "")
+              echo "Option '--addon', no argument"
+              shift
+              ;;
+            *)
+              ADDON_BUILD="$2"
+              shift
+              ;;
+        esac ;;
+      --temp-dir)
+        case "$2" in
+            "")
+              echo "Option '--temp-dir', no argument"
+              shift
+              ;;
+            *)
+              TEMP_DIR="$2"
+              shift
+              ;;
+        esac ;;
+      --help)
+        usage
+        ;;
+      *)
+        echo "invalid command-line option: $OPTARG"
+        usage
+        ;;
+    esac
+    shift
+  done
+}
+##
+
+###############################################################################
+# Start of main process
+
+process_opts "$@"
+
+##
+# If no temporary directory is passed create a own
+if [ -z $TEMP_DIR ];then
+{
+  printf "${RED}${BRIGHT}ERROR: ${WHITE}No temporary directory defined!${NORMAL}\n";
+  exit 1
+} fi
+
+set -e
+trap 'trapError ${LINENO};' ERR
+
+touch $TEMP_DIR/kodi-osx-x86_32.failed;
+
+if [ ! -d "${BASE_PATH}/build/kodi" ];then
+{
+  printf "\
+${RED}${BRIGHT}ERROR: ${WHITE}Needed source code on${NORMAL}
+${BRIGHT}${WHITE}${BASE_PATH}/build/kodi${NORMAL}
+${BRIGHT}${WHITE}for build not present!${NORMAL}\n";
+  exit 1;
+} fi
+
+ssh_name=`echo $MAC_OS_X_DEFAULT_RUN | tr '(' '_' | tr ')' '_'`;
+MAC_HOME_DIR=$(sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- echo \$HOME)/Desktop
+
+export TARBALLS="${MAC_HOME_DIR}/kodi-development/remote_access/build/build/kodi-tarballs"
+export BUILDTHREADS=$CPU_PROC_JOBS
+export XBMC_PLATFORM_DIR="osx32"
+export WORKSPACE="${MAC_HOME_DIR}/kodi-development/kodi-${BUILD_SYSTEM}"
+export XBMC_DEPENDS_ROOT="${MAC_HOME_DIR}/kodi-development/remote_access/build/build/binary_distrib/${INSTALL_DIR_TYPE}/kodi"
+
+. "$BASE_PATH/versions"
+
+printf "
+-------------------------------------------------------------------------------
+ Kodi build Mac OS X x86 32bit
+
+"
+
+sleep 3
+
+# Create development directory on Mac where all kodi parts becomes stored
+sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- "\
+set -e
+trap 'echo Error on line ${LINENO} inside Mac OS X system call;' ERR
+
+if [ ! -d ${MAC_HOME_DIR}/kodi-development/remote_access ];then
+  mkdir -p ${MAC_HOME_DIR}/kodi-development/remote_access;fi
+if [[ -z  \`mount | grep //guest:@10.0.2.4/qemu\` ]];then
+  mount -t smbfs //guest:@10.0.2.4/qemu ${MAC_HOME_DIR}/kodi-development/remote_access;fi
+if [ ! -d ${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM ];then
+{
+  git -C ${MAC_HOME_DIR}/kodi-development clone \
+    --progress \
+    ${MAC_HOME_DIR}/kodi-development/remote_access/build/build/kodi \
+    --branch $KODI_SOURCE_BRANCH \
+    kodi-$BUILD_SYSTEM
+}
+else
+{
+  directory=${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM;
+  KODI_CURRENT_HASH=\`git -C ${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM             rev-parse HEAD\`;
+  KODI_DESIRED_HASH=\`git -C ${MAC_HOME_DIR}/kodi-development/remote_access/build/build/kodi rev-parse HEAD\`;
+
+  echo \"Checking version of 'Mac OS X x86 32bit' on \$directory\";
+  echo \" - Current Checkout: \$KODI_CURRENT_HASH\"
+  echo \" - Desired Checkout: \$KODI_DESIRED_HASH\"
+
+  if [[ \$KODI_CURRENT_HASH != \$KODI_DESIRED_HASH ]];then
+  {
+    git -C ${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM clean -dffx;
+    git -C ${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM pull
+  } fi
+
+  branchName=\`git -C \"\$directory\" symbolic-ref HEAD 2>/dev/null || echo detached\`;
+
+  if [ \"$branchName\" != \"detached\" ];then # if we are not detached
+  {
+    #we are attached - use the branchname then
+    if echo \$branchName | grep pr 2>&1 > /dev/null;then
+    {
+      #if this is a pull request branch - fetch the pr number and prefix with \"PR\"
+      #refs/heads/number/head
+      current_branch=\`echo PR\$(echo \$branchName | awk '{gsub(\".*/pr/\",\"\");print $1}' | awk '{gsub(\"/.*\",\"\");print $1}')\`
+    }
+    else
+    {
+      #if we are on a normal branch - fetch branchname
+      #refs/heads/branchname
+      current_branch=\`echo \$branchName | awk '{gsub(\".*/\",\"\");print $1}'\`
+    } fi
+  }
+  else
+  {
+    #if we are in detached head state
+    #fetch the first non-pullrequest branch we can find with HEAD
+    #also only grep in remotes that match current GITHUB_REPO
+    current_branch=\`git -C \"$directory\" branch -r --contains HEAD | \
+      sed \"/origin\/pr\//d\" | \
+      grep $GITHUB_REPO | \
+      head -n1 | \
+      awk '{gsub(\".*/\",\"\");print $1}'\`
+  } fi
+
+  if [[ \$current_branch != $KODI_SOURCE_BRANCH ]];then
+  {
+    git -C ${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM clean -dffx;
+    git -C ${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM checkout $KODI_SOURCE_BRANCH
+  } fi
+  echo \"   Branch name:      $KODI_SOURCE_BRANCH\"
+} fi
+"
+
+if [ -z $ADDON_BUILD ];then
+{
+  if [ -z $DIRECT_KODI_BUILD ];then
+  {
+    printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}prepare-depends${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
+    sleep 2
+    sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- bash -c "${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM/tools/buildsteps/osx32/prepare-depends"
+    printf $CURS_UP
+    log_success_msg
+
+    printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}configure-depends${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
+    sleep 2
+    sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- bash -c "${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM/tools/buildsteps/osx32/configure-depends"
+    printf $CURS_UP
+    log_success_msg
+
+    printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}make-depends${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
+    sleep 2
+    sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- bash -c "${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM/tools/buildsteps/osx32/make-depends"
+    printf $CURS_UP
+    log_success_msg
+
+    printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}prepare-xbmc${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
+    sleep 2
+    sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- bash -c "${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM/tools/buildsteps/osx32/prepare-xbmc"
+    printf $CURS_UP
+    log_success_msg
+  }
+  else
+    printf "\nRunning ${BRIGHT}${WHITE}Direct Kodi build started${NORMAL}\n";fi
+
+  if [ "$KODI_RUN_TESTS" = "true" ];then
+    CONFIG_EXTRA="$CONFIG_EXTRA --enable-gtest";fi
+  export CONFIG_EXTRA
+
+  if [ -z $DIRECT_KODI_BUILD ] || [[ $KODI_CONF_IN_DIRECT_BUILD = "TRUE" ]];then
+  {
+    printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}configure-xbmc${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
+    sleep 2
+    sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- bash -c "${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM/tools/buildsteps/osx32/configure-xbmc"
+    printf $CURS_UP
+    log_success_msg
+  } fi
+
+  printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}make-xbmc${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
+  sleep 2
+  sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- bash -c "${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM/tools/buildsteps/osx32/make-xbmc"
+  printf $CURS_UP
+  log_success_msg
+
+  printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}package${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
+  sleep 2
+  sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- bash -c "${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM/tools/buildsteps/osx32/package"
+  printf $CURS_UP
+  log_success_msg
+
+  if [ -z $DIRECT_KODI_BUILD ];then
+  {
+    printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}prepare-xbmc${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
+    if [[ $INCLUDE_KODI_ADDONS != FALSE ]];then
+    {
+      printf "\n"
+      sleep 2
+      sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- bash -c "${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM/tools/buildsteps/osx32/prepare-xbmc"
+      printf $CURS_UP
+      log_success_msg
+    }
+    else
+      log_skip_msg;fi
+
+    printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}make-binary-addons${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'"
+    if [[ $INCLUDE_KODI_ADDONS != FALSE ]];then
+    {
+      printf "\n"
+      sleep 2
+      sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- bash -c "${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM/tools/buildsteps/osx32/make-binary-addons"
+      printf $CURS_UP
+      log_success_msg
+    }
+    else
+      log_skip_msg;fi
+  } fi
+
+  printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}tests${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'"
+  if [[ $KODI_RUN_TESTS = true ]];then
+  {
+    printf "\n"
+    sleep 2
+    sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- bash -c "${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM/tools/buildsteps/osx32/run-tests"
+    printf $CURS_UP
+    log_success_msg
+  }
+  else
+    log_skip_msg;fi
+}
+else
+{
+    sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- \
+      bash -c "\
+CONFIGURE=1
+cd ${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM
+
+CONFIGURE=1
+if [ ! -f ./tools/depends/target/binary-addons/x86_32-osx-gnu/Makefile ];then
+{
+  grep -q ${ADDON_BUILD} ./tools/depends/target/binary-addons/x86_32-osx-gnu/Makefile
+  [[ $? = 0 ]] && CONFIGURE=0
+} fi
+
+if [[ $CONFIGURE = 1 ]];then
+{
+  rm -rf ./tools/depends/target/binary-addons/x86_32-osx-gnu/build/depends/include/GL
+  make -C ./tools/depends/target/binary-addons PREFIX=${MAC_HOME_DIR}/kodi-development/remote_access/build/build/binary_distrib/${INSTALL_DIR_TYPE}/kodi/x86_32-osx-gnu ADDONS="$ADDON_BUILD"
+}
+else
+{
+  make -C ./tools/depends/target/binary-addons/x86_32-osx-gnu PREFIX=${MAC_HOME_DIR}/kodi-development/remote_access/build/build/binary_distrib/${INSTALL_DIR_TYPE}/kodi/x86_32-osx-gnu ${ADDON_BUILD}
+} fi
+"
+} fi
+
+trap '' ERR
+
+printf "\n \
+${BRIGHT}${WHITE}All steps successfully performed and test build present and can started with:${NORMAL}
+ - ${BRIGHT}${BLUE}${UNDERLINE}${BASE_PATH}/build/kodi-${BUILD_SYSTEM}/kodi.bin${NORMAL}\n"
+
+sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- \
+  umount -f //guest:@10.0.2.4/qemu
+rm -f $TEMP_DIR/kodi-osx-x86_32.failed;
+
+exit 0

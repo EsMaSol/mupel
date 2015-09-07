@@ -1,0 +1,1128 @@
+#!/bin/bash
+###############################################################################
+#                                                                             #
+#     Copyright (C) 2015 Team KODI                                            #
+#     http://kodi.tv                                                          #
+#                                                                             #
+#  This program is free software: you can redistribute it and/or modify       #
+#  it under the terms of the GNU General Public License as published by       #
+#  the Free Software Foundation, either version 3 of the License, or          #
+#  (at your option) any later version.                                        #
+#                                                                             #
+#  This program is distributed in the hope that it will be useful,            #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of             #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              #
+#  GNU General Public License for more details.                               #
+#                                                                             #
+#  You should have received a copy of the GNU General Public License          #
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.      #
+#                                                                             #
+###############################################################################
+
+BASE_PATH=$(cd $(dirname $0) ; pwd -P)
+PATH="$BASE_PATH/tools:$PATH"
+INSTALL_PREFIX="$HOME/.mupel"
+
+export BASE_PATH
+
+. $BASE_PATH/tools/tool_functions
+. $BASE_PATH/tools/tool_install_functions
+
+if [ -f "$HOME/.config/user-dirs.dirs" ];then
+{
+  . "$HOME/.config/user-dirs.dirs"
+  DESKTOP_DIR="$XDG_DESKTOP_DIR"
+  DOWNLOAD_DIR="$XDG_DOWNLOAD_DIR"
+  TEMPLATES_DIR="$XDG_TEMPLATES_DIR"
+  PUBLICSHARE_DIR="$XDG_PUBLICSHARE_DIR"
+  DOCUMENTS_DIR="$XDG_DOCUMENTS_DIR"
+  MUSIC_DIR="$XDG_MUSIC_DIR"
+  PICTURES_DIR="$XDG_PICTURES_DIR"
+  VIDEOS_DIR="$XDG_VIDEOS_DIR"
+}
+else
+{
+  DESKTOP_DIR=$HOME
+} fi
+
+DEFAULT_MIN_HD_SIZE=200
+DEFAULT_MIN_MEM_SIZE=4096
+
+KODI_SOURCE_URL="https://github.com/xbmc/xbmc"
+KODI_SOURCE_BRANCH="master"
+KODI_SEL_ADDON=""
+KODI_RUN_TESTS="FALSE"
+KODI_CONF_IN_DIRECT_BUILD="FALSE"
+
+CEF_SOURCE_URL="https://bitbucket.org/kodi-web/cef"
+CEF_SOURCE_BRANCH="2357"
+
+DEPOT_TOOLS_URL="https://chromium.googlesource.com/chromium/tools/depot_tools.git"
+DEPOT_SOURCE_BRANCH="master"
+
+USE_LINUX_X86_32="FALSE"
+USE_LINUX_X86_64="FALSE"
+USE_MS_WINDOWS_32="FALSE"
+USE_MS_WINDOWS_64="FALSE"
+USE_MAC_OS_X_32="FALSE"
+USE_MAC_OS_X_64="FALSE"
+USE_LINUX_RPBI="FALSE"
+USE_ANDROID_ARM="FALSE"
+USE_ANDROID_X86="FALSE"
+USE_IOS_ATV2="FALSE"
+
+SUPPORT_CEF="TRUE"
+USE_JENKINS="FALSE"
+USE_LINUX_X86_DISTR="utopic"
+
+INCLUDE_KODI="TRUE"
+INCLUDE_KODI_ADDONS="FALSE"
+INCLUDE_CEF="FALSE"
+INCLUDE_USER_SCRIPT="FALSE"
+
+TEXT_VIEVER="kate"
+
+ADD_PATHS=""
+
+main_msg=
+
+function exit_build()
+{
+  local ret=$1
+  if [[ $ret != 0 ]];then
+    touch $BASE_PATH/build/global_mupel_install_failed;fi
+  rm -f $BASE_PATH/build/global_mupel_install
+  rm -rf $TEMP_DIR
+  exit $ret
+}
+
+function usage()
+{
+  echo "Usage: $0 [--options]"
+  echo "Options:"
+  echo "--main-msg    Filepointer to send creation information"
+  echo "--info        Shows the information dialog"
+  echo "--help        this help message"
+  echo "Script will prompt interactively for other values."
+  exit 1
+}
+
+process_opts()
+{
+  while test "$1" != "" ; do
+    case "$1" in
+      --main-msg)
+        case "$2" in
+            "")
+              echo "Option main-msg, no argument" > /dev/stderr
+              shift
+              ;;
+            *)
+              main_msg="$2"
+              shift
+              ;;
+        esac ;;
+      --info)                   showSystemInfoDialog "Multi platform build environment for Kodi on Linux"
+                                exit 0;;
+      --help)                   usage;;
+      *)
+        echo "invalid command-line option: $OPTARG"
+        usage
+        ;;
+    esac
+    shift
+  done
+}
+
+##
+# Create chroot build environment
+# $1 Used bit system (32 or 64)
+# $2 System names x86-32bit, x64-64bit or arm7
+#
+function create_chroot_build_environment()
+{
+  local distname=$1
+  local target=$2
+  local system=$3
+  local env_install_ubuntu
+  local force_sel=0
+  local ret
+  local inhibit_install=0
+
+  if [ -f /usr/local/bin/${distname}${target} ];then
+  {
+    showQuestionDialog "\
+\"/usr/local/bin/${distname}${target}\" command present and system
+seems to be already installed.
+
+Do you want to to change or install again?" 2> /dev/null;
+    inhibit_install=$?;
+  } fi
+
+  if [[ $inhibit_install == 0 ]];then
+  {
+    while :; do
+    {
+      if [ ! -f $BASE_PATH/tools/linux/install-systembuild-linux ] || [ $force_sel = 1 ];then
+      {
+        ret=0;
+        if [ $force_sel = 0 ];then
+        {
+          showQuestionDialog "\
+Needed creation script for Linux x86 system \"install-systembuild-linux\" not found.
+
+Do you want to select script?";
+          ret=$?;
+        } fi
+        if [[ $ret != 0 ]];then
+        {
+          evaluate_ret_error $ret "Installation canceled!";
+        }
+        else
+        {
+          while :; do
+          {
+            env_install_ubuntu=$(showdialog --title="Select creation script for access to \"${distname}\" ${target}bit" --file --file-filter="install-systembuild-linux *.install *.sh" --width=700 --height=480 2> /dev/null);
+            if [ $? != 0 ];then
+            {
+              showWarningDialog_YesNo "Selection of Linux creation script failed! \n\nTry again?" 2> /dev/null;
+              [ $? != 0 ] && exit_build 1;
+            }
+            else
+            {
+              break;
+            } fi
+          } done
+        } fi
+      }
+      else
+        env_install_ubuntu="$BASE_PATH/tools/linux/install-systembuild-linux";fi
+
+      showInfoDialog "Start creation of chroot system for ${system} on ${distname}\n(follow related requests of them)" 3;
+      bash "$env_install_ubuntu" -t $target -d $distname -u -s -c -l $main_msg;
+      if [ $? != 0 ];then
+      {
+        showWarningDialog_YesNo "Installation of Linux build environment failed! \n\nTry again (you becomes asked about used script)?";
+        [ $? != 0 ] && exit_build 1;
+        force_sel=1;
+      }
+      else
+        break;fi
+    } done
+  } fi
+
+  extra_list=
+  if [ "$target" == "64" ] && [ "$USE_LINUX_RPBI" == "TRUE" ];then
+  {
+    # arm cross toolchain packages needed to build chrome on armhf
+    extra_list="libc6-dev-armhf-cross
+                linux-libc-dev-armhf-cross
+                g++-arm-linux-gnueabihf";
+
+    # Work around for dependency issue Ubuntu/Trusty: http://crbug.com/435056
+    if [ "x$lsb_release" = "xtrusty" ]; then
+    {
+      extra_list+=" g++-4.8-multilib-arm-linux-gnueabihf
+                    gcc-4.8-multilib-arm-linux-gnueabihf";
+    } fi
+  } fi
+  if [ "$target" == "64" ];then
+  {
+    if [ "$USE_ANDROID_X86" == "1" ] || [ "$USE_ANDROID_ARM" == "1" ];then
+    {
+      # arm cross toolchain packages needed to build chrome on armhf
+      extra_list+=" build-essential default-jdk git curl autoconf lib32stdc++6 lib32z1 lib32z1-dev";
+    } fi
+  } fi
+
+  while :; do
+  {
+    {
+      touch "${main_msg}"
+      (
+        touch "${TEMP_DIR}/build_active"
+        printf "\n# Installing main build dependencies\n";
+        sudo -A -- ${distname}${target} \
+          apt-get -y -q install \
+              automake autopoint git-core subversion p7zip-full pulseaudio nasm $extra_list;
+        [ ${PIPESTATUS[0]} != 0 ] && exit 1;
+
+        rm -f "${TEMP_DIR}/build_active";
+        sleep 5;
+        exit 0;
+      ) | sed -u "s/.*/# &/ w ${main_msg_tmp}" >> ${main_msg} &
+      pid=$!;
+    }
+    {
+      tail -f --pid=$pid ${main_msg} |
+        showdialog --title="Install" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress --width=600 \
+                   --text="Install general related build depends - ${distname}${target} ..." \
+                   --pulsate --enable-log --log-height=300 --button=gtk-cancel:1 \
+                   --auto-close > /dev/null;
+      ret=$?
+      cat $main_msg_tmp >> $build_log
+      if [[ $ret != 0 ]];then
+      {
+        ps -p $pid;
+        [[ $? = 0 ]] && killtree $pid KILL;
+      }
+      elif [ -f "${TEMP_DIR}/build_active" ];then
+      {
+        ret=1;
+      } fi
+      rm -f "${TEMP_DIR}/build_active";
+    }
+    if [[ $ret != 0 ]];then
+    {
+      showWarningDialog_YesNo "Installation general related build depends failed - ${distname}${target}! \n\nTry again?";
+      [ $? != 0 ] && exit_build $ret;
+    }
+    else
+      break;fi
+  } done
+  while :; do
+  {
+    {
+      touch "${main_msg}"
+      (
+        touch "${TEMP_DIR}/build_active"
+        printf "\nInstall kodi's related build depends\n";
+        if [ -r "/var/lib/chroot/${distname}${target}bit/etc/apt/sources.list" ] &&
+           ! grep -Fq xbmc "/var/lib/chroot/${distname}${target}bit/etc/apt/sources.list" &&
+           HEAD "http://ppa.launchpad.net/team-xbmc/ppa/ubuntu/dists/${distname}" \
+           >&/dev/null; then
+        {
+          sudo -A -- ${distname}${target} apt-get -y -q install software-properties-common >> $build_log
+          sudo -A -- ${distname}${target} add-apt-repository --yes ppa:team-xbmc/ppa >> $build_log
+
+          sudo -A -- sh -c '
+            echo "deb http://ppa.launchpad.net/team-xbmc/ppa/ubuntu" \
+                 "'"${distname}"' main" \
+              >>"/var/lib/chroot/'"${distname}${target}bit"'/etc/apt/sources.list"'
+          [ $? != 0 ] && printf "Failed 7\n\n" && exit 1
+          sudo -A -- sh -c '
+            echo "deb-src http://ppa.launchpad.net/team-xbmc/ppa/ubuntu" \
+                 "'"${distname}"' main" \
+              >>"/var/lib/chroot/'"${distname}${target}bit"'/etc/apt/sources.list"'
+          [ $? != 0 ] && printf "Failed 7\n\n" && exit 1
+        } fi
+
+        sudo -A -- ${distname}${target} apt-get update
+
+        sudo -A -- ${distname}${target} \
+        apt-get -y -q build-dep kodi
+        sudo -A -- ${distname}${target} \
+        apt-get -y -q install bison build-essential ccache cmake curl \
+            cvs default-jre fp-compiler gawk gdc gettext git-core gperf libasound2-dev libass-dev \
+            libavcodec-dev libavfilter-dev libavformat-dev libavutil-dev libbluetooth-dev \
+            libbluray-dev libbluray1 libboost-dev libboost-thread-dev libbz2-dev libcap-dev \
+            libcdio-dev libcec-dev libcec2 libcrystalhd-dev libcrystalhd3 libcurl3 \
+            libcurl4-gnutls-dev libcwiid-dev libcwiid1 libdbus-1-dev libenca-dev libflac-dev \
+            libfontconfig1-dev libfreetype6-dev libfribidi-dev libglew-dev libiso9660-dev \
+            libjasper-dev libjpeg-dev libltdl-dev liblzo2-dev libmad0-dev libmicrohttpd-dev \
+            libmodplug-dev libmp3lame-dev libmpeg2-4-dev libmpeg3-dev libmysqlclient-dev \
+            libnfs-dev libogg-dev libpcre3-dev libplist-dev libpng12-dev libpostproc-dev \
+            libpulse-dev libsamplerate0-dev libsdl1.2-dev libsdl-gfx1.2-dev libsdl-image1.2-dev \
+            libsdl-mixer1.2-dev libshairport-dev libsmbclient-dev libsqlite3-dev libssh-dev \
+            libssl-dev libswscale-dev libtiff5-dev libtinyxml-dev libtool libudev-dev \
+            libusb-dev libva-dev libva-egl1 libva-tpi1 libvdpau-dev libvorbisenc2 libxml2-dev \
+            libxmu-dev libxrandr-dev libxrender-dev libxslt1-dev libxt-dev libyajl-dev mesa-utils \
+            nasm pmount python-dev python-imaging python-sqlite swig unzip yasm zip zlib1g-dev \
+            libtag1-dev librtmp-dev gnutls-dev libcap-dev libusb-dev vdpau-va-driver doxygen \
+            vainfo i965-va-driver;
+        [ ${PIPESTATUS[0]} != 0 ] && exit 1;
+
+        rm -f "${TEMP_DIR}/build_active";
+        sleep 5;
+        exit 0;
+      ) | sed -u "s/.*/# &/ w ${main_msg_tmp}" >> ${main_msg} &
+      pid=$!;
+    }
+    {
+      tail -f --pid=$pid ${main_msg} |
+        showdialog --title="Install" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress --width=600 \
+                   --text="Install kodi's related build depends - ${distname}${target} ..." \
+                   --pulsate --enable-log --log-height=300 --button=gtk-cancel:1 \
+                   --auto-close > /dev/null;
+      ret=$?;
+      cat $main_msg_tmp >> $build_log
+      if [[ $ret != 0 ]];then
+      {
+        ps -p $pid;
+        [[ $? = 0 ]] && killtree $pid KILL
+      }
+      elif [ -f "${TEMP_DIR}/build_active" ];then
+      {
+        ret=1;
+      } fi
+      rm -f "${TEMP_DIR}/build_active";
+    }
+    if [[ $ret != 0 ]];then
+    {
+      showWarningDialog_YesNo "Installation kodi's related build depends failed - ${distname}${target}! \n\nTry again?";
+      [ $? != 0 ] && exit_build $ret;
+    }
+    else
+      break;fi
+  } done
+  while :; do
+  {
+    {
+      touch "${main_msg}"
+      (
+        touch "${TEMP_DIR}/build_active"
+        printf "\nInstall chromium CEF related build depends\n";
+        sudo -A -- ${distname}${target} \
+        apt-get -y -q install clang libgtk2.0-dev libgtkglext1-dev libxtst-dev libxss-dev libpci-dev \
+                              libgconf2-dev libgnome-keyring-dev libnspr4-dev libnss3-dev libcups2-dev \
+                              libexif-dev libtinfo-dev libkrb5-dev bison libbison-dev;
+        [ ${PIPESTATUS[0]} != 0 ] && exit 1;
+
+        rm -f "${TEMP_DIR}/build_active";
+        sleep 5;
+        exit 0;
+      ) | sed -u "s/.*/# &/ w ${main_msg_tmp}" >> ${main_msg} &
+      pid=$!;
+    }
+    {
+      tail -f --pid=$pid ${main_msg} |
+        showdialog --title="Install" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress --width=600 \
+                   --text="Install chromium CEF related build depends - ${distname}${target} ..." \
+                   --pulsate --enable-log --log-height=300 --button=gtk-cancel:1 \
+                   --auto-close > /dev/null;
+      ret=$?;
+      cat $main_msg_tmp >> $build_log
+      if [[ $ret != 0 ]];then
+      {
+        ps -p $pid;
+        [[ $? = 0 ]] && killtree $pid KILL;
+      }
+      elif [ -f "${TEMP_DIR}/build_active" ];then
+      {
+        ret=1;
+      } fi
+      rm -f "${TEMP_DIR}/build_active";
+    }
+    if [[ $ret != 0 ]];then
+    {
+      showWarningDialog_YesNo "Installation chromium CEF related build depends failed - ${distname}${target}! \n\nTry again?";
+      [ $? != 0 ] && exit_build $ret;
+    }
+    else
+      break;fi
+  } done
+}
+
+##
+# Create chroot build environment for raspberry PI
+# $1 Used bit system (32 or 64)
+# $2 System names x86-32bit, x64-64bit or arm7
+#
+function create_chroot_build_environment_arm()
+{
+  local target=$1
+  local system=$2
+  local env_install_raspberry
+  local force_sel=0
+  local ret
+  local inhibit_install=0
+
+  if [ -f /usr/local/bin/raspberry ];then
+  {
+    showQuestionDialog "\
+\"/usr/local/bin/raspberry\" command present and system
+seems to be already installed.
+
+Do you want to to change or install again?"
+    inhibit_install=$?
+  } fi
+
+  if [[ $inhibit_install == 0 ]];then
+  {
+    while :; do
+    {
+      if [ ! -f $BASE_PATH/tools/raspberry/install-systembuild-raspberry ] || [ $force_sel = 1 ];then
+      {
+        ret=0
+        if [ $force_sel = 0 ];then
+        {
+          showQuestionDialog "\
+Needed creation script for Linux ARM system \"install-systembuild-raspberry\" not found.
+
+Do you want to select script?"
+          ret=$?;
+        } fi
+        if [[ $ret != 0 ]];then
+        {
+          evaluate_ret_error $ret "Installation canceled!"
+        }
+        else
+        {
+          while :; do
+          {
+            env_install_raspberry=$(showdialog --title="Select creation script for access to Raspberry PI system over chroot" --file --file-filter="install-systembuild-raspberry *.install *.sh" --width=700 --height=480 2> /dev/null)
+            if [ $? != 0 ];then
+            {
+              showWarningDialog_YesNo "Selection of Linux creation script failed! \n\nTry again?";
+              [ $? != 0 ] && exit_build 1;
+            }
+            else
+              break;fi
+          } done
+        } fi
+      }
+      else
+        env_install_raspberry="$BASE_PATH/tools/raspberry/install-systembuild-raspberry";fi
+
+      showInfoDialog "Start creation of chroot system for Raspberry on\n(follow related requests of them)" 3;
+      bash "$env_install_raspberry" -f -l $main_msg;
+      if [ $? != 0 ];then
+      {
+        showWarningDialog_YesNo "\
+Installation of Linux build environment failed!
+
+Try again (you becomes asked about used script)?";
+        [ $? != 0 ] && exit_build 1;
+        force_sel=1;
+      }
+      else
+        break;fi
+    } done
+  } fi
+
+#TODO: Build depends to add
+}
+
+###-------------------------------------------------------------------------###
+#                                                                             #
+#                            Start of process points                          #
+#                                                                             #
+DIST=`grep DISTRIB_ID /etc/*-release | awk -F '=' '{print $2}'`
+[[ $DIST != "Ubuntu" ]] && [[ $DIST != "Debian" ]] && {
+  echo "${RED}${BRIGHT}Build not possible, need performed on ubuntu or debian based system (needed for install of dependencies parts)!${NORMAL}" > /dev/stderr
+  exit 1 ;
+}
+
+# Check that xserver is running and user is root.
+[[ $DISPLAY ]] || {
+  echo $"${RED}${BRIGHT}There is no xserver running. Exiting...${NORMAL}";
+  exit 1;
+}
+
+[[ `uname -m` != "x86_64" ]] && {
+  echo $"${RED}${BRIGHT}Wrong system, a 64 bit linux OS is needed!${NORMAL}";
+  exit 1;
+}
+
+# Check that we are running as a regular user
+[ "$(id -nu)" = root ] && {
+  printf "${RED}${BRIGHT}Run this script as a regular user and provide your \"sudo\" password if requested!${NORMAL}\n" > /dev/stderr
+  exit 1;
+}
+
+process_opts "$@";
+
+TEMP_DIR=`mktemp -d`;
+main_msg_tmp=${TEMP_DIR}/install_tmp.log;
+[ ! -d "$BASE_PATH/build" ] && mkdir $BASE_PATH/build;
+[ -z $main_msg ] && main_msg=${TEMP_DIR}/install.log;
+build_log=$BASE_PATH/build/install.log;
+touch $build_log
+
+if [ -f "$INSTALL_PREFIX/mupel.conf" ];then
+  . "$INSTALL_PREFIX/mupel.conf";fi
+
+###
+# Check for missing packages
+#
+which gksudo >/dev/null
+if [ "$?" == "0" ];then
+{
+  graphsudo=gksudo;
+}
+else
+{
+  which kdesudo >/dev/null
+  if [ "$?" == "0" ];then
+  {
+    graphsudo=kdesudo;
+  }
+  else
+  {
+    echo "FATAL: No usable sudo GUI interface present!";
+    exit 1;
+  } fi
+} fi
+
+which xterm >/dev/null;
+[ "$?" != "0" ] && $graphsudo -- apt-get -y install;
+
+packages=""
+ldconfig -p | grep -q libwebkitgtk-1.0;
+[ "$?" != "0" ] && packages="$packages libwebkitgtk-1.0";
+ldconfig -p | grep -q libvte;
+[ "$?" != "0" ] && packages="$packages libvte9";
+which debootstrap >/dev/null;
+[ "$?" != "0" ] && packages="$packages debootstrap";
+which sshpass >/dev/null;
+[ "$?" != "0" ] && packages="$packages sshpass";
+which git >/dev/null;
+[ "$?" != "0" ] && packages="$packages git";
+which svn >/dev/null;
+[ "$?" != "0" ] && packages="$packages subversion";
+which wget >/dev/null;
+[ "$?" != "0" ] && packages="$packages wget";
+which kate >/dev/null;
+if [ "$?" != "0" ];then
+{
+  which gedit >/dev/null;
+  [ "$?" != "0" ] && packages="$packages kate" || TEXT_VIEVER="gedit";
+} fi
+
+if [ "${packages}" != "" ];then
+{
+  cat > $TEMP_DIR/build-dep-install.sh << EOF
+#!/bin/bash
+
+printf "Installing of build dependencies \"$packages\" is needed!\n\n"
+
+sudo apt-get -y install ${packages}
+EOF
+
+  chmod +x $TEMP_DIR/build-dep-install.sh;
+  run_in_terminal $TEMP_DIR/build-dep-install.sh;
+  rm -f $TEMP_DIR/build-dep-install.sh;
+} fi
+
+# Warn if hd size is small
+FREE_INITIAL_DISK_SPACE=`df  . | tail -1 | tr -s ' ' | cut -d' ' -f4`
+if [ `expr $FREE_INITIAL_DISK_SPACE / 1024 / 1024` -lt $DEFAULT_MIN_HD_SIZE ];then
+{
+  showWarningDialog_YesNo "\
+Maybe not enough free space `expr $FREE_INITIAL_DISK_SPACE / 1024 / 1024` GByte available to use for all systems!
+
+Continue install?";
+  [ $? != 0 ] && exit_build 1;
+} fi
+
+memory=`grep MemTotal /proc/meminfo | awk '{print $2}'`;
+memory=`expr $memory / 1024`;
+if [ $memory -lt $DEFAULT_MIN_MEM_SIZE ];then
+{
+  showWarningDialog_YesNo "\
+Maybe not enough memory with $memory MByte available to use for all systems!
+
+Continue install?";
+  [ $? != 0 ] && exit_build 1;
+} fi
+
+if [ -z $MUPEL_DESKTOP_ICON_PATH ];then
+  MUPEL_DESKTOP_ICON_PATH=$DESKTOP_DIR;fi
+
+IFS=$'';
+GIT_CONFIG=$(git config -l);
+GIT_USERNAME_OLD=$(echo $GIT_CONFIG | grep user.name | awk -F 'user.name=' '{print $2}');
+GIT_EMAIL_OLD=$(echo $GIT_CONFIG | grep user.email | awk -F 'user.email=' '{print $2}');
+if [[ -z $GIT_USERNAME_OLD ]] || [[ -z $GIT_EMAIL_OLD ]];then
+  GIT_NOT_SET=1;fi
+unset IFS;
+
+# Find chroot environments that can be installed with debootstrap
+DISTRIBUTION_VERSIONS="$(cd /usr/share/debootstrap/scripts; ls | grep '^[a-z]*$' | tr '\n'  '!')";
+DISTRIBUTION_VERSIONS="${DISTRIBUTION_VERSIONS/$USE_LINUX_X86_DISTR/^$USE_LINUX_X86_DISTR}";
+
+while :; do
+{
+  install_values=$(showdialog --form --title="Mupel - Installer" \
+                             --window-icon="$BASE_PATH/icons/icon-kodi-48x48.png" \
+                             --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
+                             --width=1024 \
+                             --height=500 \
+                             --field="<i><span size=\"large\">Mupel cross build system installer</span></i>:LBL" "" \
+                             --field="Kodi git repository:"           "$KODI_SOURCE_URL" \
+                             --field="Include CEF auto build:CHK"     "$SUPPORT_CEF" \
+                             --field="CEF git repository:"            "$CEF_SOURCE_URL" \
+                             --field=":LBL"                           "" \
+                             --field="Ubuntu build distribution to use:CB" "$DISTRIBUTION_VERSIONS" \
+                             --field="Include Linux x86-32bit:CHK"    "$USE_LINUX_X86_32" \
+                             --field="Include Linux x86-64bit:CHK"    "$USE_LINUX_X86_64" \
+                             --field="Include Windows 32bit:CHK"      "$USE_MS_WINDOWS_32" \
+                             --field="Include Windows 64bit:CHK"      "$USE_MS_WINDOWS_64" \
+                             --field="Include Mac OS-X 32bit:CHK"     "$USE_MAC_OS_X_32" \
+                             --field="Include Mac OS-X 64bit:CHK"     "$USE_MAC_OS_X_64" \
+                             --field="Include Linux Raspberry PI:CHK" "$USE_LINUX_RPBI" \
+                             --field="Include Android ARM:CHK"        "$USE_ANDROID_ARM" \
+                             --field="Include Android x86:CHK"        "$USE_ANDROID_X86" \
+                             --field="Include iOS-ATV2:CHK"           "$USE_IOS_ATV2" \
+                             --field=":LBL" "" \
+                             --field="Chromium depot tools git repository:" "$DEPOT_TOOLS_URL" \
+                             --field="Include Jenkins:CHK"            "$USE_JENKINS" \
+                             --field="Where to store desktop icon:DIR" "$MUPEL_DESKTOP_ICON_PATH" \
+                             --field=":LBL" "" \
+                             --field="<b>GIT access</b>:LBL" "" \
+                             --field="EMail name:" "$GIT_USERNAME_OLD" \
+                             --field="EMail address:" "$GIT_EMAIL_OLD" \
+                             --field=":LBL" "" \
+                             --field="\
+     Copyright (C) 2015 Team KODI
+     http://kodi.tv
+
+     GNU General Public License, Version 3
+     see http://www.gnu.org/licenses/:LBL" "" \
+                             --field=":LBL" "" \
+                             --center 2> /dev/null);
+  if [ $? != 0 ];then
+  {
+    showWarningDialog_YesNo "Are you sure to exit install?";
+    [ $? = 0 ] && exit_build 1;
+  }
+  else
+    break;fi
+}
+done
+
+KODI_SOURCE_URL="$(echo $install_values | awk -F '|' '{print $2}')";
+SUPPORT_CEF="$(echo $install_values | awk -F '|' '{print $3}')";
+CEF_SOURCE_URL="$(echo $install_values | awk -F '|' '{print $4}')";
+USE_LINUX_X86_DISTR="$(echo $install_values | awk -F '|' '{print $6}')";
+USE_LINUX_X86_32="$(echo $install_values | awk -F '|' '{print $7}')";
+USE_LINUX_X86_64="$(echo $install_values | awk -F '|' '{print $8}')";
+USE_MS_WINDOWS_32="$(echo $install_values | awk -F '|' '{print $9}')";
+USE_MS_WINDOWS_64="$(echo $install_values | awk -F '|' '{print $10}')";
+USE_MAC_OS_X_32="$(echo $install_values | awk -F '|' '{print $11}')";
+USE_MAC_OS_X_64="$(echo $install_values | awk -F '|' '{print $12}')";
+USE_LINUX_RPBI="$(echo $install_values | awk -F '|' '{print $13}')";
+USE_ANDROID_ARM="$(echo $install_values | awk -F '|' '{print $14}')";
+USE_ANDROID_X86="$(echo $install_values | awk -F '|' '{print $15}')";
+USE_IOS_ATV2="$(echo $install_values | awk -F '|' '{print $16}')";
+DEPOT_TOOLS_URL="$(echo $install_values | awk -F '|' '{print $18}')";
+USE_JENKINS="$(echo $install_values | awk -F '|' '{print $19}')";
+MUPEL_DESKTOP_ICON_PATH="$(echo $install_values | awk -F '|' '{print $20}')";
+GIT_USERNAME="$(echo $install_values | awk -F '|' '{print $23}')";
+GIT_EMAIL="$(echo $install_values | awk -F '|' '{print $24}')";
+
+if [ -z $GIT_NOT_SET ] && [[ $GIT_USERNAME != $GIT_USERNAME_OLD ]] || [[ $GIT_EMAIL != $GIT_EMAIL_OLD ]];then
+{
+  showWarningDialog_YesNo "\
+Change of GIT User name / EMail
+
+Name (new):
+  <b>$GIT_USERNAME</b>
+Name (old):
+  <b>$GIT_USERNAME_OLD</b>
+
+EMail (new):
+  <b>$GIT_EMAIL</b>
+EMail (old):
+  <b>$GIT_EMAIL_OLD</b>
+
+Confirm change of GIT values";
+  if [ $? = 0 ];then
+  {
+    git config --global user.name "$GIT_USERNAME"
+    git config --global user.email "$GIT_EMAIL"
+  } fi
+} fi
+
+first_call=1;
+while :; do
+{
+  if [ $first_call = 0 ];then
+  {
+    DEPOT_TOOLS_URL=$(showdialog --title="Download URL" --text="Set Chromium depot tools git repository to use:" --entry --width=640 --entry-text="$DEPOT_TOOLS_URL" 2> /dev/null);
+    if [ $? != 0 ] || [ "$DEPOT_TOOLS_URL" == "" ];then
+    {
+      showWarningDialog_YesNo "Selection of Chromium depot tools git repository failed! \n\nTry again?";
+      [ $? != 0 ] && exit_build 1;
+      continue;
+    } fi
+  } fi
+  first_call=0;
+
+  git_entries=$(git ls-remote "$DEPOT_TOOLS_URL");
+  ret=$?;
+  if [ $ret != 0 ];then
+  {
+    handleErrorsCodes $ret "git" "$DEPOT_TOOLS_URL";
+    showWarningDialog_YesNo "Check for git repository \"$DEPOT_TOOLS_URL\" failed! \n\nTry again?";
+    [ $? != 0 ] && exit_build 1;
+  }
+  else
+    break;fi
+} done
+
+first_call=1
+while :; do
+{
+  if [ $first_call = 0 ];then
+  {
+    KODI_SOURCE_URL=$(showdialog --title="Download URL" --text="Set Kodi git repository to use:" --entry --width=640 --entry-text="$KODI_SOURCE_URL" 2> /dev/null);
+    if [ $? != 0 ] || [ "$KODI_SOURCE_URL" == "" ];then
+    {
+      showWarningDialog_YesNo "Selection of Kodi git repository failed! \n\nTry again?";
+      [ $? != 0 ] && exit_build 1;
+      continue;
+    } fi
+  } fi
+  first_call=0;
+
+  git_entries=$(git ls-remote "$KODI_SOURCE_URL");
+  ret=$?;
+  if [ $ret != 0 ];then
+  {
+    handleErrorsCodes $ret "git" "$KODI_SOURCE_URL";
+    showWarningDialog_YesNo "Check for git repository \"$KODI_SOURCE_URL\" failed! \n\nTry again?";
+    [ $? != 0 ] && exit_build 1;
+  }
+  else
+    break;fi
+} done
+
+targets=
+git_entries=$(echo "$git_entries"| grep "refs/heads" | awk -F '/' '{print $3}');
+for i in $git_entries; do
+{
+  if [[ $i == $KODI_SOURCE_BRANCH ]];then
+    targets+="TRUE $i ";
+  else
+    targets+="FALSE $i ";fi
+} done
+
+while :; do
+{
+  KODI_SOURCE_BRANCH=$(showdialog --list \
+                                  --title="Select branch" \
+                                  --text="Select the branch from Kodi to use" \
+                                  --radiolist \
+                                  --column "Use" \
+                                  --column "Type" \
+                                  --print-column=2 \
+                                  $targets \
+                                  --width=400 --height=390 2> /dev/null);
+  KODI_SOURCE_BRANCH=${KODI_SOURCE_BRANCH%|};
+  if [ -z $KODI_SOURCE_BRANCH ];then
+  {
+    showWarningDialog_YesNo "No branch selected for Kodi! \n\nTry again?";
+    [ $? != 0 ] && exit_build 1;
+  }
+  else
+    break;fi
+} done
+
+if [ "$SUPPORT_CEF" = "TRUE" ];then
+{
+  first_call=1
+  while :; do
+  {
+    if [ $first_call = 0 ];then
+    {
+      CEF_SOURCE_URL=$(showdialog --title="Download URL" --text="Set CEF git repository to use:" --entry --width=640 --entry-text="$CEF_SOURCE_URL" 2> /dev/null);
+      if [ $? != 0 ] || [ "$CEF_SOURCE_URL" == "" ];then
+      {
+        showWarningDialog_YesNo "Selection of CEF git repository failed! \n\nTry again?";
+        [ $? != 0 ] && exit_build 1;
+        continue;
+      } fi
+    } fi
+    first_call=0;
+
+    git_entries=$(git ls-remote "$CEF_SOURCE_URL");
+    ret=$?;
+    if [ $ret != 0 ];then
+    {
+      handleErrorsCodes $ret "git" "$CEF_SOURCE_URL";
+      showWarningDialog_YesNo "Check for git repository \"$CEF_SOURCE_URL\" failed! \n\nTry again?";
+      [ $? != 0 ] && exit_build 1;
+    }
+    else
+      break;fi
+  } done
+
+  targets=
+  git_entries=$(echo "$git_entries"| grep "refs/heads" | awk -F '/' '{print $3}');
+  for i in $git_entries; do
+  {
+    if [[ $i == $CEF_SOURCE_BRANCH ]];then
+      targets+="TRUE $i ";
+    else
+      targets+="FALSE $i ";fi
+  } done
+
+  while :; do
+  {
+    CEF_SOURCE_BRANCH=$(showdialog --list \
+                                    --title="Select branch" \
+                                    --text="Select the branch from CEF to use" \
+                                    --radiolist \
+                                    --column "Use" \
+                                    --column "Type" \
+                                    --print-column=2 \
+                                    $targets \
+                                    --width=400 --height=390 2> /dev/null);
+    CEF_SOURCE_BRANCH=${CEF_SOURCE_BRANCH%|};
+    if [ -z $CEF_SOURCE_BRANCH ];then
+    {
+      showWarningDialog_YesNo "No branch selected for CEF! \n\nTry again?";
+      [ $? != 0 ] && exit_build 1;
+    }
+    else
+      break;fi
+  } done
+} fi
+
+if [[ $USE_JENKINS = "TRUE" ]];then
+  showdialog --title="Mupel - Jenkins install" \
+             --width=520 --height=474 --html \
+             --uri=${BASE_PATH}/icons/jenkins-holiday.png \
+             --text="<i><span size=\"large\">Forget it I'm in holiday</span></i>" \
+             --button=gtk-ok:0;fi
+
+if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
+{
+  if [ -f $BASE_PATH/tools/windows/install-systembuild-windows ];then
+  {
+    env_install_windows=$BASE_PATH/tools/windows/install-systembuild-windows;
+  }
+  else
+  {
+    while :; do
+    {
+      env_install_windows=$(showdialog --title="Select creation script for access to MS Windows system over ssh" --file --file-filter="install-systembuild-windows *.install *.sh" --width=700 --height=480 2> /dev/null);
+      if [ $? != 0 ];then
+      {
+        showWarningDialog_YesNo "Selection of MS Windows access creation script failed! \n\nTry again?";
+        [ $? != 0 ] && exit_build 1;
+      }
+      else
+        break;fi
+    } done
+  } fi
+} fi
+
+if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
+{
+  if [ -f $BASE_PATH/tools/mac-osx/install-systembuild-mac-osx ];then
+  {
+    env_install_mac_os_x=$BASE_PATH/tools/mac-osx/install-systembuild-mac-osx;
+  }
+  else
+  {
+    while :; do
+    {
+      env_install_mac_os_x=$(showdialog --title="Select creation script for access to Mac OS X system over ssh" --file --file-filter="install-systembuild-mac-osx *.install *.sh" --width=700 --height=480 2> /dev/null);
+      if [ $? != 0 ];then
+      {
+        showWarningDialog_YesNo "Selection of Mac OS X access creation script failed! \n\nTry again?";
+        [ $? != 0 ] && exit_build 1;
+      }
+      else
+        break;fi
+    } done
+  } fi
+} fi
+
+if [[ $USE_ANDROID_X86 = "TRUE" ]] || [[ $USE_ANDROID_ARM = "TRUE" ]];then
+{
+  if [ -f $BASE_PATH/tools/android/install-systembuild-android ];then
+  {
+    env_install_android=$BASE_PATH/tools/android/install-systembuild-android;
+  }
+  else
+  {
+    showErrorDialog "<b>Required script $BASE_PATH/tools/android/install-systembuild-android for Android not present!</b>";
+    exit_build 1;
+  } fi
+} fi
+
+if [[ $USE_IOS_ATV2 = "TRUE" ]];then
+{
+  if [ -f $BASE_PATH/tools/ios-atv2/install-systembuild-ios-atv2 ];then
+  {
+    env_install_ios_atv2=$BASE_PATH/tools/ios-atv2/install-systembuild-ios-atv2;
+  }
+  else
+  {
+    while :; do
+    {
+      env_install_ios_atv2=$(showdialog --title="Select creation script for access to IOS-ATV2 system over ssh" --file --file-filter="install-systembuild-android *.install *.sh" --width=700 --height=480 2> /dev/null);,
+      if [ $? != 0 ];then
+      {
+        showWarningDialog_YesNo "Selection of IOS-ATV2 access creation script failed! \n\nTry again?";
+        [ $? != 0 ] && exit_build 1;
+      }
+      else
+        break;fi
+    } done
+  } fi
+} fi
+
+if [ ! -d $BASE_PATH/build/depot_tools ];then
+{
+  handleGITLoad "$BASE_PATH/build" depot_tools $DEPOT_TOOLS_URL master "mupel-install" |
+    showdialog --title="Install" \
+               --image="$BASE_PATH/icons/icon-install-128x128.png" \
+               --progress --width=600 \
+               --text="Install Chromium depot tools ..." \
+               --pulsate --button=gtk-cancel:1 --auto-close > /dev/null;
+} fi
+
+ADD_PATHS="`pwd`/build/depot_tools";
+PATH="$ADD_PATHS:$PATH";
+
+saveConfigFile
+
+. "$INSTALL_PREFIX/mupel.conf"
+
+# Copy parts of system to install folder (normally always $HOME/.mupel).
+# Is to allow parts on them to work without mupel build folder, where this file
+# comes from (e.g. to use emulation also without them).
+mkdir -p $INSTALL_PREFIX/tools
+cp -f $BASE_PATH/tools/tool_functions $INSTALL_PREFIX/tools
+cp -f $BASE_PATH/tools/yad-mupel-x86_64 $INSTALL_PREFIX/tools
+cp -rf $BASE_PATH/icons $INSTALL_PREFIX
+
+##
+# Create chroot build environment
+#
+if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
+  create_chroot_build_environment $USE_LINUX_X86_DISTR 32 "x86-32";fi
+if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
+  create_chroot_build_environment $USE_LINUX_X86_DISTR 64 "x86-64";fi
+if [[ $USE_LINUX_RPBI = "TRUE" ]];then
+  create_chroot_build_environment_arm;fi
+if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
+{
+  while :; do
+  {
+    if [[ -n $env_install_windows ]];then
+      bash "$env_install_windows"
+    else
+      evaluate_ret_error 1;fi
+    if [[ $ret != 0 ]];then
+    {
+      show_warning_dialog_yes_no "Creation of Windows system failed! \n\nTry again?";
+      [ $? != 0 ] && exit 1;
+    }
+    else
+      break;fi
+  } done
+} fi
+
+if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
+{
+  while :; do
+  {
+    if [[ -n $env_install_mac_os_x ]];then
+      bash "$env_install_mac_os_x"
+    else
+      evaluate_ret_error 1;fi
+    if [[ $ret != 0 ]];then
+    {
+      show_warning_dialog_yes_no "Creation of Windows system failed! \n\nTry again?";
+      [ $? != 0 ] && exit 1;
+    }
+    else
+      break;fi
+  } done
+} fi
+
+if [[ $USE_ANDROID_X86 = "TRUE" ]] || [[ $USE_ANDROID_ARM = "TRUE" ]];then
+{
+  while :; do
+  {
+    if [[ -n $env_install_android ]];then
+      bash "$env_install_android"
+    else
+      evaluate_ret_error 1;fi
+    if [[ $ret != 0 ]];then
+    {
+      show_warning_dialog_yes_no "Creation of Android system failed! \n\nTry again?";
+      [ $? != 0 ] && exit 1;
+    }
+    else
+      break;fi
+  } done
+} fi
+
+if [[ $USE_IOS_ATV2 = "TRUE" ]];then
+{
+  while :; do
+  {
+    if [[ -n $env_install_ios_atv2 ]];then
+      bash "$env_install_ios_atv2"
+    else
+      evaluate_ret_error 1;fi
+    if [[ $ret != 0 ]];then
+    {
+      show_warning_dialog_yes_no "Creation of Windows system failed! \n\nTry again?";
+      [ $? != 0 ] && exit 1;
+    }
+    else
+      break;fi
+  } done
+} fi
+
+ICON_NAME=mupel
+TMP_DIR=`mktemp --directory`
+DESKTOP_FILE=$TMP_DIR/mupel.desktop
+cat > $DESKTOP_FILE << EOF
+[Desktop Entry]
+Comment[de_DE]=Starte Mupel
+Comment=Start Mupel
+Exec=$BASE_PATH/mupel
+GenericName[de_DE]=
+GenericName=
+Icon=$ICON_NAME.png
+MimeType=
+Name=Mupel
+Keywords=git;kodi;cef;chromium
+Path=$BASE_PATH
+StartupNotify=true
+Terminal=false
+TerminalOptions=
+Type=Application
+Categories=Development;RevisionControl
+Version=1.0
+X-DBUS-ServiceName=
+X-DBUS-StartupType=
+X-KDE-SubstituteUID=false
+X-KDE-Username=
+X-MultipleArgs=false
+EOF
+
+xdg-desktop-menu  install --novendor --noupdate $DESKTOP_FILE
+xdg-icon-resource install --novendor --size  32 "$BASE_PATH/icons/icon-mupel-32x32.png"   $ICON_NAME
+xdg-icon-resource install --novendor --size  48 "$BASE_PATH/icons/icon-mupel-48x48.png"   $ICON_NAME
+xdg-icon-resource install --novendor --size  64 "$BASE_PATH/icons/icon-mupel-64x64.png"   $ICON_NAME
+xdg-icon-resource install --novendor --size 128 "$BASE_PATH/icons/icon-mupel-128x128.png" $ICON_NAME
+xdg-desktop-menu  forceupdate
+
+if [ ! -z $MUPEL_DESKTOP_ICON_PATH ];then
+  cp $DESKTOP_FILE $MUPEL_DESKTOP_ICON_PATH;fi
+
+rm $DESKTOP_FILE
+rm -R $TMP_DIR
+
+# Let the user know what we did
+showdialog --title="Automatic build environment" \
+           --image="$BASE_PATH/icons/icon-info-128x128.png" \
+           --image-on-top --form \
+           --button=gtk-ok:0 \
+           --width=830 --show-uri --editable \
+           --text-info \
+           --text="<tt>
+     <i><span size=\"large\">Successfully installed Mupel system for kodi</span></i>
+_________________________________________________________________________________________
+
+     Now you can do \"<i>Èngem e' Mupel mâchen</i>\" (Luxembourgish) and means
+     \"Someone squeezing the cheeks\" in respect to Jenkins the best multi platform
+     background system on world.
+_________________________________________________________________________________________
+
+     Copyright (C) 2015 Team KODI (Alwin Esch)
+     <u><span foreground=\"blue\">http://kodi.tv</span></u>
+
+     GNU General Public License, Version 3
+     see <u><span foreground=\"blue\">http://www.gnu.org/licenses/</span></u></tt>" 2> /dev/null
+
+exit_build 0

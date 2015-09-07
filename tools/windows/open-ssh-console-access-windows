@@ -1,0 +1,10 @@
+#!/bin/bash
+
+. $HOME/.mupel/windows.conf
+
+which konsole >/dev/null
+if [ "$?" != "0" ];then
+  xterm -T "Windows ssh access" -bg black -fg white -e sshpass -p $WINDOWS_SSH_PASSWORD ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME
+else
+  konsole --hide-tabbar --hide-menubar --e sshpass -p $WINDOWS_SSH_PASSWORD ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME 2> /dev/null;
+fi

@@ -1,0 +1,17 @@
+platform-tools PlatformTool "Android SDK Platform-tools" all
+build-tools-17.0.0 BuildTool "Android SDK Build-tools, revision 17 (Obsolete)" all
+android-17 Platform "Android SDK Platform" all
+build-tools-22.0.1 BuildTool "Android SDK Build-tools, revision 22.0.1" all
+android-22 Platform "Android SDK Platform 5.1.1, revision 2" all
+extra-android-support Extra "Android Support Library, revision 22.2.1"
+extra-android-m2repository Extra "Android Support Repository, revision 16"
+sys-img-armeabi-v7a-android-17 SystemImage "ARM EABI v7a System Image, revision 17" all
+sys-img-x86-android-17 SystemImage "Intel x86 Atom System Image, revision 17" all
+sys-img-mips-android-17 SystemImage "MIPS System Image, revison 17" all
+sys-img-armeabi-v7a-android-tv-22 SystemImage "Android TV ARM EABI v7a System Image, revision 22" all
+sys-img-x86-android-tv-22 SystemImage "Android TV Intel x86 Atom System Image, revision 22" all
+sys-img-armeabi-v7a-android-wear-22 SystemImage "Android Wear ARM EABI v7a System Image, revision 22" all
+sys-img-x86-android-wear-22 SystemImage "Android Wear Intel x86 Atom System Image, revision 22" all
+sys-img-armeabi-v7a-android-22 SystemImage "ARM EABI v7a System Image, revision 22" all
+sys-img-x86_64-android-22 SystemImage "Intel x86 Atom_64 System Image, revision 22" all
+sys-img-x86-android-22 SystemImage "Intel x86 Atom System Image, revision 22" all

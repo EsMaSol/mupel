@@ -1,0 +1,1043 @@
+#!/bin/bash
+
+if [ -f "$HOME/.mupel/mupel.conf" ];then
+{
+  . "$HOME/.mupel/mupel.conf";
+} fi
+PATH="$BASE_PATH/tools:$PATH"
+
+# Override sudo console password request, sudo need called with "sudo -A <cmd>"
+export SUDO_ASKPASS="$BASE_PATH/tools/sudo-askpass"
+
+BLACK=$(tput setaf 0)
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+YELLOW=$(tput setaf 3)
+LIME_YELLOW=$(tput setaf 190)
+POWDER_BLUE=$(tput setaf 153)
+BLUE=$(tput setaf 4)
+MAGENTA=$(tput setaf 5)
+CYAN=$(tput setaf 6)
+WHITE=$(tput setaf 7)
+BRIGHT=$(tput bold)
+NORMAL=$(tput sgr0)
+BLINK=$(tput blink)
+REVERSE=$(tput smso)
+UNDERLINE=$(tput smul)
+
+NORMAL="\\033[0;39m"         # Standard console grey
+SUCCESS="\\033[1;32m"        # Success is green
+WARNING="\\033[1;33m"        # Warnings are yellow
+FAILURE="\\033[1;31m"        # Failures are red
+INFO="\\033[1;36m"           # Information is light cyan
+BRACKET="\\033[1;34m"        # Brackets are blue
+
+# Use a colored prefix
+SUCCESS_SUFFIX="${BRACKET}[${SUCCESS}  OK  ${BRACKET}]${NORMAL}"
+NO_SUFFIX="${BRACKET}[${SUCCESS}  NO  ${BRACKET}]${NORMAL}"
+IGNORE_SUFFIX="${BRACKET}[${WARNING}IGNORE${BRACKET}]${NORMAL}"
+FAILURE_SUFFIX="${BRACKET}[${FAILURE} FAIL ${BRACKET}]${NORMAL}"
+WARNING_SUFFIX="${BRACKET}[${WARNING} WARN ${BRACKET}]${NORMAL}"
+SKIP_SUFFIX="${BRACKET}[${INFO} SKIP ${BRACKET}]${NORMAL}"
+DONE_SUFFIX="${BRACKET}[${INFO} DONE ${BRACKET}]${NORMAL}"
+
+COLUMNS=80
+
+# Older Debian based systems had both "admin" and "adm" groups, with "admin"
+# apparently being used in more places. Newer distributions have standardized
+# on just the "adm" group. Check /etc/group for the preferred name of the
+# administrator group.
+admin=$(grep '^admin:' /etc/group >&/dev/null && echo admin || echo adm)
+
+## Screen Dimensions
+# Find current screen size
+if [ -z "${COLUMNS}" ]; then
+   COLUMNS=$(stty size)
+   COLUMNS=${COLUMNS##* }
+fi
+
+# When using remote connections, such as a serial port, stty size returns 0
+if [ "${COLUMNS}" = "0" ]; then
+   COLUMNS=80
+fi
+
+# Measurements for positioning result messages
+COL=$((${COLUMNS} - 8))
+WCOL=$((${COL} - 2))
+
+# Set Cursor Position Commands, used via echo
+SET_COL="\\033[${COL}G"      # at the $COL char
+SET_WCOL="\\033[${WCOL}G"    # at the $WCOL char
+CURS_UP="\\033[1A\\033[0G"   # Up one line, at the 0'th char
+CURS_ZERO="\\033[0G"
+
+basic_dialog="yad-mupel-$(uname -m)"
+memory=`grep MemTotal /proc/meminfo | awk '{print $2}'`
+memory=`expr $memory / 1024`
+
+function showdialog() {
+  $basic_dialog --center --window-icon="$BASE_PATH/icons/icon-kodi-48x48.png" "$@"
+}
+##
+#####
+
+function log_success_msg() {
+  /bin/echo -e "${CURS_ZERO}${SET_COL}${SUCCESS_SUFFIX}"
+  return 0
+}
+
+function log_no_msg() {
+  /bin/echo -e "${CURS_ZERO}${SET_COL}${NO_SUFFIX}"
+  return 0
+}
+
+function log_failure_msg() {
+  /bin/echo -e "${CURS_ZERO}${SET_COL}${FAILURE_SUFFIX}"
+  return 0
+}
+
+function log_warning_msg() {
+  /bin/echo -e "${CURS_ZERO}${SET_COL}${WARNING_SUFFIX}"
+  return 0
+}
+
+function log_skip_msg() {
+  /bin/echo -e "${CURS_ZERO}${SET_COL}${SKIP_SUFFIX}"
+  return 0
+}
+
+function log_done_msg() {
+  /bin/echo -e "${CURS_ZERO}${SET_COL}${DONE_SUFFIX}"
+  return 0
+}
+
+function log_ingnore_msg() {
+  /bin/echo -e "${CURS_ZERO}${SET_COL}${IGNORE_SUFFIX}"
+  return 0
+}
+
+##
+# Open dialog to become SSH access data
+# value 1: Used dialog title
+# value 2: url/ip
+# value 3: port
+# value 4: user name
+# value 5: pass word
+# Return sets the global variables on OK
+function select_ssh_access_data()
+{
+  ssh_url="${2}"
+  ssh_port="${3}"
+  username="${4}"
+  password="${5}"
+
+  while :; do
+  {
+    values=$(showdialog \
+        --form --separator='|' --quoted-output \
+        --title="$1" \
+        --field="SSH access data:lbl" "" \
+        --field=":lbl" "" \
+        --field="URL:" "${2}" \
+        --field="Port:num" "${3}" \
+        --field="User name:" "${4}" \
+        --field="Password:h" "${5}" 2> /dev/null)
+    ret=$?
+
+    if [[ $ret -eq 0 ]]; then
+    {
+      ssh_url=$(echo $values | awk -F '|' '{print $3}' | tr -d \')
+      ssh_port=$(echo $values | awk -F '|' '{print $4}' | tr -d \')
+      ssh_port=${ssh_port%,*}
+      username=$(echo $values | awk -F '|' '{print $5}' | tr -d \')
+      password=$(echo $values | awk -F '|' '{print $6}' | tr -d \')
+      if [ "$username" = "''" ] || [ "$password" = "''" ];then
+        showQuestionDialog "Username or password missing, is this correct?"
+        [ $? != 0 ] && continue
+      fi
+      break
+    }
+    else
+    {
+      showdialog \
+          --title="Warning" \
+          --image="$BASE_PATH/icons/icon-warning-128x128.png" \
+          --image-on-top --form \
+          --text="Are you sure?" \
+          --button=gtk-no:1 --button=gtk-yes:0 2> /dev/null
+      [ $? == 0 ] && exit 1
+    } fi
+  } done
+  return $ret
+}
+
+function killtree()
+{
+  local _pid=$1
+  local _sig=${2:--TERM}
+#  sudo -A -- kill -stop ${_pid} # needed to stop quickly forking parent from producing children between child killing and parent killing
+  kill -stop ${_pid}
+  for _child in $(ps -o pid --no-headers --ppid ${_pid}); do
+    killtree ${_child} ${_sig}
+  done
+  kill -${_sig} ${_pid}
+}
+
+function clean_schroot()
+{
+  local s t rc
+  rc=0
+  for s in $(schroot -l --all-sessions); do
+    if [ -n "$1" ]; then
+      t="${s#session:}"
+      [ "${t#${chroot}-}" == "${t}" ] && continue
+    fi
+    if ls -l /proc/*/{cwd,fd} 2>/dev/null |
+       fgrep -qs "/var/lib/schroot/mount/${t}"; then
+      echo "Session \"${t}\" still has active users, not cleaning up" | wrap
+      rc=1
+      continue
+    fi
+    sudo -A -- schroot -c "${s}" -e || rc=1
+  done
+  return ${rc}
+}
+
+##
+# handleErrorsCodes()
+# To open about error value the right dialog
+# values:
+#  - code   = The error code to check
+#  - source = source app of fault
+#  - label  = additional label to add in message
+function handleErrorsCodes()
+{
+  local code=$1
+  local source=$2
+  local label=$3
+
+  if [ "source" = "git" ];then
+    if [[ $code = 128 ]];then
+        showErrorDialog "\
+  The '$label' does not appear to be a git repository
+  Could not read from remote repository.
+
+  Please make sure you have the correct access rights
+  and the repository exists."
+    else
+      showErrorDialog "\
+  Unknown error occoured for check of '$label'"
+    fi
+  fi
+}
+##
+
+##
+# Function which handle returns and exit from script if failed
+# It insert a file with *_failed.txt and name of process to temporary directory
+# further removes it the *.pid file that the base know it is stopped
+# values:
+# error_value = The error to check, 0 = OK
+# process     = The name of related process
+function evaluateReturnValue()
+{
+  local error_value="${1}";
+#  printf $CURS_UP
+  if [ ${error_value} = 0 ];then
+  {
+    log_success_msg;
+  }
+  else
+  {
+    log_failure_msg;
+    exit ${error_value};
+  } fi
+}
+##
+
+##
+# Open dialog for error and exit
+# value 1: error value
+# value 2: error string if needed
+function evaluate_ret_error()
+{
+  local error_value="${1}"
+  if [[ ${error_value} != 0 ]]; then
+    if [ "$2" != "" ];then
+      text="$2"
+    else
+      text="Are you sure?"
+    fi
+    showdialog --title="Error" \
+        --image="$BASE_PATH/icons/icon-error-128x128.png" \
+        --image-on-top --form \
+        --text="$text" \
+        --button=gtk-ok:1 2> /dev/null
+    exit ${error_value}
+  fi
+}
+
+##
+# Function copy additional parts to kodi build folder
+# @todo: Make better way
+#
+function installAdditionalKodiDepends()
+{
+  local sys_name;
+  local install_path=$1
+  if [[ $XBMC_PLATFORM_DIR = linux64 ]];then
+    sys_name=x86_64
+  elif [[ $XBMC_PLATFORM_DIR = linux32 ]];then
+    sys_name=i386
+  elif [[ $XBMC_PLATFORM_DIR = rbpi ]];then
+    return 0
+  elif [[ $XBMC_PLATFORM_DIR = android ]];then
+    return 0
+  elif [[ $XBMC_PLATFORM_DIR = android-arm ]];then
+    return 0
+  elif [[ $XBMC_PLATFORM_DIR = android-arm64 ]];then
+    return 0
+  elif [[ $XBMC_PLATFORM_DIR = android-x86 ]];then
+    return 0
+  elif [[ $XBMC_PLATFORM_DIR = android-x86_64 ]];then
+    return 0
+  elif [[ $XBMC_PLATFORM_DIR = android-mips ]];then
+    return 0
+  elif [[ $XBMC_PLATFORM_DIR = android-mips64 ]];then
+    return 0
+  else
+    trapError ${LINENO} "ERROR: Not supported platform '$XBMC_PLATFORM_DIR'"
+  fi
+
+  if [ ! -d ${install_path}/etc/bash_completion.d ];then
+    mkdir -p ${install_path}/etc/bash_completion.d;fi
+  if [ ! -d ${install_path}/etc/dbus-1/system.d ];then
+    mkdir -p ${install_path}/etc/dbus-1/system.d;fi
+  if [ ! -d ${install_path}/etc/default ];then
+    mkdir -p ${install_path}/etc/default;fi
+  if [ ! -d ${install_path}/etc/init.d ];then
+    mkdir -p ${install_path}/etc/init.d;fi
+  if [ ! -d ${install_path}/etc/init ];then
+    mkdir -p ${install_path}/etc/init;fi
+  if [ ! -d ${install_path}/etc/xdg/autostart ];then
+    mkdir -p ${install_path}/etc/xdg/autostart;fi
+  if [ ! -d ${install_path}/bin ];then
+    mkdir -p ${install_path}/bin;fi
+  if [ ! -d ${install_path}/share/alsa ];then
+    mkdir -p ${install_path}/share/alsa;fi
+  if [ ! -d ${install_path}/share/apport/package-hooks ];then
+    mkdir -p ${install_path}/share/apport/package-hooks;fi
+  if [ ! -d ${install_path}/share/lintian/overrides ];then
+    mkdir -p ${install_path}/share/lintian/overrides;fi
+  if [ ! -d ${install_path}/lib ];then
+    mkdir -p ${install_path}/lib;fi
+  if [ ! -d ${install_path}/lib/udev/rules.d ];then
+    mkdir -p ${install_path}/lib/udev/rules.d;fi
+  if [ ! -d ${install_path}/lib/cmake ];then
+    mkdir -p ${install_path}/lib/cmake;fi
+  if [ ! -d ${install_path}/lib/pkgconfig ];then
+    mkdir -p ${install_path}/lib/pkgconfig;fi
+  if [ ! -d ${install_path}/share/vala/vapi ];then
+    mkdir -p ${install_path}/share/vala/vapi;fi
+
+  printf "\n${WHITE}${BRIGHT}Copy pulseaudio parts to kodi install path${NORMAL} ...\n";
+  cp -f /etc/dbus-1/system.d/pulseaudio-system.conf               ${install_path}/etc/dbus-1/system.d;
+  cp -f /etc/default/pulseaudio                                   ${install_path}/etc/default;
+  cp -f /etc/init.d/pulseaudio                                    ${install_path}/etc/init.d;
+  cp -f /etc/init/pulseaudio.conf                                 ${install_path}/etc/init;
+#  cp -f /etc/xdg/autostart/pulseaudio-kde.desktop                 ${install_path}/etc/xdg/autostart;
+#  cp -f /etc/xdg/autostart/pulseaudio.desktop                     ${install_path}/etc/xdg/autostart;
+  cp -rf /etc/pulse                                               ${install_path}/etc;
+  cp -f /lib/udev/rules.d/90-pulseaudio.rules                     ${install_path}/lib/udev/rules.d;
+  cp -f /usr/bin/pulseaudio                                       ${install_path}/bin;
+#  cp -f /usr/bin/start-pulseaudio-kde                             ${install_path}/bin;
+#  cp -f /usr/bin/start-pulseaudio-x11                             ${install_path}/bin;
+  cp -rf /etc/pulse                                               ${install_path}/etc;
+  cp -f /usr/lib/${sys_name}-linux-gnu/libpulse-simple.so.0.0.4   ${install_path}/lib;
+  cp -f /usr/lib/${sys_name}-linux-gnu/libpulse-simple.so.0       ${install_path}/lib;
+  cp -f /usr/lib/${sys_name}-linux-gnu/libpulse-simple.so         ${install_path}/lib;
+  cp -f /usr/lib/${sys_name}-linux-gnu/libpulse.so.0.16.2         ${install_path}/lib;
+  cp -f /usr/lib/${sys_name}-linux-gnu/libpulse.so.0              ${install_path}/lib;
+  cp -f /usr/lib/${sys_name}-linux-gnu/libpulse.so                ${install_path}/lib;
+  cp -rf /usr/lib/${sys_name}-linux-gnu/pulseaudio                ${install_path}/lib;
+  cp -f /usr/lib/libpulsecore-4.0.so                              ${install_path}/lib;
+  cp -rf /usr/lib/pulse-4.0                                       ${install_path}/lib;
+
+  cp -rf /usr/include/pulse                                       ${install_path}/include;
+  cp -rf /usr/lib/${sys_name}-linux-gnu/cmake/PulseAudio          ${install_path}/lib/cmake;
+  cp -rf /usr/lib/${sys_name}-linux-gnu/libpulse-mainloop-glib.so* ${install_path}/lib;
+  cp -rf /usr/lib/${sys_name}-linux-gnu/pkgconfig/libpulse-mainloop-glib.pc ${install_path}/lib/pkgconfig;
+  cp -rf /usr/lib/${sys_name}-linux-gnu/pkgconfig/libpulse-simple.pc        ${install_path}/lib/pkgconfig;
+  cp -rf /usr/lib/${sys_name}-linux-gnu/pkgconfig/libpulse.pc     ${install_path}/lib/pkgconfig;
+
+  cp -rf /usr/share/alsa                                          ${install_path}/share;
+  cp -f /usr/share/apport/package-hooks/source_pulseaudio.py      ${install_path}/share/apport/package-hooks;
+  cp -f /usr/share/lintian/overrides/pulseaudio                   ${install_path}/share/lintian/overrides;
+  cp -rf /usr/share/pulseaudio                                    ${install_path}/share;
+  cp -f /usr/share/vala/vapi/libpulse-mainloop-glib.deps          ${install_path}/share/vala/vapi;
+  cp -f /usr/share/vala/vapi/libpulse-mainloop-glib.vapi          ${install_path}/share/vala/vapi;
+  cp -f /usr/share/vala/vapi/libpulse.deps                        ${install_path}/share/vala/vapi;
+  cp -f /usr/share/vala/vapi/libpulse.vapi                        ${install_path}/share/vala/vapi;
+
+  # pulseaudio-utils
+  cp -f /etc/bash_completion.d/pulseaudio-bash-completion.sh      ${install_path}/etc/bash_completion.d;
+  cp -f /usr/bin/pacat ${install_path}/bin;
+  cp -f /usr/bin/pacmd ${install_path}/bin;
+  cp -f /usr/bin/pactl ${install_path}/bin;
+  cp -f /usr/bin/padsp ${install_path}/bin;
+  cp -f /usr/bin/pamon ${install_path}/bin;
+  cp -f /usr/bin/paplay ${install_path}/bin;
+  cp -f /usr/bin/parec ${install_path}/bin;
+  cp -f /usr/bin/parecord ${install_path}/bin;
+  cp -f /usr/bin/pasuspender ${install_path}/bin;
+  cp -f /usr/bin/pax11publish ${install_path}/bin;
+
+  # libasound2 & libasound2-plugins
+  cp -rf /usr/lib/${sys_name}-linux-gnu/alsa-lib ${install_path}/lib;
+  cp -rf /usr/lib/${sys_name}-linux-gnu/libasound.so.2.0.0 ${install_path}/lib;
+  cp -rf /usr/lib/${sys_name}-linux-gnu/libasound.so.2 ${install_path}/lib;
+  cp -rf /usr/lib/${sys_name}-linux-gnu/libasound.so ${install_path}/lib;
+  cp -rf /usr/share/alsa ${install_path}/share;
+  printf $CURS_UP
+  evaluateReturnValue 0
+
+  printf "\n${WHITE}${BRIGHT}Copy libcec parts to kodi install path${NORMAL} ...\n";
+
+  cp -rf /usr/include/libcec                                      ${install_path}/include;
+#  cp -f /usr/lib/${sys_name}-linux-gnu/libcec.a                   ${install_path}/lib;
+  cp -f /usr/lib/${sys_name}-linux-gnu/libcec.so                  ${install_path}/lib;
+  cp -f /usr/lib/${sys_name}-linux-gnu/libcec.so.3.0              ${install_path}/lib;
+  cp -f /usr/lib/${sys_name}-linux-gnu/libcec.so.3.0.0            ${install_path}/lib;
+  cp -f /usr/lib/pkgconfig/libcec.pc                              ${install_path}/lib/pkgconfig;
+  printf $CURS_UP
+}
+##
+
+##
+# trapError()
+# Function becomes used by set with "trap 'trapError ${LINENO}' ERR"
+# values:
+#  - parent_lineno = The line number where it failed
+#  - message       = Optioal message text
+#  - code          = Error code
+# return:
+#  - exit script with error code
+function trapError()
+{
+  local parent_lineno="$1"
+  local message="$2"
+  local code="${3:-1}"
+  if [[ -n "$message" ]] ; then
+    printf "${BRIGHT}${RED}Error: ${WHITE}on or near line ${parent_lineno} of `basename "$0"` with $BUILD_SYSTEM:
+       ${message}; exiting with status ${code}\n"
+  else
+    printf "${BRIGHT}${RED}Error: ${WHITE}on or near line ${parent_lineno} of `basename "$0"` with $BUILD_SYSTEM:
+       exiting with status ${code}${NORMAL}\n"
+  fi
+  exit "${code}"
+}
+##
+
+##
+# Open dialog to show system info
+# value 1: The title on dialog
+function showSystemInfoDialog()
+{
+  local title="${1}"
+  showdialog --skip-taskbar --on-top \
+             --title="Mupel - Automatic build environment" \
+             --image="$BASE_PATH/icons/icon-info-128x128.png" \
+             --image-on-top --form \
+             --button=gtk-ok:0 \
+             --width=830 --show-uri --editable \
+             --text-info \
+             --text="<tt>
+     <i><span size=\"large\">$title, Version: $MUPEL_VERSION</span></i>
+     <i>Èngem e' Mupel mâchen</i>
+_________________________________________________________________________________________
+
+     This script will help you through the process of installing a Debian or Ubuntu
+     distribution in a chroot environment. You will have to provide your \"sudo\"
+     password when requested.
+
+     <b>Supported formats:</b>
+      - Linux x86-32, x86-64 and on Rasberry PI (ARM)
+      - Windows x86-32 and x86-64
+      - Mac OS X
+      - IOS-ATV2 (TODO)
+      - Android x86 and ARM (TODO)
+
+     <b>System info:</b>
+      - Depot tools :    $DEPOT_TOOLS_URL
+      - Linux version :  `uname -r`
+      - Memory size :    $memory MByte
+      - Free Disk size : `expr $FREE_INITIAL_DISK_SPACE / 1024 / 1024` GByte
+
+     <i>NOTE:</i> Formats other as linux must be handled from connected systems over ssh.
+_________________________________________________________________________________________
+
+     Copyright (C) 2015 Team KODI (Alwin Esch)
+     <u><span foreground=\"blue\">http://kodi.tv</span></u>
+
+     GNU General Public License, Version 3
+     see <u><span foreground=\"blue\">http://www.gnu.org/licenses/</span></u></tt>" 2> /dev/null
+}
+
+##
+# Open dialog for info
+# value 1: info value
+# value 2: time out if needed
+function showInfoDialog()
+{
+  local text="${1}"
+  local timeout=
+  if [ "$2" != "" ];then
+    timeout="--timeout=$2";fi
+  showdialog \
+    --title="Info" \
+    --image="$BASE_PATH/icons/icon-info-128x128.png" \
+    --image-on-top --form \
+    --text="$text" \
+    $timeout \
+    --button=gtk-ok:0 2> /dev/null
+  return $?
+}
+##
+
+##
+# Open dialog for warning
+# value 1: warning value
+# value 2: warning string if needed
+function showWarningDialog()
+{
+  local text="${1}"
+  showdialog \
+    --title="Warning" \
+    --image="$BASE_PATH/icons/icon-warning-128x128.png" \
+    --image-on-top --form \
+    --text="$text" \
+    --button=gtk-ok:0 2> /dev/null
+  return $?
+}
+##
+
+##
+# Open dialog for warning
+# value 1: warning value
+# value 2: warning string if needed
+function showWarningDialog_QuitOK()
+{
+  local text="${1}"
+  showdialog \
+    --title="Warning" \
+    --image="$BASE_PATH/icons/icon-warning-128x128.png" \
+    --image-on-top --form \
+    --on-top \
+    --text="$text" \
+    --button=gtk-quit:1 --button=gtk-ok:0 2> /dev/null
+  return $?
+}
+##
+
+##
+# Open dialog for warning
+# value 1: warning value
+# value 2: warning string if needed
+function showWarningDialog_YesNo()
+{
+  local text="${1}"
+  showdialog \
+    --title="Warning" \
+    --image="$BASE_PATH/icons/icon-warning-128x128.png" \
+    --image-on-top --form \
+    --on-top \
+    --text="$text" \
+    --button=gtk-no:1 --button=gtk-yes:0 2> /dev/null
+  return $?
+}
+##
+
+##
+# Open dialog for error
+# value 1: error value
+# value 2: error string if needed
+function showErrorDialog()
+{
+  local text="${1}"
+  showdialog \
+    --title="Error" \
+    --image="$BASE_PATH/icons/icon-error-128x128.png" \
+    --image-on-top --form \
+    --text="$text" \
+    --button=gtk-ok:0 2> /dev/null
+  return $?
+}
+##
+
+##
+# Open dialog for error
+# value 1: error value
+# value 2: error string if needed
+function showErrorDialog_YesNo()
+{
+  local text="${1}"
+  showdialog \
+    --title="Error" \
+    --image="$BASE_PATH/icons/icon-error-128x128.png" \
+    --image-on-top --form \
+    --text="$text" \
+    --button=gtk-no:1 --button=gtk-yes:0 2> /dev/null
+  return $?
+}
+##
+
+##
+# Open dialog for question
+# value 1: question value
+# value 2: question string if needed
+function showQuestionDialog()
+{
+  local text="${1}"
+  showdialog \
+    --title="Question" \
+    --image="$BASE_PATH/icons/icon-question-128x128.png" \
+    --image-on-top --form \
+    --text="$text" \
+    --button=gtk-no:1 --button=gtk-yes:0 2> /dev/null
+  return $?
+}
+##
+
+##
+# saveConfigFile()
+# Write configuration file about available options
+function saveConfigFile()
+{
+  [ ! -d "$HOME/.mupel" ]          && mkdir -p "$HOME/.mupel"
+  [ -f "$HOME/.mupel/mupel.conf" ] && mv -f "$HOME/.mupel/mupel.conf" "$HOME/.mupel/mupel.conf.old"
+  [ -z $FREE_INITIAL_DISK_SPACE ]  && FREE_INITIAL_DISK_SPACE=`df  . | tail -1 | tr -s ' ' | cut -d' ' -f4`
+  [ -z $CPU_PROC_JOBS ]            && CPU_PROC_JOBS=8
+  if [ ! -f "$BASE_PATH/versions" ];then
+  {
+    CEF_KODI_BINARY_VERSION="undefined"
+    showWarningDialog "\
+The needed CEF binary version file for Kodi is not present and normally included in Mupel package!
+Please fix, for the moment becomes 'undefined' used as version.
+
+It must be on file in '$BASE_PATH/versions'!
+"
+  }
+  else
+    . "$BASE_PATH/versions";fi
+
+  cat > "$HOME/.mupel/mupel.conf" << EOF
+##
+# Mupel - Multiplatform build configuration for Kodi on Linux settings
+# Note: Do not delete this file! If removed all information about settings and
+# supported systems becomes losed.
+# Do not edit by hand if you not know what you do.
+
+MUPEL_VERSION=$MUPEL_VERSION
+INSTALL_PREFIX=$INSTALL_PREFIX
+
+USE_LINUX_X86_32=$USE_LINUX_X86_32
+USE_LINUX_X86_64=$USE_LINUX_X86_64
+USE_LINUX_X86_DISTR=$USE_LINUX_X86_DISTR
+USE_LINUX_RPBI=$USE_LINUX_RPBI
+USE_MS_WINDOWS_32=$USE_MS_WINDOWS_32
+USE_MS_WINDOWS_64=$USE_MS_WINDOWS_64
+USE_MAC_OS_X_32=$USE_MAC_OS_X_32
+USE_MAC_OS_X_64=$USE_MAC_OS_X_64
+USE_ANDROID_ARM=$USE_ANDROID_ARM
+USE_ANDROID_X86=$USE_ANDROID_X86
+USE_IOS_ATV2=$USE_IOS_ATV2
+
+RELEASE_BUILD=$RELEASE_BUILD
+DEBUG_BUILD=$DEBUG_BUILD
+
+KODI_SOURCE_URL=$KODI_SOURCE_URL
+KODI_SOURCE_BRANCH=$KODI_SOURCE_BRANCH
+KODI_SEL_ADDON="$KODI_SEL_ADDON"
+KODI_RUN_TESTS=$KODI_RUN_TESTS
+KODI_CONF_IN_DIRECT_BUILD=$KODI_CONF_IN_DIRECT_BUILD
+
+CEF_SOURCE_URL=$CEF_SOURCE_URL
+CEF_SOURCE_BRANCH=$CEF_SOURCE_BRANCH
+CEF_VERBOSE_BUILD=$CEF_VERBOSE_BUILD
+CEF_KODI_BINARY_VERSION=$CEF_KODI_BINARY_VERSION
+DEPOT_TOOLS_URL=$DEPOT_TOOLS_URL
+
+INCLUDE_KODI=$INCLUDE_KODI
+INCLUDE_KODI_ADDONS=$INCLUDE_KODI_ADDONS
+INCLUDE_CEF=$INCLUDE_CEF
+SUPPORT_CEF=$SUPPORT_CEF
+
+ADD_PATHS="$ADD_PATHS"
+
+TEXT_VIEVER=$TEXT_VIEVER
+
+FREE_INITIAL_DISK_SPACE=$FREE_INITIAL_DISK_SPACE
+
+CPU_PROC_JOBS=$CPU_PROC_JOBS
+
+EOF
+}
+##
+
+##
+function saveAndroidConfigFile()
+{
+  cat > $HOME/.mupel/android.conf << EOF
+##
+# Automatic generated configuration file for android cross build system
+# Do not delete!
+
+ANDROID_DEV_ROOT=${INSTALL_PREFIX}/android
+SDK_PATH=${INSTALL_PREFIX}/android/android-sdk-linux
+
+ANDROID_SEL_TARGET=$ANDROID_SEL_TARGET
+ANDROID_SEL_AVD_X86=$ANDROID_SEL_AVD_X86
+ANDROID_SEL_AVD_X86_64=$ANDROID_SEL_AVD_X86_64
+ANDROID_SEL_AVD_ARM=$ANDROID_SEL_AVD_ARM
+ANDROID_SEL_AVD_MIPS=$ANDROID_SEL_AVD_MIPS
+ANDROID_SEL_AVD_MIPS64=$ANDROID_SEL_AVD_MIPS64
+
+ANDROID_BUILD_TYPE=$ANDROID_BUILD_TYPE
+EOF
+}
+##
+
+##
+function saveWindowsConfigFile()
+{
+  cat > $HOME/.mupel/windows.conf << EOF
+##
+# Automatic generated configuration file for windows cross build system
+# Do not delete!
+
+WINDOWS_AMOUNT_INSTALLED=$WINDOWS_AMOUNT_INSTALLED
+WINDOWS_SINGLE_LAUNCH_ICON=$WINDOWS_SINGLE_LAUNCH_ICON
+WINDOWS_DESKTOP_ICON_PATH=$WINDOWS_DESKTOP_ICON_PATH
+WINDOWS_LAST_USED_MEM_SIZE=$WINDOWS_LAST_USED_MEM_SIZE
+WINDOWS_LAST_USED_DISK_SIZE=$WINDOWS_LAST_USED_DISK_SIZE
+WINDOWS_LAST_CDROM_POINT=$WINDOWS_LAST_CDROM_POINT
+WINDOWS_LAST_USED_UUID=$WINDOWS_LAST_USED_UUID
+WINDOWS_DEFAULT_RUN="$WINDOWS_DEFAULT_RUN"
+REACTOS_IMAGE_SRC_URL=$REACTOS_IMAGE_SRC_URL
+WINDOWS_SSH_USERNAME="$WINDOWS_SSH_USERNAME"
+WINDOWS_SSH_PASSWORD="$WINDOWS_SSH_PASSWORD"
+WINDOWS_SSH_IP="$WINDOWS_SSH_IP"
+WINDOWS_SSH_PORT="$WINDOWS_SSH_PORT"
+WINDOWS_BUILD_TYPE=$WINDOWS_BUILD_TYPE
+EOF
+}
+##
+
+##
+function saveMacOSXConfigFile()
+{
+  cat > $HOME/.mupel/mac-osx.conf << EOF
+##
+# Automatic generated configuration file for Mac OS X cross build system
+# Do not delete!
+
+MAC_OS_X_AMOUNT_INSTALLED=$MAC_OS_X_AMOUNT_INSTALLED
+MAC_OS_X_SINGLE_LAUNCH_ICON=$MAC_OS_X_SINGLE_LAUNCH_ICON
+MAC_OS_X_DESKTOP_ICON_PATH=$MAC_OS_X_DESKTOP_ICON_PATH
+MAC_OS_X_LAST_USED_MEM_SIZE=$MAC_OS_X_LAST_USED_MEM_SIZE
+MAC_OS_X_LAST_USED_DISK_SIZE=$MAC_OS_X_LAST_USED_DISK_SIZE
+MAC_OS_X_LAST_CDROM_POINT=$MAC_OS_X_LAST_CDROM_POINT
+MAC_OS_X_DEFAULT_RUN="$MAC_OS_X_DEFAULT_RUN"
+MAC_OS_X_SSH_USERNAME="$MAC_OS_X_SSH_USERNAME"
+MAC_OS_X_SSH_PASSWORD="$MAC_OS_X_SSH_PASSWORD"
+MAC_OS_X_SSH_IP="$MAC_OS_X_SSH_IP"
+MAC_OS_X_SSH_PORT="$MAC_OS_X_SSH_PORT"
+MAC_OS_X_BUILD_TYPE=$MAC_OS_X_BUILD_TYPE
+IOS_ATV2_BUILD_TYPE=$IOS_ATV2_BUILD_TYPE
+EOF
+}
+##
+
+##
+# getGITBranchName()
+# Function to give name of active git branch
+# values:
+#  - directory = git directory to check
+# return:
+#  - String with branch name
+function getGITBranchName()
+{
+  local directory=$1;
+  local branchName=`git -C "$directory" symbolic-ref HEAD 2>/dev/null || echo detached`;
+
+  if [ "$branchName" != "detached" ];then # if we are not detached
+  {
+    #we are attached - use the branchname then
+    if echo $branchName | grep pr 2>&1 > /dev/null;then
+    {
+      #if this is a pull request branch - fetch the pr number and prefix with "PR"
+      #refs/heads/number/head
+      echo PR$(echo $branchName | awk '{gsub(".*/pr/","");print $1}' | awk '{gsub("/.*","");print $1}')
+    }
+    else
+    {
+      #if we are on a normal branch - fetch branchname
+      #refs/heads/branchname
+      echo $branchName | awk '{gsub(".*/","");print $1}'
+    } fi
+  }
+  else
+  {
+    #if we are in detached head state
+    #fetch the first non-pullrequest branch we can find with HEAD
+    #also only grep in remotes that match current GITHUB_REPO
+    git -C "$directory" branch -r --contains HEAD | \
+      sed "/origin\/pr\//d" | \
+      grep $GITHUB_REPO | \
+      head -n1 | \
+      awk '{gsub(".*/","");print $1}'
+  } fi
+}
+##
+
+##
+# getBuildRevDateStr()
+# Function to give name of active git branch
+# values:
+#  - directory = git directory to check
+# return:
+#  - String with revision date and branch name (e.g. 20150714-cd2207c-master)
+function getBuildRevDateStr()
+{
+  local directory=$1;
+  local revStr=`git -C "$directory" --no-pager log --abbrev=7 -n 1 --pretty=format:"%h %ci" HEAD | awk '{gsub("-", "");print $2"-"$1}' 2>/dev/null`
+  #fetch date-rev
+  if [ "$?" == "0" ];then
+  {
+    #fetch the first branch containing head
+    revStr=$revStr"-"$(getGITBranchName $directory)
+    if [ "$?" == "0" ];then
+      echo $revStr
+    else
+      echo "Unknown";fi
+  }
+  else
+    echo "Unknown";fi
+}
+##
+
+##
+# Function to handle source download from git if code already present becomes
+# a update performed
+# values:
+# to_dir       = The folder where it becomes stored
+# out_name     = The used folder name to store
+# url          = The source from where to load
+# branch       = The branch name to have
+# process      = The name of related process
+function handleGITLoad()
+{
+  local to_dir=$1;
+  local out_name=$2;
+  local url=$3;
+  local branch=$4;
+  local process=$5;
+  local title=;
+
+  if [ -z $to_dir ] || [ -z $out_name ];then
+    return;fi
+
+  if [ ! -d "${to_dir}/${out_name}" ];then
+  {
+    command="git -C $to_dir clone --progress $url --branch $branch $out_name";
+    title="Download";
+  }
+  else
+  {
+    git -C ${to_dir}/${out_name} checkout $branch
+    command="git -C ${to_dir}/${out_name} pull";
+    title="Update";
+  } fi
+
+  echo "Git $title: $url - branch: $branch";
+  bash -c "$command" > "/dev/stdout" 2>&1
+  ret=$?;
+
+  if [[ $ret = 0 ]];then
+  {
+    local current_branch=$(getGITBranchName "${to_dir}/${out_name}")
+    if [[ $current_branch != $branch ]];then
+    {
+      git -C ${to_dir}/${out_name} clean -dffx;
+      git -C ${to_dir}/${out_name} checkout $branch
+      ret=$?;
+    } fi
+  } fi
+
+  printf $CURS_UP
+  evaluateReturnValue $ret;
+  return $ret;
+}
+##
+
+##
+function validateUrl()
+{
+  if [[ `wget -S --spider $1  2>&1 | grep 'HTTP/1.1 200 OK'` ]]; then echo "true"; fi
+}
+##
+
+##
+# Function to check given folder as source of network
+# values:
+#  - source = The source to check
+# return:
+#  - true if network
+function isNetworkDrive()
+{
+  local source=$1;
+  stat -c %T -f "$source/" 2>/dev/null | egrep -qs '^nfs|cifs|smbfs'
+}
+##
+
+##
+function initBuildScript_Kodi()
+{
+  GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+  if [ -z $GIT_USER ];then
+  {
+    printf "${RED}${BRIGHT}ERROR: ${WHITE}Needed git user name could not be detected${NORMAL}\n";
+    exit 1;
+  } fi
+
+  if [ ! -d $BASE_PATH/build/kodi-$GIT_USER/kodi ];then
+  {
+    printf "\
+${RED}${BRIGHT}ERROR: ${WHITE}Needed source code on${NORMAL}
+${BRIGHT}${WHITE}$BASE_PATH/build/kodi-$GIT_USER/kodi${NORMAL}
+${BRIGHT}${WHITE}for build not present!${NORMAL}\n";
+    exit 1;
+  } fi
+
+  ##
+  # If no temporary directory is passed create a own
+  if [ -z $TEMP_DIR ];then
+  {
+    OWN_TEMP=1;
+    TEMP_DIR=$(mktemp -d);
+    printf "${YELLOW}${BRIGHT}WARNING: ${WHITE}No temporary directory defined, using own $TEMP_DIR${NORMAL}\n\n";
+  } fi
+}
+##
+
+##
+function initBuildScript_CEF()
+{
+  GIT_CEF_USER=$(echo $CEF_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+  if [ -z $GIT_CEF_USER ];then
+  {
+    printf "${RED}${BRIGHT}ERROR: ${WHITE}Needed git user name could not be detected${NORMAL}\n";
+    exit 1;
+  } fi
+
+  if [ ! -d $BASE_PATH/build/cef-$GIT_CEF_USER/cef ];then
+  {
+    printf "\
+${RED}${BRIGHT}ERROR: ${WHITE}Needed source code on${NORMAL}
+${BRIGHT}${WHITE}$BASE_PATH/build/cef-$GIT_CEF_USER/cef${NORMAL}
+${BRIGHT}${WHITE}for build not present!${NORMAL}\n";
+    exit 1;
+  } fi
+
+  ##
+  # If no temporary directory is passed create a own
+  if [ -z $TEMP_DIR ];then
+  {
+    OWN_TEMP=1;
+    TEMP_DIR=$(mktemp -d);
+    printf "${YELLOW}${BRIGHT}WARNING: ${WHITE}No temporary directory defined, using own $TEMP_DIR${NORMAL}\n\n";
+  } fi
+}
+##
+
+##
+function loadKodiBuildDir()
+{
+  local BUILD_SYSTEM=$1;
+  local REAL_NAME="$2";
+  local DEST="$3";
+  local directory;
+
+  local GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+  if [[ -z $DEST ]];then
+    DEST=$BASE_PATH/build/kodi-$GIT_USER/;fi
+  if [[ ! -d $DEST ]];then
+    mkdir -p $DEST;fi
+
+  directory=${DEST}kodi-$BUILD_SYSTEM
+
+  local KODI_DESIRED_HASH=`git -C $BASE_PATH/build/kodi-$GIT_USER/kodi rev-parse HEAD`;
+  if [ ! -d $directory ];then
+  {
+    echo "Cloning initial of '$REAL_NAME' on $directory";
+    echo " - Desired Checkout: $KODI_DESIRED_HASH"
+    echo "   Branch name:      $KODI_SOURCE_BRANCH"
+    git -C $DEST clone \
+      --progress \
+      $BASE_PATH/build/kodi-$GIT_USER/kodi \
+      --branch $KODI_SOURCE_BRANCH \
+      kodi-$BUILD_SYSTEM
+  }
+  else
+  {
+    local KODI_CURRENT_HASH=`git -C $directory rev-parse HEAD`;
+
+    echo "Checking version of '$REAL_NAME' on $directory";
+    echo " - Current Checkout: $KODI_CURRENT_HASH"
+    echo " - Desired Checkout: $KODI_DESIRED_HASH"
+
+    if [[ $KODI_CURRENT_HASH != $KODI_DESIRED_HASH ]];then
+    {
+      git -C $directory clean -dffx;
+      git -C $directory pull
+    } fi
+
+    local current_branch;
+    local branchName=`git -C "$directory" symbolic-ref HEAD 2>/dev/null || echo detached`;
+    if [ "$branchName" != "detached" ];then # if we are not detached
+    {
+      #we are attached - use the branchname then
+      if echo $branchName | grep pr 2>&1 > /dev/null;then
+      {
+        #if this is a pull request branch - fetch the pr number and prefix with "PR"
+        #refs/heads/number/head
+        current_branch=`echo PR$(echo $branchName | awk '{gsub(".*/pr/","");print $1}' | awk '{gsub("/.*","");print $1}')`
+      }
+      else
+      {
+        #if we are on a normal branch - fetch branchname
+        #refs/heads/branchname
+        current_branch=`echo $branchName | awk '{gsub(".*/","");print $1}'`
+      } fi
+    }
+    else
+    {
+      #if we are in detached head state
+      #fetch the first non-pullrequest branch we can find with HEAD
+      #also only grep in remotes that match current GITHUB_REPO
+      current_branch=`git -C "$directory" branch -r --contains HEAD | \
+        sed "/origin\/pr\//d" | \
+        grep $GITHUB_REPO | \
+        head -n1 | \
+        awk '{gsub(".*/","");print $1}'`
+    } fi
+
+    if [[ $current_branch != $KODI_SOURCE_BRANCH ]];then
+    {
+      git -C $directory clean -dffx;
+      git -C $directory checkout $KODI_SOURCE_BRANCH
+    } fi
+    echo "   Branch name:      $KODI_SOURCE_BRANCH"
+  } fi
+}
+##

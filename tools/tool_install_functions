@@ -1,0 +1,160 @@
+#!/bin/bash
+
+if [ -f "$HOME/.mupel/mupel.conf" ];then
+{
+  . "$HOME/.mupel/mupel.conf";
+} fi
+PATH="$BASE_PATH/tools:$PATH"
+
+function run_in_terminal()
+{
+  xterm -bg black -fg white -e $1
+}
+
+function install_qemu_disk()
+{
+  local name="$1"
+  local outname="$2"
+
+  (
+    mkdir -p $INSTALL_PREFIX/emulate/${name};
+    cp "$outname" "$INSTALL_PREFIX/emulate/${name}/root_disk.qcow2" 2>&1 &
+    local pid=$!;
+    sleep 1;
+
+    ps -p $pid > /dev/null;
+    if [ $? != 0 ];then
+      break;fi
+
+    local fullsize=`ls -l "$outname" | awk '{print $5}'`;
+    local size="0";
+    while ps -p $pid > /dev/null; do
+    {
+      size="$(ls -l $INSTALL_PREFIX/emulate/${name}/root_disk.qcow2 | awk '{print $5}')";
+      percent="$(echo $size $fullsize | awk '{print 100*$1/$2}')";
+      percent=`echo ${percent##*\(} | awk -F '/' '{print $1}' | awk -F '.' '{print $1}'`;
+      echo "$percent";
+      sleep 2;
+    } done
+  ) |
+  showdialog --image="$BASE_PATH/icons/icon-install-128x128.png" --progress \
+             --title="Copy" \
+             --text="Copying qemu \"${name}\" virtual hard disk to system ..." \
+             --percentage=0 --width=600 --auto-close;
+  if [ $? != 0 ];then
+  {
+    ps -p $pid > /dev/null;
+    [ $? = 0 ] && kill $pid;
+    showErrorDialog "File copy cancelled.\nExiting";
+    exit 1;
+  } fi
+}
+
+function copy()
+{
+  local from="$1"
+  local to="$2"
+  local gui=$3
+  local filename=
+  if [ -z $3 ];then
+    filename=`basename $from`
+  else
+    filename=$3
+  fi
+
+  if [[ $gui != 0 ]];then
+  {
+    cp -fr "$from" "$to" 2>&1 &
+    local pid=$!
+    sleep 1
+    ps -p $pid > /dev/null
+    if [ $? = 0 ];then
+    {
+      (
+        ps -p $pid > /dev/null
+        if [ $? != 0 ];then
+          break
+        fi
+
+        local fullsize=`ls -l "$from" | awk '{print $5}'`
+        local size="0"
+        while :; do
+          size="$(ls -l $to/$filename | awk '{print $5}')"
+          percent="$(echo $size $fullsize | awk '{print 100*$1/$2}')"
+          percent=`echo ${percent##*\(} | awk -F '/' '{print $1}' | awk -F '.' '{print $1}'`
+          echo "$percent" ; sleep 1
+        done
+      ) |
+      showdialog --image="$BASE_PATH/icons/icon-install-128x128.png" --progress \
+                 --title="Copy" \
+                 --text="Copying file \"${filename}\" to \"${to}\" ..." \
+                 --percentage=0 --width=600 --auto-close --button=gtk-cancel:1
+      if [ $? != 0 ];then
+      {
+        ps -p $pid > /dev/null
+        [ $? = 0 ] && kill $pid
+        showErrorDialog "File copy cancelled.\nExiting"
+        exit 1
+      } fi
+    } fi
+    ret=$?;
+  }
+  else
+  {
+    cp -fr "$from" "$to" 2>&1;
+    ret=$?;
+  } fi
+  return $ret;
+}
+
+function create_data_share()
+{
+  local real_name="$1";
+  local name="$2";
+
+  # Remove old entries
+  sudo -A -- bash -c "grep -v '$INSTALL_PREFIX/emulate/data_share/base' /etc/fstab > /etc/fstab.temp && mv -f /etc/fstab.temp /etc/fstab";
+
+  # Create home folder bind mount
+  mkdir -p $INSTALL_PREFIX/emulate/data_share/link;
+  chmod 777 $INSTALL_PREFIX/emulate/data_share/link;
+  mkdir -p $INSTALL_PREFIX/emulate/data_share/base/home;
+  mkdir -p $INSTALL_PREFIX/emulate/data_share/base/build;
+  sudo -A -- bash -c "echo \"\
+$INSTALL_PREFIX/emulate/data_share/link/home $INSTALL_PREFIX/emulate/data_share/base/home none rw,bind,user,umask=000,utf8,noauto 0 0
+$BASE_PATH $INSTALL_PREFIX/emulate/data_share/base/build none rw,bind,user,umask=000,utf8,noauto 0 0
+\" >> /etc/fstab";
+
+  showQuestionDialog "The home directory '$HOME' becomes passed to ${real_name}.\n\nDo you want also another one to pass there?";
+  local ret=$?;
+  while [ $ret == 0 ];do
+  {
+    local path=$(showdialog --file --directory --title="Select folder to pass to ${name}" --width=640 --height=480 --filename="$HOME/" 2> /dev/null);
+    local ret=$?;
+    if [ $ret == 0 ];then
+    {
+      local name=$(showdialog --entry --title="Set wanted folder name for ${name}" --entry-label="Name:" --entry-text="`basename $path`" --width 480 2> /dev/null);
+      if [ -z $name ];then
+      {
+        showWarningDialog_YesNo "You must pass a folder name to use! \nDue you want to skip select of further folder?";
+        [ $? == 0 ] && break;
+        continue;
+      } fi
+      mkdir -p $INSTALL_PREFIX/emulate/data_share/base/${name};
+      if [ ${?} != 0 ]; then
+      {
+        evaluate_ret_error 1 "Failed to with name '${name}'";
+        continue;
+      } fi
+
+      sudo -A -- bash -c "echo \"\
+$path $INSTALL_PREFIX/emulate/data_share/base/${name} none rw,bind,user,umask=000,utf8,noauto 0 0
+\" >> /etc/fstab";
+      [ "$mount_points" != "" ] && mount_points="$mount_points ";
+      mount_points="${mount_points}$INSTALL_PREFIX/emulate/data_share/base/${name}";
+
+      showQuestionDialog "Do you want to pass another directory to ${real_name}?";
+      local ret=$?;
+    } fi
+  } done
+}

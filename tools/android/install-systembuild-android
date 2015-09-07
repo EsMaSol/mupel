@@ -1,0 +1,1100 @@
+#!/bin/bash
+###############################################################################
+#                                                                             #
+#     Copyright (C) 2015 Team KODI                                            #
+#     http://kodi.tv                                                          #
+#                                                                             #
+#  This program is free software: you can redistribute it and/or modify       #
+#  it under the terms of the GNU General Public License as published by       #
+#  the Free Software Foundation, either version 3 of the License, or          #
+#  (at your option) any later version.                                        #
+#                                                                             #
+#  This program is distributed in the hope that it will be useful,            #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of             #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              #
+#  GNU General Public License for more details.                               #
+#                                                                             #
+#  You should have received a copy of the GNU General Public License          #
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.      #
+#                                                                             #
+###############################################################################
+
+###############################################################################
+#                                                                             #
+###############################################################################
+
+BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/../.. ; pwd -P)}
+
+. "$HOME/.mupel/mupel.conf"
+. "$BASE_PATH/tools/tool_functions"
+. "$BASE_PATH/tools/tool_install_functions"
+. "$BASE_PATH/tools/android/android.conf"
+. "$BASE_PATH/versions"
+
+if [ -f "$HOME/.config/user-dirs.dirs" ];then
+{
+  . "$HOME/.config/user-dirs.dirs"
+  DESKTOP_DIR="$XDG_DESKTOP_DIR"
+  DOWNLOAD_DIR="$XDG_DOWNLOAD_DIR"
+  TEMPLATES_DIR="$XDG_TEMPLATES_DIR"
+  PUBLICSHARE_DIR="$XDG_PUBLICSHARE_DIR"
+  DOCUMENTS_DIR="$XDG_DOCUMENTS_DIR"
+  MUSIC_DIR="$XDG_MUSIC_DIR"
+  PICTURES_DIR="$XDG_PICTURES_DIR"
+  VIDEOS_DIR="$XDG_VIDEOS_DIR"
+}
+else
+{
+  DESKTOP_DIR="$HOME"
+  DOWNLOAD_DIR="$HOME/Downloads"
+} fi
+
+[ ! -d "$DOWNLOAD_DIR" ] && mkdir "$DOWNLOAD_DIR";
+
+virt_memory_size=
+cdrom_mount=
+mount_points=
+
+INSTALL_PREFIX="$HOME/.mupel"
+
+function exit_build()
+{
+  local ret=$1
+  [ ! -z $TEMP_DIR ] && rm -rf $TEMP_DIR
+  exit $ret
+}
+
+function installAndroidDevSystem()
+{
+  local valid;
+  local first;
+
+  which ${USE_LINUX_X86_DISTR}64 >/dev/null
+  if [ $? != 0 ];then
+  {
+    showErrorDialog "<b>A required 64bit chroot Ubuntu distribution seems to be not installed! </b>";
+    exit_build 1;
+  } fi
+
+  TMP_FILE=$(mktemp --tmpdir kodi-defaultenv.XXXXXXXX)
+  set -o pipefail
+  wget "https://raw.githubusercontent.com/xbmc/xbmc/master/tools/buildsteps/defaultenv" -O "${TMP_FILE}" 2>&1 | \
+  sed -u 's/^[a-zA-Z\-].*//; s/.* \{1,2\}\([0-9]\{1,3\}\)%.*/\1\n#Downloading... \1%/; s/^20[0-9][0-9].*/#Done./' | \
+  showdialog --image="$BASE_PATH/icons/icon-install-128x128.png" --progress \
+             --percentage=0 --title="Download" --text="Download KODI default values ..." \
+             --auto-close  --width=480 --button=gtk-cancel:1 2> /dev/null
+  ANDROID_SDK_DEFAULT_VERSION=$(cat $TMP_FILE | awk '/^  android\)$/{i=1;next} i && i++ <= 2' | grep "DEFAULT_SDK_VERSION" | awk -F '="' '{print $2}' | awk -F '"' '{print $1}')
+  ANDROID_NDK_DEFAULT_VERSION=$(cat $TMP_FILE | awk '/^  android\)$/{i=1;next} i && i++ <= 2' | grep "DEFAULT_NDK_VERSION" | awk -F '="' '{print $2}' | awk -F '"' '{print $1}')
+  rm -f $TMP_FILE
+
+  while :; do
+  {
+    install_values=$(showdialog --form --title="Android system installer" \
+                               --window-icon="$BASE_PATH/icons/icon-kodi-48x48.png" \
+                               --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
+                               --field="<i><span size=\"large\">Android-x86 build / emulation system installation</span></i>:LBL" "" \
+                               --field=":LBL" "" \
+                               --field="Android SDK default version:" "$ANDROID_SDK_DEFAULT_VERSION" \
+                               --field="Android NDK default version:" "$ANDROID_NDK_DEFAULT_VERSION" \
+                               --field="Android SDK additional version:" "$ANDROID_SDK_ADDITIONAL_VERSION" \
+                               --field="Android NDK additional version:" "$ANDROID_NDK_ADDITIONAL_VERSION" \
+                               --field=":LBL" "" \
+                               --field="\
+Select which way you want to include Android-x86 emulation:
+<b>Note:</b> From http://www.android-x86.org/
+(currently not supported on Kodi):CB" "Don\'t install\!Install from CD/DVD/ISO\!Use already present package" \
+                               --field="Set used virtual Android-x86 memory size in MByte:NUM" "512" \
+                               --field="Due you want to include virtual additional disk to Android-x86?:CHK" "false" \
+                               --field="Where to store desktop icon,\nif you leave empty no icon becomes installed:DIR" "$ANDROID_DESKTOP_ICON_PATH" \
+                               --field=":LBL" "" \
+                               --field="\
+       Copyright (C) 2015 Team KODI
+       http://kodi.tv
+
+       GNU General Public License, Version 3
+       see http://www.gnu.org/licenses/:LBL" "" \
+                               --field=":LBL" "" \
+                               --center 2> /dev/null);
+
+    if [ $? != 0 ];then
+    {
+      showWarningDialog_YesNo "Are you sure to exit install?"
+      [ $? = 0 ] && exit_build 1
+    }
+    else
+      break;fi
+  } done
+
+  ANDROID_SDK_DEFAULT_VERSION=$(echo $install_values | awk -F '|' '{print $3}')
+  ANDROID_NDK_DEFAULT_VERSION=$(echo $install_values | awk -F '|' '{print $4}')
+  ANDROID_SDK_ADDITIONAL_VERSION=$(echo $install_values | awk -F '|' '{print $5}')
+  ANDROID_NDK_ADDITIONAL_VERSION=$(echo $install_values | awk -F '|' '{print $6}')
+
+  if [ -d "$INSTALL_PREFIX/emulate/emu-android-arm" ];then
+    label="<b>Android-ARM</b>";fi
+  if [ -d "$INSTALL_PREFIX/emulate/emu-android-x86" ];then
+  {
+    if [ ! -z $label ];then
+      label+=" and ";fi
+    label+="<b>Android-x86</b>"
+  } fi
+
+  if [ ! -z $label ];then
+  {
+    showdialog --title "Already Installed?" \
+               --image="$BASE_PATH/icons/icon-question-128x128.png" \
+               --text="\
+$label seems to be already installed!
+
+Do you want to start install again?
+If no becomes selected then the system creation becomes continued behind install." \
+               --button=gtk-yes:0 --button=gtk-no:1 --button=gtk-cancel:2 2> /dev/null
+    ret=$?
+    ignore_install=
+    if [ $ret == 0 ];then
+    {
+      rm -rf $INSTALL_PREFIX/emulate/emu-android-arm
+      rm -rf $INSTALL_PREFIX/emulate/emu-android-x86
+    }
+    elif [ $ret == 1 ];then
+    {
+      ignore_install=true
+      showInfoDialog "The already installed becomes used\nand creation becomes continued behind." 3
+    }
+    else
+    {
+      showErrorDialog "<b>Creation becomes cancelled! </b>"
+      exit_build 1;
+    } fi
+  } fi
+
+  mkdir -p ${INSTALL_PREFIX}/android;
+
+  if [ -z $ignore_install ];then
+  {
+    icon_path=$(echo $install_values | awk -F '|' '{print $11}')
+    virt_add_hd=$(echo $install_values | awk -F '|' '{print $10}')
+    virt_memory_size=$(echo $install_values | awk -F '|' '{print $9}' | awk -F ',' '{print $1}')
+
+    if [[ ${virt_add_hd} = "TRUE" ]];then
+    {
+      include_way=$(showdialog --list \
+                               --width=400 --height=390 \
+                               --title="Which way to include in Android x86?" \
+                               --text="Select source of addition disk\n" \
+                               --radiolist \
+                               --column Use \
+                               --column Id \
+                               --column Type \
+                               --print-column=2 \
+                               --hide-column=2 \
+                               TRUE  new      "Create new image" \
+                               FALSE existing "Use existing" \
+                                  2> /dev/null)
+
+      if [ "$include_way" == "new|" ];then
+      {
+        size_hd=$(showdialog --title="Virtual disk size" \
+                             --entry --text="Set used virtual Android-x86 disk\nsize in GByte (minimum 1)" \
+                             --entry-text="30" --width=260 2> /dev/null)
+        [ "$?" != "0" ] && size_hd=30
+        [[ ${size_hd} -lt 1 ]] && size_hd=1
+        additional_file_hd=$(showdialog --title="Include additional disk" --file --save --filename="$HOME/" --file-filter="$HOME/" --width=640 --height=480 2> /dev/null)
+        additional_file_hd="${additional_file_hd%.qcow2}.qcow2"
+
+        qemu-img create -f qcow2 "$additional_file_hd" ${size_hd}G
+        evaluate_ret_error $? "Creation of qemu image failed"
+      }
+      else
+        additional_file_hd=$(showdialog --file --title="Select already present virtual machine" --width=640 --height=480 --center --filename="$DOWNLOAD_DIR/" --file-filter="*.qcow2" 2> /dev/null);fi
+    } fi
+
+    value=$(echo $install_values | awk -F '|' '{print $8}')
+    if [[ $value = "Use already present package" ]];then
+    {
+      while :; do
+      {
+        local filename=`showdialog --file --title="Select already present virtual machine" --width=640 --height=480 --center --filename="$DOWNLOAD_DIR/" --file-filter="*.qcow2" 2> /dev/null`
+        if [ "$filename" == "" ];then
+        {
+          showdialog --title "Warning" \
+                     --image="$BASE_PATH/icons/icon-warning-128x128.png" \
+                     --text="\
+<b>No package selected, try again, skip install or exit installer?</b>" \
+                     --button=gtk-yes:0 \
+                     --button=Skip:1 \
+                     --button=gtk-cancel:2 2> /dev/null
+          [ $? = 1 ] && break;
+          [ $? = 2 ] && exit_build 1;
+          continue;
+        } fi
+        install_qemu_disk "android-x86" "$filename"
+        break;
+      } done
+    }
+    elif [[ $value = "Install from CD/DVD/ISO" ]];then
+    {
+      showdialog --title "Android x86 Website" --html --browser --uri="http://www.android-x86.org/" --width=800 --height=640 2> /dev/null
+      while :; do
+      {
+        FILE=$(showdialog --file --title="Select cdrom source from /dev/* or a *.iso file" --width=640 --height=480 --center --filename="$DOWNLOAD_DIR/" 2> /dev/null)
+        [ "$?" != "0" ] && break
+        if [[ ${FILE} == /dev/* ]] || [[ ${FILE} == *.iso ]]; then
+        {
+          if [ ! -e "${FILE}" ];then
+          {
+            showErrorDialog_YesNo "\
+<b>Invalid -b option (${FILE}), cdrom source not found
+
+Do you want to try again (otherwise cancel install)?</b>"
+            [ $? != 0 ] && exit_build 1;
+            continue;
+          } fi
+          cdrom_mount="${FILE}"
+          break;
+        } fi
+
+        showErrorDialog_YesNo "\
+<b>Invalid source (${FILE}), must start with /dev/* or end with *.iso
+
+Do you want to try again (otherwise cancel install)?</b>"
+        [ $? != 0 ] && exit_build 1;
+      } done
+
+      while :; do
+      {
+        valid=`validateUrl $ANDROID_SDK_SRC_URL`;
+        if [[ $valid != "true" ]];then
+        {
+          showErrorDialog_YesNo "\
+<b>Package file of Android SDK on URL:</b>
+<i>$ANDROID_SDK_SRC_URL</i>
+<b>not found!
+
+Do you want insert a own URL (otherwise cancel install)?</b>
+";
+          [ $? != 0 ] && exit_build 1;
+          ANDROID_SDK_SRC_URL=$(showdialog --title="Android SDK Download URL" --text="Set Android SDK URL for download:" --entry --width=640 --entry-text="$ANDROID_SDK_SRC_URL" 2> /dev/null);
+          continue;
+        }
+        else
+          break;fi
+      } done
+
+      virt_harddisk_size=`showdialog --title="Virtual HD size" --entry --text="Set used virtual Android-x86 disk\nsize in GByte (minimum 2)" --entry-text=3 2> /dev/null`
+      [ "$?" != "0" ] && exit
+      if [[ ${virt_harddisk_size} -lt 2 ]];then
+        showWarningDialog "Selected hard disk size of $virt_harddisk_size is not enough, minimum 2 GByte needed and forced to"
+        virt_harddisk_size=2;
+      fi
+
+      mkdir -p $INSTALL_PREFIX/emulate/emu-android-x86
+      qemu-img create -f qcow2 $INSTALL_PREFIX/emulate/emu-android-x86/root_disk.qcow2 ${virt_harddisk_size}G
+      evaluate_ret_error $? "Creation of qemu image failed"
+
+      showInfoDialog "Starting now the installation of virtual Android-x86 system\nDo shutdown on end of installation" 3
+
+      qemu-system-x86_64 -hda $INSTALL_PREFIX/emulate/emu-android-x86/root_disk.qcow2 \
+                         -boot d \
+                         -cdrom "$cdrom_mount" \
+                         -m ${virt_memory_size} \
+                         -net nic,vlan=0 \
+                         -net user \
+                         -enable-kvm
+      evaluate_ret_error $? "Run of virtual system for Android-x86 installation failed"
+
+      showQuestionDialog "Installation done\n\nDo you want to set cdrom/dvd source?"
+      if [ "$?" == "0" ];then
+      {
+        while :; do
+        {
+          FILE=$(showdialog --file --title="Select cdrom source from /dev/* or a *.iso file" --width=640 --height=480 --center --filename=/dev/ 2> /dev/null)
+          if [[ ${FILE} == /dev/* ]] || [[ ${FILE} == *.iso ]]; then
+          {
+            cdrom_mount="${FILE}";
+            break;
+          }
+          else
+          {
+            showWarningDialog "Invalid source (${FILE}), must start with /dev/* or end with *.iso";
+            continue;
+          } fi
+        } done
+      }
+      else
+        cdrom_mount=/dev/dvd;fi
+
+      # Remove old entries
+      sudo -A -- bash -c "grep -v '$INSTALL_PREFIX/emulate/data_share/base' /etc/fstab > /etc/fstab.temp && mv -f /etc/fstab.temp /etc/fstab"
+
+      # Create home folder bind mount
+      mkdir -p $INSTALL_PREFIX/emulate/data_share/link
+      chmod 777 $INSTALL_PREFIX/emulate/data_share/link
+      mkdir -p $INSTALL_PREFIX/emulate/data_share/base/home
+      sudo -A -- bash -c "echo \"$INSTALL_PREFIX/emulate/data_share/link/home $INSTALL_PREFIX/emulate/data_share/base/home none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab"
+
+      mkdir -p $INSTALL_PREFIX/emulate/data_share/base/build
+      sudo -A -- bash -c "echo \"$BASE_PATH $INSTALL_PREFIX/emulate/data_share/base/build none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab"
+
+      showQuestionDialog "The home directory '$HOME' becomes passed to Android-x86.\n\nDo you want also another one to pass there?"
+      local ret=$?
+      while [ $ret == 0 ];do
+      {
+        local path=$(showdialog --file --directory --title="Select folder to pass to ${name}" --width=640 --height=480 --filename="$HOME/" 2> /dev/null)
+        local ret=$?
+        if [ $ret == 0 ];then
+        {
+          local name=$(showdialog --entry --title="Set wanted folder name for ${name}" --entry-label="Name:" --entry-text="`basename $path`" --width 480 > /dev/null)
+          if [ -z $name ];then
+          {
+            showWarningDialog_YesNo "You must pass a folder name to use! \nDue you want to skip select of further folder?"
+            [ $? == 0 ] && break
+            continue
+          } fi
+          mkdir -p $INSTALL_PREFIX/emulate/data_share/base/${name}
+          if [ ${?} != 0 ]; then
+          {
+            evaluate_ret_error 1 "Failed to with name '${name}'"
+            continue
+          } fi
+
+          sudo -A -- bash -c "echo \"\
+$path /var/lib/chroot/${name}/base/${name} none rw,bind,user,umask=000,utf8,noauto 0 0
+\" >> /etc/fstab"
+          [ "$mount_points" != "" ] && mount_points="$mount_points "
+          mount_points="${mount_points}/var/lib/chroot/${name}/base/${name}"
+
+          showQuestionDialog "Do you want to pass another directory to Android-x86?"
+          local ret=$?
+        } fi
+      } done
+
+      cat > ./qemu_config.txt << EOF
+additional_file_hd=$additional_file_hd
+virt_memory_size=$virt_memory_size
+virt_harddisk_size=$virt_harddisk_size
+cdrom_mount=$cdrom_mount
+EOF
+
+      mv ./qemu_config.txt $INSTALL_PREFIX/emulate/emu-android-x86
+      mkdir -p $INSTALL_PREFIX/emulate/data_share/base
+      mkdir -p $INSTALL_PREFIX/emulate/data_share/mount
+
+      cat > ./qemu-android-x86 << EOF
+#!/bin/bash
+
+. $INSTALL_PREFIX/emulate/emu-android-x86/qemu_config.txt
+
+mount_points="$mount_points"
+
+##
+# Mount virtual filesystem for android x86
+#
+if [[ ! -n \`mount | grep $INSTALL_PREFIX/emulate/data_share/base/home\` ]];fi
+  ln -sf ~ $INSTALL_PREFIX/emulate/data_share/link/home;
+  mount $INSTALL_PREFIX/emulate/data_share/base/home;
+fi
+
+if [ -d $INSTALL_PREFIX/emulate/data_share/base/build ] && [[ ! -n \`mount | grep $INSTALL_PREFIX/emulate/data_share/base/build\` ]];then
+  mount $INSTALL_PREFIX/emulate/data_share/base/build;
+fi
+
+mount_points="$mount_points";
+for m in \${mount_points}; do
+  [[ -n \`mount | grep \$m\` ]] && umount \$m;
+  mount \$m;
+done
+
+##
+# Start android-x86
+#
+[[ -n \$additional_file_hd ]] && file_hd="-hdb \$additional_file_hd"
+[[ -n  \$cdrom_mount ]] && cdrom_mount="-cdrom \$cdrom_mount"
+qemu-system-x86_64 -hda $INSTALL_PREFIX/emulate/emu-android-x86/root_disk.qcow2 \\
+                   \$file_hd \\
+                   -boot c \\
+                   \$cdrom_mount \\
+                   -m \${virt_memory_size} \\
+                   -net nic,vlan=0 \\
+                   -net nic,model=rtl8139 \\
+                   -net user,smb="$INSTALL_PREFIX/emulate/data_share/base" \\
+                   -enable-kvm \\
+                   -vga vmware \\
+                   -soundhw hda \\
+                   -sdl
+
+for m in \${mount_points}; do
+  umount \$m
+done
+
+##
+# Umount virtual filesystem
+#
+#[ -d $INSTALL_PREFIX/emulate/data_share/base/build ] && umount $INSTALL_PREFIX/emulate/data_share/base/build
+#umount $INSTALL_PREFIX/emulate/data_share/base/home
+#rm $INSTALL_PREFIX/emulate/data_share/link/home
+
+EOF
+      sudo -A -- mv -f ./qemu-android-x86 /usr/local/bin
+      sudo -A -- chmod 777 /usr/local/bin/qemu-android-x86
+    } fi
+
+    ICON_NAME=qemu-android-x86
+    TMP_DIR=`mktemp --directory`
+    DESKTOP_FILE=$TMP_DIR/qemu-android-x86.desktop
+    cat > $DESKTOP_FILE << EOF
+[Desktop Entry]
+Comment[de_DE]=Start Android-x86 emulation
+Comment=Start Android-x86 emulation
+Exec=qemu-android-x86
+GenericName[de_DE]=
+GenericName=
+Icon=$INSTALL_PREFIX/icons/icon-android-x86-128x128.png
+MimeType=
+Name=QEmu Android X86
+Path=
+StartupNotify=true
+Terminal=false
+TerminalOptions=
+Type=Application
+Version=1.0
+X-DBUS-ServiceName=
+X-DBUS-StartupType=
+X-KDE-SubstituteUID=false
+X-KDE-Username=
+X-MultipleArgs=false
+EOF
+
+    xdg-desktop-menu  install --novendor --noupdate $DESKTOP_FILE
+    xdg-icon-resource install --novendor --size  32 "$BASE_PATH/icons/icon-android-x86-32x32.png"   $ICON_NAME
+    xdg-icon-resource install --novendor --size  48 "$BASE_PATH/icons/icon-android-x86-48x48.png"   $ICON_NAME
+    xdg-icon-resource install --novendor --size  64 "$BASE_PATH/icons/icon-android-x86-64x64.png"   $ICON_NAME
+    xdg-icon-resource install --novendor --size 128 "$BASE_PATH/icons/icon-android-x86-128x128.png" $ICON_NAME
+    xdg-desktop-menu  forceupdate
+
+    if [ ! -z $icon_path ];then
+      cp $DESKTOP_FILE $icon_path;fi
+
+    rm $DESKTOP_FILE
+    rm -R $TMP_DIR
+  } fi
+
+  # Select the source of the Android SDK
+  while :; do
+  {
+    valid=`validateUrl $ANDROID_SDK_SRC_URL`;
+    if [[ $valid != "true" ]];then
+    {
+      showErrorDialog_YesNo "\
+<b>Package file of Android SDK on URL:</b>
+<i>$ANDROID_SDK_SRC_URL</i>
+<b>not found!
+
+Do you want insert a own URL (otherwise cancel install)?</b>
+";
+      [ $? != 0 ] && exit_build 1;
+      ANDROID_SDK_SRC_URL=$(showdialog --title="Android SDK Download URL" --text="Set Android SDK URL for download:" --entry --width=640 --entry-text="$ANDROID_SDK_SRC_URL" 2> /dev/null);
+      continue;
+    }
+    else
+      break;fi
+  } done
+
+  while :; do
+  {
+    valid=`validateUrl $ANDROID_NDK_SRC_URL`;
+    if [[ $valid != "true" ]];then
+    {
+      showErrorDialog_YesNo "\
+<b>Package file of Android NDK on URL:</b>
+<i>$ANDROID_NDK_SRC_URL</i>
+<b>not found!
+
+Do you want insert a own URL (otherwise cancel install)?</b>
+";
+      [ $? != 0 ] && exit_build 1;
+      ANDROID_NDK_SRC_URL=$(showdialog --title="Android SDK Download URL" --text="Set Android NDK URL for download:" --entry --width=640 --entry-text="$ANDROID_NDK_SRC_URL" 2> /dev/null);
+      continue;
+    }
+    else
+      break;fi
+  } done
+
+  while :; do
+  {
+    valid=`validateUrl $ANDROID_NDK_DEFAULT_SRC_URL`;
+    if [[ $valid != "true" ]];then
+    {
+      showErrorDialog_YesNo "\
+<b>Package file of Android NDK on URL:</b>
+<i>$ANDROID_NDK_DEFAULT_SRC_URL</i>
+<b>not found!
+
+Do you want insert a own URL (otherwise cancel install)?</b>
+";
+      [ $? != 0 ] && exit_build 1;
+      ANDROID_NDK_DEFAULT_SRC_URL=$(showdialog --title="Android SDK Download URL" --text="Set Android NDK default (Ver. $ANDROID_NDK_DEFAULT_VERSION) URL for download:" --entry --width=640 --entry-text="$ANDROID_NDK_DEFAULT_SRC_URL" 2> /dev/null);
+      continue;
+    }
+    else
+      break;fi
+  } done
+
+  ANDROID_SDK_IMAGE_ARCHIVE_FILE="$DOWNLOAD_DIR/${ANDROID_SDK_SRC_URL##*/}";
+  ANDROID_NDK_IMAGE_ARCHIVE_FILE="$DOWNLOAD_DIR/${ANDROID_NDK_SRC_URL##*/}";
+  ANDROID_NDK_IMAGE_ARCHIVE_FILE="${ANDROID_NDK_IMAGE_ARCHIVE_FILE%.*}.7z";
+  ANDROID_NDK_DEFAULT_IMAGE_ARCHIVE_FILE="$DOWNLOAD_DIR/${ANDROID_NDK_DEFAULT_SRC_URL##*/}";
+  ANDROID_NDK_DEFAULT_IMAGE_ARCHIVE_FILE="${ANDROID_NDK_DEFAULT_IMAGE_ARCHIVE_FILE%.*}.7z";
+  ANDROID_BUILD_IMAGE_ARCHIVE_FILE="$DOWNLOAD_DIR/${ANDROID_BUILD_SRC_URL##*/}"
+
+  while :; do
+  {
+    set -o pipefail
+    wget "${ANDROID_SDK_SRC_URL}" -O "${ANDROID_SDK_IMAGE_ARCHIVE_FILE}" 2>&1 | \
+    sed -u 's/^[a-zA-Z\-].*//; s/.* \{1,2\}\([0-9]\{1,3\}\)%.*/\1\n#Downloading... \1%/; s/^20[0-9][0-9].*/#Done./' | \
+    showdialog --image="$BASE_PATH/icons/icon-install-128x128.png" --progress \
+               --percentage=0 --title="Download" --text="Download Android SDK ..." \
+               --auto-close  --width=480 --button=gtk-cancel:1 2> /dev/null
+    ret=$?;
+    if [[ $ret != 0 ]];then
+    {
+      showWarningDialog_YesNo "Download of SDK from ${ANDROID_SDK_SRC_URL} failed! \n\nTry again?";
+      [ $? != 0 ] && exit_build $ret;
+    }
+    else
+      break;fi
+  } done
+
+  while :; do
+  {
+    set -o pipefail
+    wget "${ANDROID_NDK_SRC_URL}" -O "${ANDROID_NDK_IMAGE_ARCHIVE_FILE}" 2>&1 | \
+    sed -u 's/^[a-zA-Z\-].*//; s/.* \{1,2\}\([0-9]\{1,3\}\)%.*/\1\n#Downloading... \1%/; s/^20[0-9][0-9].*/#Done./' | \
+    showdialog --image="$BASE_PATH/icons/icon-install-128x128.png" --progress \
+               --percentage=0 --title="Download" --text="Download Android NDK ..." \
+               --auto-close  --width=480 --button=gtk-cancel:1 2> /dev/null
+    ret=$?;
+    if [[ $ret != 0 ]];then
+    {
+      showWarningDialog_YesNo "Download of NDK from ${ANDROID_NDK_SRC_URL} failed! \n\nTry again?";
+      [ $? != 0 ] && exit_build $ret;
+    }
+    else
+      break;fi
+  } done
+
+  while :; do
+  {
+    set -o pipefail
+    wget "${ANDROID_NDK_DEFAULT_SRC_URL}" -O "${ANDROID_NDK_DEFAULT_IMAGE_ARCHIVE_FILE}" 2>&1 | \
+    sed -u 's/^[a-zA-Z\-].*//; s/.* \{1,2\}\([0-9]\{1,3\}\)%.*/\1\n#Downloading... \1%/; s/^20[0-9][0-9].*/#Done./' | \
+    showdialog --image="$BASE_PATH/icons/icon-install-128x128.png" --progress \
+               --percentage=0 --title="Download" --text="Download Android NDK ..." \
+               --auto-close  --width=480 --button=gtk-cancel:1 2> /dev/null
+    ret=$?;
+    if [[ $ret != 0 ]];then
+    {
+      showWarningDialog_YesNo "Download of default NDK ${ANDROID_NDK_DEFAULT_SRC_URL} failed! \n\nTry again?";
+      [ $? != 0 ] && exit_build $ret;
+    }
+    else
+      break;fi
+  } done
+
+#  while :; do
+#  {
+#    set -o pipefail
+#    wget "${ANDROID_BUILD_SRC_URL}" -O "${ANDROID_BUILD_IMAGE_ARCHIVE_FILE}" 2>&1 | \
+#    sed -u 's/^[a-zA-Z\-].*//; s/.* \{1,2\}\([0-9]\{1,3\}\)%.*/\1\n#Downloading... \1%/; s/^20[0-9][0-9].*/#Done./' | \
+#    showdialog --image="$BASE_PATH/icons/icon-install-128x128.png" --progress \
+#               --percentage=0 --title="Download" --text="Download Android platform build archive ..." \
+#               --auto-close  --width=480 --button=gtk-cancel:1 2> /dev/null
+#    ret=$?;
+#    if [[ $ret != 0 ]];then
+#    {
+#      showWarningDialog_YesNo "Download of source from ${ANDROID_BUILD_SRC_URL} failed! \n\nTry again?";
+#      [ $? != 0 ] && exit_build $ret;
+#    }
+#    else
+#      break;fi
+#  } done
+
+  (
+    echo 0;
+
+    first=1;
+    while :; do
+    {
+      if [[ $first = 0 ]];then
+        ANDROID_SDK_SHA1=$(showdialog --title="Download Android SDK sha1sum" --text="\
+Set SDK sha1sum from download:
+ - $ANDROID_SDK_SRC_URL" --entry --width=640 --entry-text="$ANDROID_SDK_SHA1" 2> /dev/null);fi
+      first=0;
+
+      SHA1SUM=$(sha1sum ${ANDROID_SDK_IMAGE_ARCHIVE_FILE} | cut -d " " -f1);
+      if [ "${ANDROID_SDK_SHA1}" != "${SHA1SUM}" ]; then
+      {
+        showWarningDialog_YesNo "\
+  SHA1 checksum error (Android SDK)
+  ${SHA1SUM} != ${ANDROID_SDK_SHA1}
+
+  Select again?"
+        if [ $? != 0 ];then
+        {
+          rm -f ${ANDROID_SDK_IMAGE_ARCHIVE_FILE};
+          exit_build 1;
+        } fi
+      }
+      else
+        break;fi
+    } done
+    echo 25;
+
+    first=1;
+    while :; do
+    {
+      if [[ $first = 0 ]];then
+        ANDROID_NDK_MD5=$(showdialog --title="Download Android NDK md5sum"  --text="\
+Set NDK sha1sum from download:
+ - $ANDROID_NDK_SRC_URL" --entry --width=640 --entry-text="$ANDROID_NDK_MD5" 2> /dev/null);fi
+      first=0;
+
+      MD5SUM=$(md5sum ${ANDROID_NDK_IMAGE_ARCHIVE_FILE} | cut -d " " -f1);
+      if [ "${ANDROID_NDK_MD5}" != "${MD5SUM}" ]; then
+      {
+        showWarningDialog_YesNo "\
+  MD5 checksum error (Android NDK)
+  ${MD5SUM} != ${ANDROID_NDK_MD5}
+
+  Select again?"
+        if [ $? != 0 ];then
+        {
+          rm -f ${ANDROID_NDK_IMAGE_ARCHIVE_FILE};
+          exit_build 1;
+        } fi
+      }
+      else
+        break;fi
+    } done
+    echo 50;
+
+    first=1;
+    while :; do
+    {
+      if [[ $first = 0 ]];then
+        ANDROID_NDK_DEFAULT_MD5=$(showdialog --title="Download Android NDK default (Ver. $ANDROID_NDK_DEFAULT_VERSION) md5sum"  --text="\
+Set NDK sha1sum from download:
+ - $ANDROID_NDK_DEFAULT_SRC_URL" --entry --width=640 --entry-text="$ANDROID_NDK_DEFAULT_MD5" 2> /dev/null);fi
+      first=0;
+
+      MD5SUM=$(md5sum ${ANDROID_NDK_DEFAULT_IMAGE_ARCHIVE_FILE} | cut -d " " -f1);
+      if [ "${ANDROID_NDK_DEFAULT_MD5}" != "${MD5SUM}" ]; then
+      {
+        showWarningDialog_YesNo "\
+  MD5 checksum error (Android NDK)
+  ${MD5SUM} != ${ANDROID_NDK_DEFAULT_MD5}
+
+  Select again?"
+        if [ $? != 0 ];then
+        {
+          rm -f ${ANDROID_NDK_DEFAULT_IMAGE_ARCHIVE_FILE};
+          exit_build 1;
+        } fi
+      }
+      else
+        break;fi
+    } done
+    echo 75;
+
+    first=1;
+    while :; do
+    {
+      if [[ $first = 0 ]];then
+        ANDROID_BUILD_SHA1=$(showdialog --title="Download Android build archive sha1sum" --text="\
+Set platform sha1sum from download:
+ - $ANDROID_BUILD_SHA1" --entry --width=640 --entry-text="$ANDROID_BUILD_SHA1" 2> /dev/null);fi
+      first=0;
+
+      SHA1SUM=$(sha1sum ${ANDROID_BUILD_IMAGE_ARCHIVE_FILE} | cut -d " " -f1);
+      if [ "${ANDROID_BUILD_SHA1}" != "${SHA1SUM}" ]; then
+      {
+        showWarningDialog_YesNo "\
+  SHA1 checksum error (Android build archive)
+  ${SHA1SUM} != ${ANDROID_BUILD_SHA1}
+
+  Select again?"
+        if [ $? != 0 ];then
+        {
+          rm -f ${ANDROID_BUILD_IMAGE_ARCHIVE_FILE};
+          exit_build 1;
+        } fi
+      }
+      else
+        break;fi
+    } done
+
+    echo 100;
+    sleep 1;
+  ) |
+  showdialog --image="$BASE_PATH/icons/icon-install-128x128.png" --progress \
+             --percentage=0 --title="Android download check" --text="Checking packages sha1sum ..." \
+             --auto-close --width=480 --button=gtk-cancel:1 2> /dev/null
+
+  (
+    cd ${INSTALL_PREFIX}/android;
+    tar -xzvf "$ANDROID_SDK_IMAGE_ARCHIVE_FILE";
+    sleep 2
+  ) | sed -u "s/.*/# &/ w ${main_msg}" |
+    showdialog --image="$BASE_PATH/icons/icon-install-128x128.png" --progress \
+               --percentage=0 --title="Unpack" --text="Unpack Android SDK package ...\n - $ANDROID_SDK_IMAGE_ARCHIVE_FILE" \
+               --pulsate --enable-log --auto-close --button=gtk-cancel:1 --width=640 2> /dev/null;
+  if [ $? != 0 ];then
+  {
+    showErrorDialog "<b>Unpack of Android SDK package</b>\n<i>$ANDROID_SDK_IMAGE_ARCHIVE_FILE</i>\n<b>failed! </b>"
+    exit_build 1;
+  } fi
+
+  (
+    cd ${INSTALL_PREFIX}/android;
+    7z -y x "$ANDROID_NDK_IMAGE_ARCHIVE_FILE";
+    sleep 2
+  ) | sed -u "s/.*/# &/ w ${main_msg}" |
+    showdialog --image="$BASE_PATH/icons/icon-install-128x128.png" --progress \
+               --percentage=0 --title="Unpack" --text="Unpack Android NDK package ...\n - $ANDROID_NDK_IMAGE_ARCHIVE_FILE" \
+               --pulsate --enable-log --auto-close --button=gtk-cancel:1 --width=640 2> /dev/null;
+  if [ $? != 0 ];then
+  {
+    showErrorDialog "<b>Unpack of Android NDK package</b>\n<i>$ANDROID_NDK_IMAGE_ARCHIVE_FILE</i>\n<b>failed! </b>";
+    exit_build 1;
+  } fi
+
+  (
+    cd ${INSTALL_PREFIX}/android;
+    7z -y x "$ANDROID_NDK_DEFAULT_IMAGE_ARCHIVE_FILE";
+    sleep 2
+  ) | sed -u "s/.*/# &/ w ${main_msg}" |
+    showdialog --image="$BASE_PATH/icons/icon-install-128x128.png" --progress \
+               --percentage=0 --title="Unpack" --text="Unpack Android NDK default (Ver. $ANDROID_NDK_DEFAULT_VERSION) package ...\n - $ANDROID_NDK_DEFAULT_IMAGE_ARCHIVE_FILE" \
+               --pulsate --enable-log --auto-close --button=gtk-cancel:1 --width=640 2> /dev/null;
+  if [ $? != 0 ];then
+  {
+    showErrorDialog "<b>Unpack of Android NDK package</b>\n<i>$ANDROID_NDK_DEFAULT_IMAGE_ARCHIVE_FILE</i>\n<b>failed! </b>";
+    exit_build 1;
+  } fi
+
+  (
+    INSTALL_TEMP_DIR=`mktemp -d`
+    mkdir -p $INSTALL_PREFIX/android/android-sdk-linux/build-tools;
+    unzip -o "$ANDROID_BUILD_IMAGE_ARCHIVE_FILE" -d $INSTALL_TEMP_DIR;
+
+    ANDROID_BUILD_IMAGE_VERSION=${ANDROID_BUILD_IMAGE_ARCHIVE_FILE##*_r}
+    ANDROID_BUILD_IMAGE_VERSION=${ANDROID_BUILD_IMAGE_VERSION%-*}
+    mv $INSTALL_TEMP_DIR/* $INSTALL_PREFIX/android/android-sdk-linux/build-tools/$ANDROID_BUILD_IMAGE_VERSION
+
+    rm -rf $INSTALL_TEMP_DIR;
+    sleep 2
+  ) | sed -u "s/.*/# &/ w ${main_msg}" |
+    showdialog --image="$BASE_PATH/icons/icon-install-128x128.png" --progress \
+               --percentage=0 --title="Unpack" --text="Unpack Android build image package ...\n - $ANDROID_BUILD_IMAGE_ARCHIVE_FILE" \
+               --pulsate --enable-log --auto-close --button=gtk-cancel:1 --width=640 2> /dev/null;
+  if [ $? != 0 ];then
+  {
+    showErrorDialog "<b>Unpack of Android build image package</b>\n<i>$ANDROID_BUILD_IMAGE_ARCHIVE_FILE</i>\n<b>failed! </b>"
+    exit_build 1;
+  } fi
+
+  while :; do
+  {
+    (
+      trap 'touch $TEMP_DIR/android-install.failed; evaluate_ret_error 1 "On line ${LINENO}"; exit 1;' ERR
+
+      cd ${INSTALL_PREFIX}/android/android-sdk-linux/tools;
+      ./android list sdk -u --all --extended
+
+      IFS=$'\n';
+      for part in `cat . $BASE_PATH/tools/android/install-parts`;do
+      {
+        part_name=$(echo $part | awk -F ' ' '{print $1}');
+        if [[ ${part_name%1} = '#'* ]];then
+          continue;fi
+
+        part_all=$(echo $part | awk -F '"' '{print $3}' | awk -F ' ' '{print $1}');
+        showdialog --skip-taskbar \
+                   --on-top \
+                   --title="Information" \
+                   --image="$BASE_PATH/icons/icon-info-128x128.png" \
+                   --no-buttons \
+                   --skip-taskbar \
+                   --center \
+                   --on-top \
+                   --timeout=2 \
+                   --height=180 \
+                   --width=540 \
+                   --text="\
+      <i><span size=\"large\">Android Tools installation started for ...</span></i>
+
+      <b>Type:</b>
+        $(echo $part | awk -F ' ' '{print $2}')
+
+      <b>Description:</b>
+       $(echo $part | awk -F '"' '{print $2}')" 2> /dev/null &
+
+        if [ ! -z $part_all ];then
+          part_all="--$part_all";fi
+
+          echo yes | ./android update sdk $part_all --filter $part_name --no-ui --force
+      } done
+      unset IFS;
+
+      NDK_DEFAULT_PATH=${INSTALL_PREFIX}/android/android-ndk-r$ANDROID_NDK_DEFAULT_VERSION
+      cd ${NDK_DEFAULT_PATH}/build/tools
+      ./make-standalone-toolchain.sh \
+          --arch=arm --platform=android-$ANDROID_SDK_DEFAULT_VERSION \
+          --system=linux-x86_64 \
+          --install-dir=${INSTALL_PREFIX}/android/android-toolchain-arm-$ANDROID_SDK_DEFAULT_VERSION-r$ANDROID_NDK_DEFAULT_VERSION \
+          --ndk-dir=$NDK_DEFAULT_PATH
+
+      ./make-standalone-toolchain.sh \
+          --arch=x86 --platform=android-$ANDROID_SDK_DEFAULT_VERSION \
+          --system=linux-x86_64 \
+          --install-dir=${INSTALL_PREFIX}/android/android-toolchain-x86-$ANDROID_SDK_DEFAULT_VERSION-r$ANDROID_NDK_DEFAULT_VERSION \
+          --ndk-dir=$NDK_DEFAULT_PATH
+
+      ./make-standalone-toolchain.sh \
+          --arch=mips --platform=android-$ANDROID_SDK_DEFAULT_VERSION \
+          --system=linux-x86_64 \
+          --install-dir=${INSTALL_PREFIX}/android/android-toolchain-mips-$ANDROID_SDK_DEFAULT_VERSION-r$ANDROID_NDK_DEFAULT_VERSION \
+          --ndk-dir=$NDK_DEFAULT_PATH
+
+      NDK_MAIN_PATH=${INSTALL_PREFIX}/android/android-ndk-r$ANDROID_NDK_ADDITIONAL_VERSION
+      cd ${NDK_MAIN_PATH}/build/tools
+      ./make-standalone-toolchain.sh \
+          --arch=arm --platform=android-$ANDROID_SDK_ADDITIONAL_VERSION \
+          --system=linux-x86_64 \
+          --install-dir=${INSTALL_PREFIX}/android/android-toolchain-arm-$ANDROID_SDK_ADDITIONAL_VERSION-r$ANDROID_NDK_ADDITIONAL_VERSION \
+          --ndk-dir=$NDK_MAIN_PATH
+
+      ./make-standalone-toolchain.sh \
+          --arch=arm64 --platform=android-$ANDROID_SDK_ADDITIONAL_VERSION \
+          --system=linux-x86_64 \
+          --install-dir=${INSTALL_PREFIX}/android/android-toolchain-arm64-$ANDROID_SDK_ADDITIONAL_VERSION-r$ANDROID_NDK_ADDITIONAL_VERSION \
+          --ndk-dir=$NDK_MAIN_PATH
+
+      ./make-standalone-toolchain.sh \
+          --arch=x86 --platform=android-$ANDROID_SDK_ADDITIONAL_VERSION \
+          --system=linux-x86_64 \
+          --install-dir=${INSTALL_PREFIX}/android/android-toolchain-x86-$ANDROID_SDK_ADDITIONAL_VERSION-r$ANDROID_NDK_ADDITIONAL_VERSION \
+          --ndk-dir=$NDK_MAIN_PATH
+
+      ./make-standalone-toolchain.sh \
+          --arch=x86_64 --platform=android-$ANDROID_SDK_ADDITIONAL_VERSION \
+          --system=linux-x86_64 \
+          --install-dir=${INSTALL_PREFIX}/android/android-toolchain-x86_64-$ANDROID_SDK_ADDITIONAL_VERSION-r$ANDROID_NDK_ADDITIONAL_VERSION \
+          --ndk-dir=$NDK_MAIN_PATH
+
+      ./make-standalone-toolchain.sh \
+          --arch=mips --platform=android-$ANDROID_SDK_ADDITIONAL_VERSION \
+          --system=linux-x86_64 \
+          --install-dir=${INSTALL_PREFIX}/android/android-toolchain-mips-$ANDROID_SDK_ADDITIONAL_VERSION-r$ANDROID_NDK_ADDITIONAL_VERSION \
+          --ndk-dir=$NDK_MAIN_PATH
+
+      ./make-standalone-toolchain.sh \
+          --arch=mips64 --platform=android-$ANDROID_SDK_ADDITIONAL_VERSION \
+          --system=linux-x86_64 \
+          --install-dir=${INSTALL_PREFIX}/android/android-toolchain-mips64-$ANDROID_SDK_ADDITIONAL_VERSION-r$ANDROID_NDK_ADDITIONAL_VERSION \
+          --ndk-dir=$NDK_MAIN_PATH
+
+      trap '' ERR
+      keytool -genkey -keystore $HOME/.android/debug.keystore -v -alias \
+            androiddebugkey -dname "CN=Android Debug,O=Android,C=US" -keypass \
+            android -storepass android -keyalg RSA -keysize 2048 -validity 10000
+      trap 'touch $TEMP_DIR/android-install.failed; exit 1;' ERR
+
+      ANDROID_DEV_ROOT=${INSTALL_PREFIX}/android
+      SDK_PATH=${INSTALL_PREFIX}/android/android-sdk-linux
+      SDK_DEFAULT_VERSION=$ANDROID_SDK_DEFAULT_VERSION
+      SDK_ADDITIONAL_VERSION=$ANDROID_SDK_ADDITIONAL_VERSION
+      NDK_DEFAULT_VERSION=$ANDROID_NDK_DEFAULT_VERSION
+      NDK_ADDITIONAL_VERSION=$ANDROID_NDK_ADDITIONAL_VERSION
+
+      saveAndroidConfigFile
+
+      cp $HOME/.mupel/android.conf ${INSTALL_PREFIX}/android/android_install_backup.conf
+
+      sleep 2
+      trap '' ERR
+    ) | sed -u "s/.*/# &/ w ${main_msg}" |
+      showdialog --image="$BASE_PATH/icons/icon-install-128x128.png" --progress \
+                 --percentage=0 --title="Configure" --text="Install and configure Android system ...\n - ${INSTALL_PREFIX}/android" \
+                 --pulsate --enable-log --auto-close --button=gtk-cancel:1 --width=640 2> /dev/null;
+    ret=$?;
+    if [ $ret != 0 ];then
+    {
+      showErrorDialog_YesNo "\
+<b>Configuration of Android system in:</b>
+<i>${INSTALL_PREFIX}/android</i>
+<b>failed!
+
+Do you want to try again (otherwise cancel install)?</b>
+";
+      [ $? != 0 ] && exit_build 1;
+      ANDROID_NDK_SRC_URL=$(showdialog --title="Android SDK Download URL" --text="Set Android NDK URL for download:" --entry --width=640 --entry-text="$ANDROID_NDK_SRC_URL" 2> /dev/null);
+      continue;
+    }
+    else
+      break;fi
+  } done
+
+  #sudo -A -- chmod 755 ${INSTALL_PREFIX}/android;
+
+  trap '' INT TERM QUIT HUP
+  trap '' EXIT
+
+  showdialog --form --title="Android system installer" \
+                    --window-icon="$BASE_PATH/icons/icon-kodi-48x48.png" \
+                    --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
+                    --ok-label="Details" --button=gtk-ok:0 --text="\
+  Everything done :-)
+  _____________________________________________________________
+
+  Follow the instruction of Muple to handle it." 2> /dev/null
+}
+
+function usage()
+{
+  echo "usage: ${0##*/} "
+  echo "-f           if set install is related to a flow and several messages becomes not used"
+  echo "-l file      store log messages"
+  echo "-h           this help message"
+}
+
+function process_opts()
+{
+  local OPTNAME OPTIND OPTERR OPTARG
+  while getopts "hl:" OPTNAME; do
+    case "$OPTNAME" in
+      l)
+        main_msg="$OPTARG"
+        ;;
+      h)
+        usage
+        exit 0
+        ;;
+      \:)
+        echo "'-$OPTARG' needs an argument."
+        usage
+        exit 1
+        ;;
+      *)
+        echo "invalid command-line option: $OPTARG"
+        usage
+        exit 1
+        ;;
+    esac
+  done
+
+  if [ $# -ge ${OPTIND} ]; then
+    eval echo "Unexpected command line argument: \${${OPTIND}}"
+    usage
+    exit 1
+  fi
+}
+
+###-------------------------------------------------------------------------###
+#                                                                             #
+#                            Start of process points                          #
+#                                                                             #
+
+trap 'evaluate_ret_error 1; exit 1' INT TERM QUIT HUP
+
+DISTRIB=`grep DISTRIB_ID /etc/*-release | awk -F '=' '{print $2}'`
+if [ $DISTRIB != "Ubuntu" ] && [ $DISTRIB != "Debian" ]; then
+  printf "${RED}${BRIGHT}Build not possible, need performed on ubuntu or debian based system (needed for install of dependencies parts)!${NORMAL}\n" >&2
+  exit 1
+fi
+
+# Check that we are running as a regular user
+[ "$(id -nu)" = root ] && {
+  showErrorDialog "Run this script as a regular user and provide your \"sudo\" password if requested"
+  exit 1
+}
+
+TEMP_DIR=`mktemp -d`
+main_msg_tmp=${TEMP_DIR}/install.log
+build_log=${BASE_PATH}/build/install.log
+touch $build_log
+
+process_opts "$@"
+
+[ -z $main_msg ] && main_msg=/dev/stderr
+
+
+###
+# Check for missing packages
+#
+packages=""
+which sshpass >/dev/null
+[ "$?" != "0" ] && packages="$packages sshpass"
+which qemu-system-x86_64 >/dev/null
+[ "$?" != "0" ] && packages="qemu-system-x86"
+which samba >/dev/null
+[ "$?" != "0" ] && packages="$packages samba"
+which gpicview >/dev/null
+[ "$?" != "0" ] && packages="$packages gpicview"
+which xarchiver >/dev/null
+[ "$?" != "0" ] && packages="$packages xarchiver"
+which javac >/dev/null
+[ "$?" != "0" ] && packages="$packages default-jdk"
+
+# Install needed packages
+if [[ ! -z $packages ]];then
+{
+  while :; do
+  {
+    touch "${main_msg_tmp}"
+    (
+      touch "${TEMP_DIR}/build_active"
+      sudo apt-get update
+      sudo -A -- apt-get -y -q install $packages;
+      [ ${PIPESTATUS[0]} != 0 ] && exit_build 1;
+
+      rm -f "${TEMP_DIR}/build_active";
+      sleep 5;
+      exit_build 0;
+    ) | sed -u "s/.*/# &/ w ${main_msg_tmp}" >> ${main_msg} &
+    pid=$!;
+
+    tail -f --pid=$pid ${main_msg_tmp} |
+      showdialog --title="Install" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress --width=600 \
+                 --text="Install needed packages for windows emulation and usage ..." \
+                 --pulsate --enable-log --log-height=300 --button=gtk-cancel:1 \
+                 --auto-close 2> /dev/null;
+    ret=$?;
+    cat $main_msg_tmp >> $build_log
+    if [[ $ret != 0 ]];then
+    {
+      ps -p $pid;
+      [[ $? = 0 ]] && killtree $pid KILL;
+    }
+    elif [ -f "${TEMP_DIR}/build_active" ];then
+    {
+      ret=1;
+    } fi
+    rm -f "${TEMP_DIR}/build_active";
+
+    if [[ $ret != 0 ]];then
+    {
+      showWarningDialog_YesNo "Installation of packages failed! \n\nTry again?";
+      [ $? != 0 ] && exit_build $ret;
+    }
+    else
+      break;fi
+  } done
+} fi
+
+if [ -z $ANDROID_DESKTOP_ICON_PATH ];then
+  ANDROID_DESKTOP_ICON_PATH=$DESKTOP_DIR;fi
+
+installAndroidDevSystem
+
+exit_build 0

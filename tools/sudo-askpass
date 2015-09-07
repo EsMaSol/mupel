@@ -1,0 +1,35 @@
+#! /bin/bash
+##
+# Own sudo password dialog to prevent problems on different distributions
+# need a "export SUDO_ASKPASS="./kodi-sudo-askpass"" set before and
+# sudo called with sudo -A <cmd>
+#
+# Found on http://osmanov-dev-notes.blogspot.de/2014/03/an-alternative-to-gksudokdesudo.html
+#
+
+BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
+PATH="$BASE_PATH/tools:$PATH"
+
+####
+# Setup used X dialog
+#
+icon="$BASE_PATH/icons/icon-kodi-48x48.png"
+system="$(uname -m)"
+basic_dialog="yad-mupel-$system"
+
+# get password
+pass=$($basic_dialog --class="GSu" \
+    --title="sudo Password" \
+    --center \
+    --window-icon="$BASE_PATH/icons/icon-kodi-48x48.png" \
+    --image="$BASE_PATH/icons/icon-pw-128x128.png" \
+    --text="\
+<span size=\"large\">Enter password for user <b>root</b> to handle
+related command of system install.</span>" \
+    --width=500 \
+    --entry --hide-text)
+[[ -z "$pass" ]] && exit 1
+
+echo $pass
+
+exit 0
