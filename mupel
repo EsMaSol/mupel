@@ -855,8 +855,6 @@ function cleanup()
     ps -p $pid_thread8; [[ $? = 0 ]] && killtree $pid_thread8 KILL;fi
   if [[ ! -z $pid_thread9 ]];then
     ps -p $pid_thread9; [[ $? = 0 ]] && killtree $pid_thread9 KILL;fi
-  if [[ ! -z $pid_thread10 ]];then
-    ps -p $pid_thread10; [[ $? = 0 ]] && killtree $pid_thread10 KILL;fi
 }
 
 function usage()
@@ -2846,7 +2844,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
              --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread7_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
              --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
-  pid_thread8=$!
+  pid_thread7=$!
 
   TAB_LIST+="--tab=Android "
   ((TAB_NUM++))
@@ -3108,7 +3106,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
              --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread8_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
              --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
-  pid_thread9=$!
+  pid_thread8=$!
 
   TAB_LIST+="--tab=iOS/ATV2 "
   ((TAB_NUM++))
@@ -3312,7 +3310,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field=":LBL@0,8,40,42" '' \
              --field="CPU process jobs:NUM@0,8,42,44" "${CPU_PROC_JOBS}!1..32" \
              --field=":XTALK" '' > /dev/null &
-  pid_thread10=$!
+  pid_thread9=$!
   ((TAB_NUM++))
 }
 #
