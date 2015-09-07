@@ -1,5 +1,5 @@
 # *<p align="center">Mupel </p>*
-#### *<p align="center">Kodi's multiplatform build environment system and add-on related CEF parts creator</p>*
+#### *<p align="center">Kodi's multiplatform build environment system on Linux</p>*
 *<p align="center">![alt tag](https://raw.githubusercontent.com/EsMaSol/mupel/master/icons/icon-mupel-128x128.png)</p>*
 
 ###### *<p align="center">Now you can do "<i>Èngem e' Mupel mâchen</i>" (Luxembourgish) and means "Someone squeezing the cheeks" in respect to Jenkins the best multi platform background system on world.</p>*
@@ -19,6 +19,8 @@ Inside is a small reworked version of CEF becomes used from https://bitbucket.or
 related changes in the source code of CEF. Also contains this a needed patch for Google Chromium.
 
 General description of CEF can be found here on [wikipedia](http://en.wikipedia.org/wiki/Chromium_Embedded_Framework).
+
+#### *<p align="center" style="color:red">WARNING: This app need a ubuntu or debian 64bit system as base!<p>*
 
 -------------
 ### License of Muple
