@@ -119,7 +119,7 @@ sleep 3
 
 # If direct build is requested in build before was on other system a complete
 # build becomes forced
-if [ ! -f "${BASE_PATH}/build/.cef-linux-x86_64.active" ] && [[ ! -z $DIRECT_CEF_BUILD ]];then
+if [ ! -f "${BASE_PATH}/build/cef-$GIT_CEF_USER/.cef-linux-x86_64.active" ] && [[ ! -z $DIRECT_CEF_BUILD ]];then
 {
   printf "${RED}${BRIGHT}WARNING: ${WHITE}Needed CEF code for direct build not present and complete build becomes done${NORMAL}\n";
   unset DIRECT_CEF_BUILD;
@@ -170,7 +170,7 @@ export GYP_DEFINES="target_arch=x64"
 
 if [[ -z $DIRECT_CEF_BUILD ]];then
 {
-  if [ ! -f "${BASE_PATH}/build/.cef-linux-x86_64.active" ];then
+  if [ ! -f "${BASE_PATH}/build/cef-$GIT_CEF_USER/.cef-linux-x86_64.active" ];then
   {
     rm -rf "${BASE_PATH}/build/cef-$GIT_CEF_USER/src/out"
     if [ -d "${REV_BACKUP_PATH}/linux-x86_64/out" ];then
@@ -178,7 +178,7 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
       printf "${WHITE}${BRIGHT}Perform store back to chromium of previous builded Linux x86-64 ...\n${NORMAL}"
       cp -rf "${REV_BACKUP_PATH}/linux-x86_64/out" "${BASE_PATH}/build/cef-$GIT_CEF_USER/src"
 
-      rm -f "${BASE_PATH}/build/.cef-*.active"
+      rm -f "${BASE_PATH}/build/cef-$GIT_CEF_USER/.cef-*.active"
       printf $CURS_UP
       log_success_msg
     } fi
@@ -215,7 +215,7 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
     log_success_msg
   } fi
 
-  touch "${BASE_PATH}/build/.cef-linux-x86_64.active"
+  touch "${BASE_PATH}/build/cef-$GIT_CEF_USER/.cef-linux-x86_64.active"
 } fi
 
 printf "${WHITE}${BRIGHT}Start $INSTALL_DIR_TYPE build of build CEF (Linux x86-64) ...\n${NORMAL}"
@@ -273,7 +273,6 @@ ${BRIGHT}${BLUE}All CEF steps successfully performed and build present${NORMAL}
 
 "
 
-
 rm -f $TEMP_DIR/cef-linux-x86_64.failed;
-
+[ ! -z $OWN_TEMP ] && [[ ! -z $TEMP_DIR ]] && rm -rf $TEMP_DIR;
 exit 0

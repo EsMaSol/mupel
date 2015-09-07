@@ -29,8 +29,6 @@ BUILD_SYSTEM="linux-x86_32"
 TEMP_DIR=
 INSTALL_DIR_TYPE="Release"
 
-set -e
-
 ##
 # Usage help function return as string the available values
 function usage()
@@ -99,29 +97,29 @@ function process_opts()
 
 process_opts "$@"
 
+initBuildScript_CEF;
+
+# Set error return
+set -e;
+trap '[[ ! -z $OWN_TEMP ]] && [[ ! -z $TEMP_DIR ]] && rm -rf $TEMP_DIR; trapError ${LINENO};' ERR;
+
+# Add failed file which becomes removed if everything is ok, this way is more
+# secure
+touch $TEMP_DIR/cef-linux-x86_32.failed;
+
+. "$BASE_PATH/versions";
+
 printf "
 -------------------------------------------------------------------------------
  CEF build Linux x86 32bit
 
 "
 
-# Add failed file which becomes removed if everything is ok, this way is more
-# secure
-touch $TEMP_DIR/cef-linux-x86_32.failed;
-
-# If no temporary directory is passed exit, is required from caller
-if [ -z $TEMP_DIR ];then
-{
-  printf "${RED}${BRIGHT}ERROR: ${WHITE}temporary directory defined!${NORMAL}\n";
-  exit 1
-} fi
-
-# Set error return
-trap 'trapError ${LINENO};' ERR
+sleep 3
 
 # If direct build is requested in build before was on other system a complete
 # build becomes forced
-if [ ! -f "${BASE_PATH}/build/.cef-linux-x86_32.active" ] && [[ ! -z $DIRECT_CEF_BUILD ]];then
+if [ ! -f "${BASE_PATH}/build/cef-$GIT_CEF_USER/.cef-linux-x86_32.active" ] && [[ ! -z $DIRECT_CEF_BUILD ]];then
 {
   printf "${RED}${BRIGHT}WARNING: ${WHITE}Needed CEF code for direct build not present and complete build becomes done${NORMAL}\n";
   unset DIRECT_CEF_BUILD;
@@ -129,25 +127,25 @@ if [ ! -f "${BASE_PATH}/build/.cef-linux-x86_32.active" ] && [[ ! -z $DIRECT_CEF
 
 # Check Google Chromium source is present which becomes loaded from
 # 'basic-system-creation.build', if not present bring a error exit
-if [ ! -d "${BASE_PATH}/build/src" ];then
+if [ ! -d "${BASE_PATH}/build/cef-$GIT_CEF_USER/src" ];then
 {
   printf "\
 ${RED}${BRIGHT}ERROR: ${WHITE}Needed CEF source code on${NORMAL}
-${BRIGHT}${WHITE}${BASE_PATH}/build/src${NORMAL}
+${BRIGHT}${WHITE}${BASE_PATH}/build/cef-$GIT_CEF_USER/src${NORMAL}
 ${BRIGHT}${WHITE}for build not present!${NORMAL}\n";
   exit 1;
 } fi
 
 # Create the final install path for them
-INSTALL_PATH=${BASE_PATH}/build/binary_distrib/${INSTALL_DIR_TYPE}/cef
+INSTALL_PATH=${BASE_PATH}/build/cef-$GIT_CEF_USER/binary_distrib/${INSTALL_DIR_TYPE}/cef
 [ ! -d "${INSTALL_PATH}" ] && mkdir -p "${INSTALL_PATH}"
 
 printf "${WHITE}${BRIGHT}Moving in previous removed 32 bit parts${NORMAL}"
-if [ ! -d "${BASE_PATH}/build/src/third_party/binutils/Linux_ia32" ];then
-  mv "${BASE_PATH}/build/.reverse_backup/third_party/binutils/Linux_ia32" "${BASE_PATH}/build/src/third_party/binutils";fi
+if [ ! -d "${BASE_PATH}/build/cef-$GIT_CEF_USER/src/third_party/binutils/Linux_ia32" ];then
+  mv "${BASE_PATH}/build/cef-$GIT_CEF_USER/.reverse_backup/third_party/binutils/Linux_ia32" "${BASE_PATH}/build/cef-$GIT_CEF_USER/src/third_party/binutils";fi
 log_success_msg
 
-REV_BACKUP_PATH=${BASE_PATH}/build/.reverse_backup
+REV_BACKUP_PATH=${BASE_PATH}/build/cef-$GIT_CEF_USER/.reverse_backup
 if [ ! -d ${REV_BACKUP_PATH}/linux-x86_32 ];then
   mkdir -p ${REV_BACKUP_PATH}/linux-x86_32;fi
 
@@ -158,77 +156,76 @@ printf "${WHITE}${BRIGHT}Starting build of CEF system for Linux x86-32 ...${NORM
 
 # Backup 32 bit parts, which becomes removed on source for 64 bit build
 mkdir -p ${REV_BACKUP_PATH}/third_party/binutils
-if [ -d "${BASE_PATH}/build/src/third_party/binutils/Linux_ia32" ];then
+if [ -d "${BASE_PATH}/build/cef-$GIT_CEF_USER/src/third_party/binutils/Linux_ia32" ];then
 {
-  cp -Rf "${BASE_PATH}/build/src/third_party/binutils/Linux_ia32" "${REV_BACKUP_PATH}/third_party/binutils"
+  cp -Rf "${BASE_PATH}/build/cef-$GIT_CEF_USER/src/third_party/binutils/Linux_ia32" "${REV_BACKUP_PATH}/third_party/binutils"
 } fi
-if [ -d "${BASE_PATH}/build/src/third_party/binutils/Linux_x64" ];then
+if [ -d "${BASE_PATH}/build/cef-$GIT_CEF_USER/src/third_party/binutils/Linux_x64" ];then
 {
-  cp -Rf "${BASE_PATH}/build/src/third_party/binutils/Linux_x64" "${REV_BACKUP_PATH}/third_party/binutils"
-  rm -Rf "${BASE_PATH}/build/src/third_party/binutils/Linux_x64"
+  cp -Rf "${BASE_PATH}/build/cef-$GIT_CEF_USER/src/third_party/binutils/Linux_x64" "${REV_BACKUP_PATH}/third_party/binutils"
+  rm -Rf "${BASE_PATH}/build/cef-$GIT_CEF_USER/src/third_party/binutils/Linux_x64"
 } fi
 
 export GYP_DEFINES="clang=0 target_arch=ia32"
 
 if [[ -z $DIRECT_CEF_BUILD ]];then
 {
-  if [ ! -f "${BASE_PATH}/build/.cef-linux-x86_32.active" ];then
+  if [ ! -f "${BASE_PATH}/build/cef-$GIT_CEF_USER/.cef-linux-x86_32.active" ];then
   {
-    rm -rf "${BASE_PATH}/build/src/out"
+    rm -rf "${BASE_PATH}/build/cef-$GIT_CEF_USER/src/out"
     if [ -d "${REV_BACKUP_PATH}/linux-x86_32/out" ];then
     {
       printf "${WHITE}${BRIGHT}Perform store back to chromium of previous builded Linux x86-32 ...\n${NORMAL}"
-      cp -rf "${REV_BACKUP_PATH}/linux-x86_32/out" "${BASE_PATH}/build/src"
+      cp -rf "${REV_BACKUP_PATH}/linux-x86_32/out" "${BASE_PATH}/build/cef-$GIT_CEF_USER/src"
 
-      rm -f "${BASE_PATH}/build/.cef-*.active"
+      rm -f "${BASE_PATH}/build/cef-$GIT_CEF_USER/.cef-*.active"
       printf $CURS_UP
       log_success_msg
     } fi
   } fi
 
-  cd ${BASE_PATH}/build/src/cef
-#  gclient runhooks
+  cd ${BASE_PATH}/build/cef-$GIT_CEF_USER/src/cef
   ./cef_create_projects.sh
   printf $CURS_UP
   log_success_msg
 
-  cd ${BASE_PATH}/build
+  cd ${BASE_PATH}/build/cef-$GIT_CEF_USER
 
   printf "${WHITE}${BRIGHT}Update chromium clang scripts ...${NORMAL}\n"
-  python ${BASE_PATH}/build/src/tools/clang/scripts/update.py --if-needed
+  python ${BASE_PATH}/build/cef-$GIT_CEF_USER/src/tools/clang/scripts/update.py --if-needed
   printf $CURS_UP
   log_success_msg
 
   printf "${WHITE}${BRIGHT}Set last change flags ...${NORMAL}\n"
-  python ${BASE_PATH}/build/src/build/util/lastchange.py -o src/build/util/LASTCHANGE
-  python ${BASE_PATH}/build/src/build/util/lastchange.py -s src/third_party/WebKit -o src/build/util/LASTCHANGE.blink
+  python ${BASE_PATH}/build/cef-$GIT_CEF_USER/src/build/util/lastchange.py -o src/build/util/LASTCHANGE
+  python ${BASE_PATH}/build/cef-$GIT_CEF_USER/src/build/util/lastchange.py -s src/third_party/WebKit -o src/build/util/LASTCHANGE.blink
   printf $CURS_UP
   log_success_msg
 
   printf "${WHITE}${BRIGHT}Download third party binutils ...${NORMAL}\n"
-  python ${BASE_PATH}/build/src/third_party/binutils/download.py
+  python ${BASE_PATH}/build/cef-$GIT_CEF_USER/src/third_party/binutils/download.py
   printf $CURS_UP
   log_success_msg
 
-  if [ ! -d ${BASE_PATH}/build/src/third_party/binutils/Linux_ia32 ];then
+  if [ ! -d ${BASE_PATH}/build/cef-$GIT_CEF_USER/src/third_party/binutils/Linux_ia32 ];then
   {
     printf "${WHITE}${BRIGHT}Restore 32 bit parts from binutils ...${NORMAL}\n"
-    cp -Rf "${REV_BACKUP_PATH}/third_party/binutils/Linux_ia32" "${BASE_PATH}/build/src/third_party/binutils"
+    cp -Rf "${REV_BACKUP_PATH}/third_party/binutils/Linux_ia32" "${BASE_PATH}/build/cef-$GIT_CEF_USER/src/third_party/binutils"
     printf $CURS_UP
     log_success_msg
   } fi
 
-  touch "${BASE_PATH}/build/.cef-linux-x86_32.active"
+  touch "${BASE_PATH}/build/cef-$GIT_CEF_USER/.cef-linux-x86_32.active"
 } fi
 
 printf "${WHITE}${BRIGHT}Start $INSTALL_DIR_TYPE build of build CEF (Linux x86-32) ...\n${NORMAL}"
 [[ $CEF_VERBOSE_BUILD = "TRUE" ]] && VERBOSE="-v"
-ninja $VERBOSE -C ${BASE_PATH}/build/src/out/$INSTALL_DIR_TYPE cefclient cef_unittests chrome_sandbox -j $CPU_PROC_JOBS
+ninja $VERBOSE -C ${BASE_PATH}/build/cef-$GIT_CEF_USER/src/out/$INSTALL_DIR_TYPE cefclient cef_unittests chrome_sandbox -j $CPU_PROC_JOBS
 printf $CURS_UP
 log_success_msg
 
 printf "${WHITE}${BRIGHT}Perform storage of Linux x86-32 in ${REV_BACKUP_PATH}/linux-x86_32 ...\n${NORMAL}"
-cp -rf "${BASE_PATH}/build/src/out" "${REV_BACKUP_PATH}/linux-x86_32"
+cp -rf "${BASE_PATH}/build/cef-$GIT_CEF_USER/src/out" "${REV_BACKUP_PATH}/linux-x86_32"
 printf $CURS_UP
 log_success_msg
 
@@ -256,7 +253,7 @@ export CEF_COMMAND_7ZIP="7z"
 options="--ninja-build --quiet --allow-partial "
 
 # Create the distribution.
-python "${BASE_PATH}/build/src/cef/tools/make_distrib.py" --output-dir "${INSTALL_PATH}" ${options}
+python "${BASE_PATH}/build/cef-$GIT_CEF_USER/src/cef/tools/make_distrib.py" --output-dir "${INSTALL_PATH}" ${options}
 
 if [ -f ${INSTALL_PATH}/kodi-web-*_linux32.7z ];then
   rm -f ${INSTALL_PATH}/kodi-web-*_linux32.7z;fi
@@ -277,5 +274,5 @@ ${BRIGHT}${BLUE}All CEF steps successfully performed and build present${NORMAL}
 "
 
 rm -f $TEMP_DIR/cef-linux-x86_32.failed;
-
+[ ! -z $OWN_TEMP ] && [[ ! -z $TEMP_DIR ]] && rm -rf $TEMP_DIR;
 exit 0
