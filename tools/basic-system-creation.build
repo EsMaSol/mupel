@@ -124,15 +124,18 @@ printf "${WHITE}${BRIGHT}|                                                      
 printf "${WHITE}${BRIGHT}|-----------------------------------------------------------------------------|\n"
 printf "\n"
 
+GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+
 printf "${WHITE}${BRIGHT}Build info:${NORMAL}\n"
 printf "${WHITE} - Depot tools :\t${NORMAL}%s\n" $DEPOT_TOOLS_URL
 printf "${WHITE} - Kodi URL :\t\t%s${NORMAL}\n" $KODI_SOURCE_URL
 printf "${WHITE} - Kodi branch :\t%s${NORMAL}\n" $KODI_SOURCE_BRANCH
-printf "${WHITE} - Kodi source dir. :\t%s${NORMAL}\n" "$BASE_PATH/build/Kodi"
+printf "${WHITE} - Kodi source dir. :\t%s${NORMAL}\n" "$BASE_PATH/build/kodi-$GIT_USER/kodi"
 if [ $INCLUDE_CEF != 0 ];then
-printf "${WHITE} - CEF URL :\t\t%s${NORMAL}\n" $CEF_SOURCE_URL
-printf "${WHITE} - CEF branch :\t\t%s${NORMAL}\n" $CEF_SOURCE_BRANCH
-printf "${WHITE} - CEF source dir. :\t%s${NORMAL}\n" "$BASE_PATH/build/cef"
+  GIT_CEF_USER=$(echo $CEF_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+  printf "${WHITE} - CEF URL :\t\t%s${NORMAL}\n" $CEF_SOURCE_URL
+  printf "${WHITE} - CEF branch :\t\t%s${NORMAL}\n" $CEF_SOURCE_BRANCH
+  printf "${WHITE} - CEF source dir. :\t%s${NORMAL}\n" "$BASE_PATH/build/cef-$GIT_CEF_USER/cef"
 fi
 printf "${WHITE} - Force clean :\t"
 if [ $DO_CLEAN != 0 ]; then
@@ -193,7 +196,6 @@ else
 ##
 # Handle kodi related parts from here
 printf "\n${WHITE}${BRIGHT}Handle kodi related parts${NORMAL} ...\n";
-GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
 [ ! -d "$BASE_PATH/build/kodi-$GIT_USER" ] && mkdir -p "$BASE_PATH/build/kodi-$GIT_USER"
 handleGITLoad "$BASE_PATH/build/kodi-$GIT_USER" kodi $KODI_SOURCE_URL $KODI_SOURCE_BRANCH "build_thread_1_general";
 
@@ -203,7 +205,6 @@ if [ $INCLUDE_CEF != 0 ];then
 {
   printf "\n${WHITE}${BRIGHT}Handle CEF related parts${NORMAL} ...\n";
 
-  GIT_CEF_USER=$(echo $CEF_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
   [ ! -d "$BASE_PATH/build/cef-$GIT_CEF_USER" ] && mkdir -p "$BASE_PATH/build/cef-$GIT_CEF_USER"
   handleGITLoad "$BASE_PATH/build/cef-$GIT_CEF_USER" cef $CEF_SOURCE_URL $CEF_SOURCE_BRANCH "build_thread_1_general"
 
