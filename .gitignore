@@ -26,3 +26,8 @@
 *.exe
 *.out
 *.app
+
+/build
+
+/tools/ios-atv2
+/tools/mac-osx
