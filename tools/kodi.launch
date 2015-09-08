@@ -23,6 +23,9 @@ BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
 
 . "${HOME}/.mupel/mupel.conf";
 
+# @todo remove forced type and make selectable
+INSTALL_DIR_TYPE="Release"
+
 [ -z $1 ] && [ -z $2 ] && exit 1
 USED_SYSTEM=$1
 IN_DATA_ARRAY=$2
@@ -35,13 +38,13 @@ touch "${BASE_PATH}/build/run-${USED_SYSTEM}.log"
 
 (
 GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
-echo "#< msg field 8:enable 0;" >> $IN_DATA_ARRAY;
+echo "#< msg field 7:enable 0;" >> $IN_DATA_ARRAY;
 case "$USED_SYSTEM" in
   kodi-linux-x86_32)
     if [ ! -f $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/active ];then
     {
       touch $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/active
-      ${USE_LINUX_X86_DISTR}32 $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/kodi.bin
+      ${USE_LINUX_X86_DISTR}32 $BASE_PATH/build/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE/kodi/i686-linux-gnu/bin/kodi
       rm $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/active
     } fi
     ;;
@@ -49,7 +52,7 @@ case "$USED_SYSTEM" in
     if [ ! -f $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/active ];then
     {
       touch $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/active
-      ${USE_LINUX_X86_DISTR}64 $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/kodi.bin
+      ${USE_LINUX_X86_DISTR}64 $BASE_PATH/build/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE/kodi/x86_64-linux-gnu/bin/kodi
       rm $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/active
     } fi
     ;;
@@ -102,7 +105,7 @@ case "$USED_SYSTEM" in
     } fi
     ;;
 esac
-echo "#< msg field 8:enable 1;" >> $IN_DATA_ARRAY;
+echo "#< msg field 7:enable 1;" >> $IN_DATA_ARRAY;
 ) | \
 tee "${BASE_PATH}/build/run-${USED_SYSTEM}.log"
 

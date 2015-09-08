@@ -1691,7 +1691,7 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
             elif [[ "$line" = *"field 7:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
-              echo "#> msg field 6:enable $enable;"
+              echo "#> msg field 7:enable $enable;"
             }
             elif [[ "$line" = *"field 9:"* ]];then
             {
