@@ -35,7 +35,7 @@ touch "${BASE_PATH}/build/run-${USED_SYSTEM}.log"
 
 (
 GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
-echo "#< msg field 7:enable 0;" >> $IN_DATA_ARRAY;
+echo "#< msg field 8:enable 0;" >> $IN_DATA_ARRAY;
 case "$USED_SYSTEM" in
   kodi-linux-x86_32)
     if [ ! -f $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/active ];then
@@ -102,7 +102,7 @@ case "$USED_SYSTEM" in
     } fi
     ;;
 esac
-echo "#< msg field 7:enable 1;" >> $IN_DATA_ARRAY;
+echo "#< msg field 8:enable 1;" >> $IN_DATA_ARRAY;
 ) | \
 tee "${BASE_PATH}/build/run-${USED_SYSTEM}.log"
 
