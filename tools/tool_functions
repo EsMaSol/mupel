@@ -997,10 +997,7 @@ function loadKodiBuildDir()
     echo " - Desired Checkout: $KODI_DESIRED_HASH"
 
     if [[ $KODI_CURRENT_HASH != $KODI_DESIRED_HASH ]];then
-    {
-      git -C $directory clean -dffx;
-      git -C $directory pull
-    } fi
+      git -C $directory pull;fi
 
     local current_branch;
     local branchName=`git -C "$directory" symbolic-ref HEAD 2>/dev/null || echo detached`;
