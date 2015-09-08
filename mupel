@@ -1412,11 +1412,11 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
               echo "#> msg field 3:visible 1;";
               echo "#> msg field 4:visible 0;";
               GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+              echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/Makefile" ] && echo 1 || echo 0);";
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/kodi.bin" ];then
                 kodi_direct=1
               else
                 kodi_direct=0;fi
-              echo "#> msg field 1:enable $kodi_direct;";
               echo "#> msg field 3:enable $kodi_direct;";
               echo "#> msg field 7:enable $kodi_direct;";
               echo "#> msg field 8:enable 1;";
@@ -1566,6 +1566,7 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
       echo "#> msg field 3:visible 1;";
       echo "#> msg field 4:visible 0;";
       GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+      echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/Makefile" ] && echo 1 || echo 0);";
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/kodi.bin" ];then
       {
         kodi_direct=1
@@ -1573,7 +1574,6 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
       }
       else
         kodi_direct=0;fi
-      echo "#> msg field 1:enable $kodi_direct;";
       echo "#> msg field 3:enable $kodi_direct;";
       echo "#> msg field 7:enable $kodi_direct;";
       echo "#> msg field 8:enable 1;";
@@ -1672,12 +1672,12 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
               echo "#> msg field 2:visible 1;";
               echo "#> msg field 3:visible 1;";
               echo "#> msg field 4:visible 0;";
+              echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/Makefile" ] && echo 1 || echo 0);";
               GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/kodi.bin" ];then
                 kodi_direct=1
               else
                 kodi_direct=0;fi
-              echo "#> msg field 1:enable $kodi_direct;";
               echo "#> msg field 3:enable $kodi_direct;";
               echo "#> msg field 7:enable $kodi_direct;";
               echo "#> msg field 8:enable 1;";
@@ -1827,6 +1827,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
       echo "#> msg field 3:visible 1;";
       echo "#> msg field 4:visible 0;";
       GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+      echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/Makefile" ] && echo 1 || echo 0);";
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/kodi.bin" ];then
       {
         kodi_direct=1
@@ -1834,7 +1835,6 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
       }
       else
         kodi_direct=0;fi
-      echo "#> msg field 1:enable $kodi_direct;";
       echo "#> msg field 3:enable $kodi_direct;";
       echo "#> msg field 7:enable $kodi_direct;";
       echo "#> msg field 8:enable 1;";
@@ -1934,11 +1934,11 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
               echo "#> msg field 3:visible 1;";
               echo "#> msg field 4:visible 0;";
               GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+              echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/Makefile" ] && echo 1 || echo 0);";
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/kodi.bin" ];then
                 kodi_direct=1
               else
                 kodi_direct=0;fi
-              echo "#> msg field 1:enable $kodi_direct;";
               echo "#> msg field 3:enable $kodi_direct;";
               echo "#> msg field 7:enable $kodi_direct;";
               echo "#> msg field 8:enable 1;";
