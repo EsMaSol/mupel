@@ -114,6 +114,7 @@ function parse_values()
 
   if [ "$field" = "general" ];then
   {
+    . $HOME/.mupel/mupel.conf;
     if [[ $id = 6 ]];then # handle 'Include Kodi' change
       INCLUDE_KODI=${value%|};
     elif [[ $id = 7 ]];then # handle 'Include Kodi add-ons' change
@@ -157,6 +158,8 @@ function parse_values()
   }
   elif [ "$field" = "settings" ];then
   {
+    . $HOME/.mupel/mupel.conf;
+
     IFS_BU=$IFS
     unset IFS
 
@@ -207,12 +210,11 @@ function parse_values()
     }
     #####
     # CEF
-    elif [[ $id = 8 ]];then
+    elif [[ $id = 7 ]] || [[ $id = 8 ]];then
     {  # handle 'cef git url' change
       if [[ $SUPPORT_CEF = "TRUE" ]];then
       {
         local cef_url=${value%|}
-
         git_entries=$(git ls-remote "$cef_url")
         ret=$?
         if [[ $ret = 0 ]];then
@@ -230,8 +232,9 @@ function parse_values()
               targets+="^";fi
             targets+="$i"
           } done
-          echo "#> msg field 8:set ${CEF_SOURCE_URL};"
+          [[ $id != 8 ]] && echo "#> msg field 8:set ${CEF_SOURCE_URL};"
           echo "#> msg field 9:set ${targets};"
+          echo "#> msg field 9:enable 1;"
         }
         else
           handleErrorsCodes $ret "git" "$cef_url";fi
