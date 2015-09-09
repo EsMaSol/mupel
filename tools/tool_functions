@@ -216,7 +216,7 @@ function handleErrorsCodes()
   local source=$2
   local label=$3
 
-  if [ "source" = "git" ];then
+  if [[ $source = git ]];then
     if [[ $code = 128 ]];then
         showErrorDialog "\
   The '$label' does not appear to be a git repository
