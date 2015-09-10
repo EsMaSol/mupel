@@ -69,7 +69,6 @@ CPU_PROC_JOBS=8
 ADD_PATHS=""
 DO_CLEAN=0 #<TODO
 WAIT_TIMEOUT=30;
-SAVE_TIMEOUT=10;
 OS_START_TIMEOUT=90;
 
 ##
@@ -112,22 +111,19 @@ function parse_values()
   local id=$2
   local value="$3"
 
+  loadConfigFile noOutLock:
+
   if [ "$field" = "general" ];then
   {
-    . $HOME/.mupel/mupel.conf;
     if [[ $id = 6 ]];then # handle 'Include Kodi' change
       INCLUDE_KODI=${value%|};
     elif [[ $id = 7 ]];then # handle 'Include Kodi add-ons' change
       INCLUDE_KODI_ADDONS=${value%|};
     elif [[ $id = 8 ]];then # handle 'Include CEF' change
       INCLUDE_CEF=${value%|};fi
-
-    save_config=$SAVE_TIMEOUT;
-    return;
   }
   elif [ "$field" = "add-ons" ];then
   {
-    . $HOME/.mupel/mupel.conf;
     GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
     if [ -f ${BASE_PATH}/build/kodi-$GIT_USER/kodi/project/cmake/addons/bootstrap/repositories/binary-addons.txt ];then
     {
@@ -158,8 +154,6 @@ function parse_values()
   }
   elif [ "$field" = "settings" ];then
   {
-    . $HOME/.mupel/mupel.conf;
-
     IFS_BU=$IFS
     unset IFS
 
@@ -355,12 +349,9 @@ function parse_values()
       CPU_PROC_JOBS=${value%,000000}
     } fi
     set IFS=$IFS_BU
-
-    save_config=$SAVE_TIMEOUT;
-    return;
   } fi
 
-  saveConfigFile
+  saveConfigFile noInLock;
 }
 
 function buildThreadBaseGeneralProcess()
@@ -393,10 +384,10 @@ Systems build stopped here." \
 function buildThreadBaseGeneral()
 {
   (
+    loadConfigFile
     sleep 1
     buildThreadBaseGeneralProcess 1
     sleep 1
-    . "$HOME/.mupel/mupel.conf";
 
     [[ $USE_LINUX_X86_32 = "TRUE" ]]  && echo "#< msg start_build;" >> "$thread2_in"
     [[ $USE_LINUX_X86_64 = "TRUE" ]]  && echo "#< msg start_build;" >> "$thread3_in"
@@ -532,7 +523,7 @@ function buildThreadForOS()
   (
     sleep $sleep_time
 
-    . "$HOME/.mupel/mupel.conf";
+    loadConfigFile
 
     step_cef=0
     step_kodi=0
@@ -717,7 +708,7 @@ function buildThreadKodiAddonForOS()
   (
     sleep 3
 
-    . "$HOME/.mupel/mupel.conf";
+    loadConfigFile
 
     if [[ $system = win* ]];then
       sshpass -p $WINDOWS_SSH_PASSWORD ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME -- bash --login "//10.0.2.4/qemu/build/tools/kodi-addon-${addon_name}-${system}.build --addon $addon_name" >> "${BASE_PATH}/build/creation-kodi-addon-${system}.log" 2>&1 &
@@ -1059,7 +1050,6 @@ touch ${TEMP_DIR}/thread9_in
 {
   (
     PULSE_ON=0;
-    save_config=0;
     enabled=1
     process_active=0
 
@@ -1071,7 +1061,7 @@ touch ${TEMP_DIR}/thread9_in
         continue;
       } fi
 
-      . "$HOME/.mupel/mupel.conf";
+      loadConfigFile
 
       # Set buttons to initial state
       echo "#> msg field 0:visible 1;";
@@ -1204,7 +1194,6 @@ touch ${TEMP_DIR}/thread9_in
                   } done;
                 fi; IFS=$'\n';
               done; unset IFS;
-              save_config=$SAVE_TIMEOUT;
               [ -z $SYSTEM_ACTIVE ] && exit 0;
             }
             else {
@@ -1225,22 +1214,6 @@ touch ${TEMP_DIR}/thread9_in
         {
           #echo "#< msg stop_build;" >> "$thread1_in";
           process_active=0;
-        } fi
-
-        # Perform if needed save of configuration file
-        if [[ $save_config > 0 ]];then
-        {
-          ((save_config--))
-          if [[ $save_config = 0 ]];then
-          {
-            saveConfigFile;
-            save_config=0
-          }
-          else
-          {
-            sleep 0.1;
-            continue;
-          } fi
         } fi
 
         sleep 0.5;
@@ -1277,7 +1250,6 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
     sleep 0.5;
 
     pulse_on=0;
-    save_config=0;
     process_active=0
 
     while :;do
@@ -1289,14 +1261,8 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
         continue;
       } fi
 
-      if [ ! -f "$HOME/.mupel/mupel.conf" ];then
-      {
-        sleep 0.5;
-        continue;
-      } fi
+      loadConfigFile
 
-      . "$HOME/.mupel/mupel.conf";
-      export KODI_SEL_ADDON
       GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
 
       # Set buttons to initial state
@@ -1486,22 +1452,6 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
           echo "#> msg field 2:enable $cef_direct;";
         } fi
 
-        # Perform if needed save of configuration file
-        if [[ $save_config > 0 ]];then
-        {
-          ((save_config--))
-          if [[ $save_config = 0 ]];then
-          {
-            saveConfigFile;
-            save_config=0
-          }
-          else
-          {
-            sleep 0.1;
-            continue;
-          } fi
-        } fi
-
         sleep 0.75;
       } done
     }
@@ -1538,7 +1488,6 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
     sleep 0.5;
 
     pulse_on=0;
-    save_config=0;
     process_active=0
 
     while :;do
@@ -1550,14 +1499,7 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
         continue;
       } fi
 
-      if [ ! -f "$HOME/.mupel/mupel.conf" ];then
-      {
-        sleep 0.5;
-        continue;
-      } fi
-
-      . "$HOME/.mupel/mupel.conf";
-      export KODI_SEL_ADDON
+      loadConfigFile
 
       # Set buttons to initial state
       echo "#> msg field 0:visible 1;";
@@ -1747,22 +1689,6 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
           echo "#> msg field 2:enable $cef_direct;";
         } fi
 
-        # Perform if needed save of configuration file
-        if [[ $save_config > 0 ]];then
-        {
-          ((save_config--))
-          if [[ $save_config = 0 ]];then
-          {
-            saveConfigFile;
-            save_config=0
-          }
-          else
-          {
-            sleep 0.1;
-            continue;
-          } fi
-        } fi
-
         sleep 0.75;
       } done
     }
@@ -1799,7 +1725,6 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
     sleep 0.5;
 
     pulse_on=0;
-    save_config=0;
     process_active=0
 
     while :;do
@@ -1811,14 +1736,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
         continue;
       } fi
 
-      if [ ! -f "$HOME/.mupel/mupel.conf" ];then
-      {
-        sleep 0.5;
-        continue;
-      } fi
-
-      . "$HOME/.mupel/mupel.conf";
-      export KODI_SEL_ADDON
+      loadConfigFile
 
       # Set buttons to initial state
       echo "#> msg field 0:visible 1;";
@@ -2008,22 +1926,6 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
           echo "#> msg field 2:enable $cef_direct;";
         } fi
 
-        # Perform if needed save of configuration file
-        if [[ $save_config > 0 ]];then
-        {
-          ((save_config--))
-          if [[ $save_config = 0 ]];then
-          {
-            saveConfigFile;
-            save_config=0
-          }
-          else
-          {
-            sleep 0.1;
-            continue;
-          } fi
-        } fi
-
         sleep 0.75;
       } done
     }
@@ -2060,7 +1962,6 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
     sleep 0.5;
 
     pulse_on=0;
-    save_config=0;
     process_active=0
 
     while :;do
@@ -2072,15 +1973,9 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
         continue;
       } fi
 
-      if [ ! -f "$HOME/.mupel/mupel.conf" ];then
-      {
-        sleep 0.5;
-        continue;
-      } fi
+      loadConfigFile
 
-      . "$HOME/.mupel/mupel.conf";
       . "$HOME/.mupel/windows.conf";
-      export KODI_SEL_ADDON
 
       # Set buttons to initial state
       echo "#> msg field 0:visible 1;";
@@ -2272,22 +2167,6 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
           echo "#> msg field 2:enable $cef_direct;";
         } fi
 
-        # Perform if needed save of configuration file
-        if [[ $save_config > 0 ]];then
-        {
-          ((save_config--))
-          if [[ $save_config = 0 ]];then
-          {
-            saveConfigFile;
-            save_config=0
-          }
-          else
-          {
-            sleep 0.1;
-            continue;
-          } fi
-        } fi
-
         sleep 0.75;
       } done
     }
@@ -2324,7 +2203,6 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
     sleep 0.5;
 
     pulse_on=0;
-    save_config=0;
     process_active=0
 
     while :;do
@@ -2336,15 +2214,9 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
         continue;
       } fi
 
-      if [ ! -f "$HOME/.mupel/mupel.conf" ];then
-      {
-        sleep 0.5;
-        continue;
-      } fi
+      loadConfigFile
 
-      . "$HOME/.mupel/mupel.conf";
       . "$HOME/.mupel/mac-osx.conf";
-      export KODI_SEL_ADDON
 
       # Set buttons to initial state
       echo "#> msg field 0:visible 1;";
@@ -2534,22 +2406,6 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
           echo "#> msg field 2:enable $cef_direct;";
         } fi
 
-        # Perform if needed save of configuration file
-        if [[ $save_config > 0 ]];then
-        {
-          ((save_config--))
-          if [[ $save_config = 0 ]];then
-          {
-            saveConfigFile;
-            save_config=0
-          }
-          else
-          {
-            sleep 0.1;
-            continue;
-          } fi
-        } fi
-
         sleep 0.75;
       } done
     }
@@ -2586,7 +2442,6 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
     sleep 0.5;
 
     pulse_on=0;
-    save_config=0;
     process_active=0
 
     while :;do
@@ -2598,14 +2453,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
         continue;
       } fi
 
-      if [ ! -f "$HOME/.mupel/mupel.conf" ];then
-      {
-        sleep 0.5;
-        continue;
-      } fi
-
-      . "$HOME/.mupel/mupel.conf";
-      export KODI_SEL_ADDON
+      loadConfigFile
 
       # Set buttons to initial state
       echo "#> msg field 0:visible 1;";
@@ -2811,22 +2659,6 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
           echo "#> msg field 2:enable $cef_direct;";
         } fi
 
-        # Perform if needed save of configuration file
-        if [[ $save_config > 0 ]];then
-        {
-          ((save_config--))
-          if [[ $save_config = 0 ]];then
-          {
-            saveConfigFile;
-            save_config=0
-          }
-          else
-          {
-            sleep 0.1;
-            continue;
-          } fi
-        } fi
-
         sleep 0.75;
       } done
     }
@@ -2863,7 +2695,6 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
     sleep 0.5;
 
     pulse_on=0;
-    save_config=0;
     process_active=0
 
     while :;do
@@ -2875,15 +2706,9 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
         continue;
       } fi
 
-      if [ ! -f "$HOME/.mupel/mupel.conf" ];then
-      {
-        sleep 0.5;
-        continue;
-      } fi
+      loadConfigFile
 
-      . "$HOME/.mupel/mupel.conf";
       . "$HOME/.mupel/mac-osx.conf";
-      export KODI_SEL_ADDON
 
       # Set buttons to initial state
       echo "#> msg field 0:visible 1;";
@@ -3073,22 +2898,6 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
           echo "#> msg field 2:enable $cef_direct;";
         } fi
 
-        # Perform if needed save of configuration file
-        if [[ $save_config > 0 ]];then
-        {
-          ((save_config--))
-          if [[ $save_config = 0 ]];then
-          {
-            saveConfigFile;
-            save_config=0
-          }
-          else
-          {
-            sleep 0.1;
-            continue;
-          } fi
-        } fi
-
         sleep 0.75;
       } done
     }
@@ -3138,13 +2947,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
         continue;
       } fi
 
-      if [ ! -f "$HOME/.mupel/mupel.conf" ];then
-      {
-        sleep 0.5;
-        continue;
-      } fi
-
-      . "$HOME/.mupel/mupel.conf";
+      loadConfigFile
 
       [[ $SUPPORT_CEF = "TRUE" ]] && use_it=1 || use_it=0
       echo "#> msg field 9:visible $use_it;"
@@ -3227,7 +3030,6 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
                   done;
                   [ -z $SYSTEM_ACTIVE ] && exit 0;
                 fi; IFS=$'\n';
-                SAVE_CONFIG=1
               } done; unset IFS;
             }
             elif [[ "$line" = *"android_emu_keys"* ]];then
@@ -3256,21 +3058,6 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
         } done;
         unset IFS
 
-        # Perform if needed save of configuration file
-        if [[ $SAVE_CONFIG > 0 ]];then
-        {
-          ((SAVE_CONFIG--))
-          if [[ $SAVE_CONFIG = 0 ]];then
-          {
-            saveConfigFile;
-            SAVE_CONFIG=0
-          }
-          else
-          {
-            sleep 0.1;
-            continue;
-          } fi
-        } fi
         sleep 1
       } done
     } done

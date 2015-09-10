@@ -51,13 +51,17 @@ admin=$(grep '^admin:' /etc/group >&/dev/null && echo admin || echo adm)
 
 ## Screen Dimensions
 # Find current screen size
-if [ -z "${COLUMNS}" ]; then
-   COLUMNS=$(stty size)
-   COLUMNS=${COLUMNS##* }
+if [ -z $COLUMNS ]; then
+  COLUMNS=$(stty size)
+  COLUMNS=${COLUMNS##* }
+fi
+if [ -z $COLUMNS ]; then
+  COLUMNS=$(tput cols)
+  COLUMNS=${COLUMNS##* }
 fi
 
 # When using remote connections, such as a serial port, stty size returns 0
-if [ "${COLUMNS}" = "0" ]; then
+if [ -z $COLUMNS ] || [[ $COLUMNS = 0 ]]; then
    COLUMNS=80
 fi
 
@@ -611,8 +615,59 @@ function showQuestionDialog()
 ##
 # saveConfigFile()
 # Write configuration file about available options
+
+lockdir_saveConfigFile=/tmp/Mupel_mutexLock_ConfigFile.lock
+mutexLock_ConfigFile()
+{
+  while :; do
+  {
+    if mkdir "$lockdir_saveConfigFile" 2>/dev/null;then # directory did not exist, but was created successfully
+    {
+      trap 'rm -rf "$lockdir_saveConfigFile"' 0;        # remove directory when script finishes
+      break;                                            # continue with script
+    }
+    else
+      sleep 0.1;fi                                      # sleep for 0.1 seconds and try again
+  } done
+}
+
+mutexUnlock_ConfigFile()
+{
+  rm -rf "$lockdir_saveConfigFile"
+}
+
+function loadConfigFile()
+{
+  local noOutLock="${1}"
+
+  mutexLock_ConfigFile
+
+  local COUNTER=0;
+  while [ ! -f "$HOME/.mupel/mupel.conf" ] && [ $COUNTER -lt 10 ]; do
+  {
+    let COUNTER=COUNTER+1;
+  } done
+
+  if [ $COUNTER -lt 10 ];then
+  {
+    . "$HOME/.mupel/mupel.conf";
+    GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+    export KODI_SEL_ADDON;
+  }
+  else
+    printf "${RED}${BRIGHT}ERROR: ${WHITE}Needed Mupel config file '$HOME/.mupel/mupel.conf' not present${NORMAL}\n";fi
+
+  if [ -z $noOutLock ];then
+    mutexUnlock_ConfigFile;fi
+}
+
 function saveConfigFile()
 {
+  local noInLock="${1}"
+
+  if [ -z $noInLock ];then
+    mutexLock_ConfigFile;fi
+
   [ ! -d "$HOME/.mupel" ]          && mkdir -p "$HOME/.mupel"
   [ -f "$HOME/.mupel/mupel.conf" ] && mv -f "$HOME/.mupel/mupel.conf" "$HOME/.mupel/mupel.conf.old"
   [ -z $FREE_INITIAL_DISK_SPACE ]  && FREE_INITIAL_DISK_SPACE=`df  . | tail -1 | tr -s ' ' | cut -d' ' -f4`
@@ -681,6 +736,8 @@ FREE_INITIAL_DISK_SPACE=$FREE_INITIAL_DISK_SPACE
 CPU_PROC_JOBS=$CPU_PROC_JOBS
 
 EOF
+
+  mutexUnlock_ConfigFile
 }
 ##
 
