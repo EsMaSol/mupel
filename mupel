@@ -124,7 +124,6 @@ function parse_values()
   }
   elif [ "$field" = "add-ons" ];then
   {
-    GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
     if [ -f ${BASE_PATH}/build/kodi-$GIT_USER/kodi/project/cmake/addons/bootstrap/repositories/binary-addons.txt ];then
     {
       if [ ! -d ${BASE_PATH}/build/kodi-$GIT_USER/kodi-repo-binary-addons ];then
@@ -451,7 +450,7 @@ function buildThreadForOS()
   local direct_build_cef=$4
   local direct_build_kodi=$5
 
-  GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+  loadConfigFile
 
   if [ -f "${BASE_PATH}/build/creation-kodi-${system}.log" ];then
     mv "${BASE_PATH}/build/creation-kodi-${system}.log" "${BASE_PATH}/build/creation-kodi-${system}-`date +%F_%H-%m`.old.log";fi
@@ -1263,8 +1262,6 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
 
       loadConfigFile
 
-      GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
-
       # Set buttons to initial state
       echo "#> msg field 0:visible 1;";
       echo "#> msg field 1:visible 1;";
@@ -1377,7 +1374,6 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
               echo "#> msg field 2:visible 1;";
               echo "#> msg field 3:visible 1;";
               echo "#> msg field 4:visible 0;";
-              GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
               echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/Makefile" ] && echo 1 || echo 0);";
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/kodi.bin" ];then
                 kodi_direct=1
@@ -1507,7 +1503,6 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
       echo "#> msg field 2:visible 1;";
       echo "#> msg field 3:visible 1;";
       echo "#> msg field 4:visible 0;";
-      GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
       echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/Makefile" ] && echo 1 || echo 0);";
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/kodi.bin" ];then
       {
@@ -1615,7 +1610,6 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
               echo "#> msg field 3:visible 1;";
               echo "#> msg field 4:visible 0;";
               echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/Makefile" ] && echo 1 || echo 0);";
-              GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/kodi.bin" ];then
                 kodi_direct=1
               else
@@ -1744,7 +1738,6 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
       echo "#> msg field 2:visible 1;";
       echo "#> msg field 3:visible 1;";
       echo "#> msg field 4:visible 0;";
-      GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
       echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/Makefile" ] && echo 1 || echo 0);";
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/kodi.bin" ];then
       {
@@ -1851,7 +1844,6 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
               echo "#> msg field 2:visible 1;";
               echo "#> msg field 3:visible 1;";
               echo "#> msg field 4:visible 0;";
-              GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
               echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/Makefile" ] && echo 1 || echo 0);";
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/kodi.bin" ];then
                 kodi_direct=1
@@ -1983,7 +1975,6 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
       echo "#> msg field 2:visible 1;";
       echo "#> msg field 3:visible 1;";
       echo "#> msg field 4:visible 0;";
-      GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-win-${WINDOWS_BUILD_TYPE}/kodi.bin" ];then
       {
         kodi_direct=1
@@ -2091,7 +2082,6 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
               echo "#> msg field 2:visible 1;";
               echo "#> msg field 3:visible 1;";
               echo "#> msg field 4:visible 0;";
-              GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-win-${WINDOWS_BUILD_TYPE}/kodi.bin" ];then
                 kodi_direct=1
               else
@@ -2224,7 +2214,6 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
       echo "#> msg field 2:visible 1;";
       echo "#> msg field 3:visible 1;";
       echo "#> msg field 4:visible 0;";
-      GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-osx-${MAC_OS_X_BUILD_TYPE}/kodi.bin" ];then
       {
         kodi_direct=1
@@ -2331,7 +2320,6 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
               echo "#> msg field 2:visible 1;";
               echo "#> msg field 3:visible 1;";
               echo "#> msg field 4:visible 0;";
-              GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-osx-${MAC_OS_X_BUILD_TYPE}/kodi.bin" ];then
                 kodi_direct=1
               else
@@ -2461,7 +2449,6 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
       echo "#> msg field 2:visible 1;";
       echo "#> msg field 3:visible 1;";
       echo "#> msg field 4:visible 0;";
-      GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
       if [ -f $BASE_PATH/build/kodi-$GIT_USER/kodi-android-x86/*.apk ];then
       {
         kodi_direct=1
@@ -2568,7 +2555,6 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
               echo "#> msg field 2:visible 1;";
               echo "#> msg field 3:visible 1;";
               echo "#> msg field 4:visible 0;";
-              GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
               if [ -f $BASE_PATH/build/kodi-$GIT_USER/kodi-android-${ANDROID_BUILD_TYPE}/*.apk ];then
                 kodi_direct=1
               else
@@ -2590,7 +2576,6 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
               if [ $? = 0 ];then
               {
                 echo "#> msg field 7:enable 0;";
-                GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
                 git -C "$BASE_PATH/build/kodi-$GIT_USER/kodi-android-${ANDROID_BUILD_TYPE}" clean -dffx;
                 echo "Cleanup done"
                 echo "#> msg field 7:enable 1;";
@@ -2716,7 +2701,6 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
       echo "#> msg field 2:visible 1;";
       echo "#> msg field 3:visible 1;";
       echo "#> msg field 4:visible 0;";
-      GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-${IOS_ATV2_BUILD_TYPE}/kodi.bin" ];then
       {
         kodi_direct=1
@@ -2823,7 +2807,6 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
               echo "#> msg field 2:visible 1;";
               echo "#> msg field 3:visible 1;";
               echo "#> msg field 4:visible 0;";
-              GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-${IOS_ATV2_BUILD_TYPE}/kodi.bin" ];then
                 kodi_direct=1
               else
