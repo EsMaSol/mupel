@@ -1027,7 +1027,9 @@ function loadKodiBuildDir()
   local DEST="$3";
   local directory;
 
+
   local GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+  local SOURCE=$BASE_PATH/build/kodi-$GIT_USER/kodi
   if [[ -z $DEST ]];then
     DEST=$BASE_PATH/build/kodi-$GIT_USER/;fi
   if [[ ! -d $DEST ]];then
@@ -1041,10 +1043,9 @@ function loadKodiBuildDir()
     echo "Cloning initial of '$REAL_NAME' on $directory";
     echo " - Desired Checkout: $KODI_DESIRED_HASH"
     echo "   Branch name:      $KODI_SOURCE_BRANCH"
-    git -C ${DEST}kodi config receive.denyCurrentBranch ignore
     git -C $DEST clone \
       --progress \
-      $BASE_PATH/build/kodi-$GIT_USER/kodi \
+      $SOURCE \
       --branch $KODI_SOURCE_BRANCH \
       kodi-$BUILD_SYSTEM
   }
