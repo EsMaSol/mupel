@@ -1315,7 +1315,7 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
             else
               is_direct_cef=0;fi
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] || [[ "$line" = *"start_addon_build"* ]];then
             {
               echo "#> msg pulse on;";
               echo "#> msg field 0:visible 0;";
@@ -1326,24 +1326,13 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
               echo "#> msg field 7:enable 0;";
               echo "#> msg field 8:enable 0;";
               echo "#> msg field 9:enable 0;";
-              pulse_on=1
 
-              buildThreadForOS "linux-x86_32" "${USE_LINUX_X86_DISTR}32" 5 $is_direct_cef $is_direct_kodi
-            }
-            elif [[ "$line" = *"start_addon_build"* ]];then
-            {
-              echo "#> msg pulse on;";
-              echo "#> msg field 0:visible 0;";
-              echo "#> msg field 1:visible 0;";
-              echo "#> msg field 2:visible 0;";
-              echo "#> msg field 3:visible 0;";
-              echo "#> msg field 4:visible 1;";
-              echo "#> msg field 7:enable 0;";
-              echo "#> msg field 8:enable 0;";
-              echo "#> msg field 9:enable 0;";
               pulse_on=1
-
-              buildThreadKodiAddonForOS "linux-x86_32" "${USE_LINUX_X86_DISTR}32" 1 "$KODI_SEL_ADDON"
+              echo "#> msg field 11:clear;"
+              if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+                buildThreadForOS "linux-x86_32" "${USE_LINUX_X86_DISTR}32" 5 $is_direct_cef $is_direct_kodi
+              elif [[ "$line" = *"start_addon_build"* ]];then
+                buildThreadKodiAddonForOS "linux-x86_32" "${USE_LINUX_X86_DISTR}32" 1 "$KODI_SEL_ADDON";fi
             }
             elif [[ "$line" = *"stop_build"* ]];then
             {
@@ -1550,7 +1539,7 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
             else
               is_direct_cef=0;fi
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] || [[ "$line" = *"start_addon_build"* ]];then
             {
               echo "#> msg pulse on;";
               echo "#> msg field 0:visible 0;";
@@ -1561,24 +1550,13 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
               echo "#> msg field 7:enable 0;";
               echo "#> msg field 8:enable 0;";
               echo "#> msg field 9:enable 0;";
-              pulse_on=1
 
-              buildThreadForOS "linux-x86_64" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
-            }
-            elif [[ "$line" = *"start_addon_build"* ]];then
-            {
-              echo "#> msg pulse on;";
-              echo "#> msg field 0:visible 0;";
-              echo "#> msg field 1:visible 0;";
-              echo "#> msg field 2:visible 0;";
-              echo "#> msg field 3:visible 0;";
-              echo "#> msg field 4:visible 1;";
-              echo "#> msg field 7:enable 0;";
-              echo "#> msg field 8:enable 0;";
-              echo "#> msg field 9:enable 0;";
               pulse_on=1
-
-              buildThreadKodiAddonForOS "linux-x86_64" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON"
+              echo "#> msg field 11:clear;"
+              if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+                buildThreadForOS "linux-x86_64" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
+              elif [[ "$line" = *"start_addon_build"* ]];then
+                buildThreadKodiAddonForOS "linux-x86_64" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";fi
             }
             elif [[ "$line" = *"stop_build"* ]];then
             {
@@ -1785,7 +1763,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
             else
               is_direct_cef=0;fi
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] || [[ "$line" = *"start_addon_build"* ]];then
             {
               echo "#> msg pulse on;";
               echo "#> msg field 0:visible 0;";
@@ -1796,24 +1774,13 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
               echo "#> msg field 7:enable 0;";
               echo "#> msg field 8:enable 0;";
               echo "#> msg field 9:enable 0;";
-              pulse_on=1
 
-              buildThreadForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}32" 5 $is_direct_cef $is_direct_kodi
-            }
-            elif [[ "$line" = *"start_addon_build"* ]];then
-            {
-              echo "#> msg pulse on;";
-              echo "#> msg field 0:visible 0;";
-              echo "#> msg field 1:visible 0;";
-              echo "#> msg field 2:visible 0;";
-              echo "#> msg field 3:visible 0;";
-              echo "#> msg field 4:visible 1;";
-              echo "#> msg field 7:enable 0;";
-              echo "#> msg field 8:enable 0;";
-              echo "#> msg field 9:enable 0;";
               pulse_on=1
-
-              buildThreadKodiAddonForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON"
+              echo "#> msg field 11:clear;"
+              if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+                buildThreadForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
+              elif [[ "$line" = *"start_addon_build"* ]];then
+                buildThreadKodiAddonForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";fi
             }
             elif [[ "$line" = *"stop_build"* ]];then
             {
@@ -2023,7 +1990,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
             else
               is_direct_cef=0;fi
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] || [[ "$line" = *"start_addon_build"* ]];then
             {
               echo "#> msg pulse on;";
               echo "#> msg field 0:visible 0;";
@@ -2034,24 +2001,13 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
               echo "#> msg field 7:enable 0;";
               echo "#> msg field 8:enable 0;";
               echo "#> msg field 9:enable 0;";
-              pulse_on=1
 
-              buildThreadForOS "win-${WINDOWS_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
-            }
-            elif [[ "$line" = *"start_addon_build"* ]];then
-            {
-              echo "#> msg pulse on;";
-              echo "#> msg field 0:visible 0;";
-              echo "#> msg field 1:visible 0;";
-              echo "#> msg field 2:visible 0;";
-              echo "#> msg field 3:visible 0;";
-              echo "#> msg field 4:visible 1;";
-              echo "#> msg field 7:enable 0;";
-              echo "#> msg field 8:enable 0;";
-              echo "#> msg field 9:enable 0;";
               pulse_on=1
-
-              buildThreadKodiAddonForOS "win-${WINDOWS_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON"
+              echo "#> msg field 11:clear;"
+              if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+                buildThreadForOS "win-${WINDOWS_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
+              elif [[ "$line" = *"start_addon_build"* ]];then
+                buildThreadKodiAddonForOS "win-${WINDOWS_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";fi
             }
             elif [[ "$line" = *"stop_build"* ]];then
             {
@@ -2261,7 +2217,7 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
             else
               is_direct_cef=0;fi
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] || [[ "$line" = *"start_addon_build"* ]];then
             {
               echo "#> msg pulse on;";
               echo "#> msg field 0:visible 0;";
@@ -2272,24 +2228,13 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
               echo "#> msg field 7:enable 0;";
               echo "#> msg field 8:enable 0;";
               echo "#> msg field 9:enable 0;";
-              pulse_on=1
 
-              buildThreadForOS "osx-${MAC_OS_X_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
-            }
-            elif [[ "$line" = *"start_addon_build"* ]];then
-            {
-              echo "#> msg pulse on;";
-              echo "#> msg field 0:visible 0;";
-              echo "#> msg field 1:visible 0;";
-              echo "#> msg field 2:visible 0;";
-              echo "#> msg field 3:visible 0;";
-              echo "#> msg field 4:visible 1;";
-              echo "#> msg field 7:enable 0;";
-              echo "#> msg field 8:enable 0;";
-              echo "#> msg field 9:enable 0;";
               pulse_on=1
-
-              buildThreadKodiAddonForOS "osx-${MAC_OS_X_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON"
+              echo "#> msg field 11:clear;"
+              if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+                buildThreadForOS "osx-${MAC_OS_X_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
+              elif [[ "$line" = *"start_addon_build"* ]];then
+                buildThreadKodiAddonForOS "osx-${MAC_OS_X_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";fi
             }
             elif [[ "$line" = *"stop_build"* ]];then
             {
@@ -2496,7 +2441,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
             else
               is_direct_cef=0;fi
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] || [[ "$line" = *"start_addon_build"* ]];then
             {
               echo "#> msg pulse on;";
               echo "#> msg field 0:visible 0;";
@@ -2507,24 +2452,13 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
               echo "#> msg field 7:enable 0;";
               echo "#> msg field 8:enable 0;";
               echo "#> msg field 9:enable 0;";
-              pulse_on=1
 
-              buildThreadForOS "android-${ANDROID_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
-            }
-            elif [[ "$line" = *"start_addon_build"* ]];then
-            {
-              echo "#> msg pulse on;";
-              echo "#> msg field 0:visible 0;";
-              echo "#> msg field 1:visible 0;";
-              echo "#> msg field 2:visible 0;";
-              echo "#> msg field 3:visible 0;";
-              echo "#> msg field 4:visible 1;";
-              echo "#> msg field 7:enable 0;";
-              echo "#> msg field 8:enable 0;";
-              echo "#> msg field 9:enable 0;";
               pulse_on=1
-
-              buildThreadKodiAddonForOS "android-${ANDROID_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON"
+              echo "#> msg field 11:clear;"
+              if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+                buildThreadForOS "android-${ANDROID_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
+              elif [[ "$line" = *"start_addon_build"* ]];then
+                buildThreadKodiAddonForOS "android-${ANDROID_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";fi
             }
             elif [[ "$line" = *"stop_build"* ]];then
             {
@@ -2748,7 +2682,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
             else
               is_direct_cef=0;fi
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] || [[ "$line" = *"start_addon_build"* ]];then
             {
               echo "#> msg pulse on;";
               echo "#> msg field 0:visible 0;";
@@ -2759,24 +2693,13 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
               echo "#> msg field 7:enable 0;";
               echo "#> msg field 8:enable 0;";
               echo "#> msg field 9:enable 0;";
-              pulse_on=1
 
-              buildThreadForOS "${IOS_ATV2_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
-            }
-            elif [[ "$line" = *"start_addon_build"* ]];then
-            {
-              echo "#> msg pulse on;";
-              echo "#> msg field 0:visible 0;";
-              echo "#> msg field 1:visible 0;";
-              echo "#> msg field 2:visible 0;";
-              echo "#> msg field 3:visible 0;";
-              echo "#> msg field 4:visible 1;";
-              echo "#> msg field 7:enable 0;";
-              echo "#> msg field 8:enable 0;";
-              echo "#> msg field 9:enable 0;";
               pulse_on=1
-
-              buildThreadKodiAddonForOS "${IOS_ATV2_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON"
+              echo "#> msg field 11:clear;"
+              if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
+                buildThreadForOS "${IOS_ATV2_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
+              elif [[ "$line" = *"start_addon_build"* ]];then
+                buildThreadKodiAddonForOS "${IOS_ATV2_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";fi
             }
             elif [[ "$line" = *"stop_build"* ]];then
             {
