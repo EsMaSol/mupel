@@ -106,7 +106,7 @@ process_opts "$@"
 
 initBuildScript_Kodi;
 
-trap '[ ! -z $OWN_TEMP ] && [[ !-z $TEMP_DIR ]] && rm -rf $TEMP_DIR; trapError ${LINENO};' ERR;
+trap '[ ! -z $OWN_TEMP ] && [[ ! -z $TEMP_DIR ]] && rm -rf $TEMP_DIR; trapError ${LINENO};' ERR;
 
 touch $TEMP_DIR/kodi-linux-rpbi.failed;
 
