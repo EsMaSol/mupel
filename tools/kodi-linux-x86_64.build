@@ -249,13 +249,11 @@ else
 
   if [[ $CONFIGURE = 1 ]];then
   {
-  echo 111111111111111111111111111111111
     rm -rf ./tools/depends/target/binary-addons/x86_64-linux-gnu/build/depends/include/GL
     make -C ./tools/depends/target/binary-addons PREFIX=$XBMC_DEPENDS_ROOT/x86_64-linux-gnu ADDONS=$ADDON_BUILD
   }
   else
   {
-  echo 222222222222222222222222222222
     make -C ./tools/depends/target/binary-addons/x86_64-linux-gnu PREFIX=$XBMC_DEPENDS_ROOT/x86_64-linux-gnu $ADDON_BUILD
   } fi
 } fi
