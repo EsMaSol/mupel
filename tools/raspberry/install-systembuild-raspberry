@@ -197,7 +197,7 @@ if [[ ! -z $packages ]];then
     touch "${main_msg}"
     (
       touch "${TEMP_DIR}/build_active"
-      sudo apt-get update
+      sudo -A -- apt-get update
       sudo -A -- apt-get -y -q install $packages;
       [ ${PIPESTATUS[0]} != 0 ] && exit 1;
 
