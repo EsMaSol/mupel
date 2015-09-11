@@ -2385,6 +2385,8 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
 
       loadConfigFile
 
+      . "$HOME/.mupel/android.conf";
+
       # Set buttons to initial state
       echo "#> msg field 0:visible 1;";
       echo "#> msg field 1:visible 1;";
