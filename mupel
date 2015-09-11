@@ -124,18 +124,18 @@ function parse_values()
   }
   elif [ "$field" = "add-ons" ];then
   {
-    if [ -f ${BASE_PATH}/build/kodi-$GIT_USER/kodi/project/cmake/addons/bootstrap/repositories/binary-addons.txt ];then
+    if [ -f $BASE_PATH/build/kodi-$GIT_USER/kodi/project/cmake/addons/bootstrap/repositories/binary-addons.txt ];then
     {
-      if [ ! -d ${BASE_PATH}/build/kodi-$GIT_USER/kodi-repo-binary-addons ];then
+      if [ ! -d $BASE_PATH/build/kodi-$GIT_USER/kodi-repo-binary-addons ];then
       {
-        local url=$(cat ${BASE_PATH}/build/kodi-$GIT_USER/kodi/project/cmake/addons/bootstrap/repositories/binary-addons.txt | awk -F ' ' '{print $2}');
-        local branch=$(cat ${BASE_PATH}/build/kodi-$GIT_USER/kodi/project/cmake/addons/bootstrap/repositories/binary-addons.txt | awk -F ' ' '{print $3}');
-        handleGITLoad ${BASE_PATH}/build/kodi-$GIT_USER kodi-repo-binary-addons $url $branch
+        local url=$(cat $BASE_PATH/build/kodi-$GIT_USER/kodi/project/cmake/addons/bootstrap/repositories/binary-addons.txt | awk -F ' ' '{print $2}');
+        local branch=$(cat $BASE_PATH/build/kodi-$GIT_USER/kodi/project/cmake/addons/bootstrap/repositories/binary-addons.txt | awk -F ' ' '{print $3}');
+        handleGITLoad $BASE_PATH/build/kodi-$GIT_USER kodi-repo-binary-addons $url $branch
       } fi
-      addon_entries=$(cd ${BASE_PATH}/build/kodi-$GIT_USER/kodi-repo-binary-addons; ls -d */ | sed 's|[/]||g');
+      addon_entries=$(cd $BASE_PATH/build/kodi-$GIT_USER/kodi-repo-binary-addons; ls -d */ | sed 's|[/]||g');
     }
     else
-      addon_entries=$(ls -1 ${BASE_PATH}/build/kodi-$GIT_USER/kodi/project/cmake/addons/addons);fi
+      addon_entries=$(ls -1 $BASE_PATH/build/kodi-$GIT_USER/kodi/project/cmake/addons/addons);fi
     targets=
     last=""
     for i in $addon_entries; do
@@ -357,12 +357,12 @@ function buildThreadBaseGeneralProcess()
 {
   local stand_alone=$1
 
-  if [ -f "${BASE_PATH}/build/creation-general.log" ];then
-    mv "${BASE_PATH}/build/creation-general.log" "${BASE_PATH}/build/creation-general-`date +%F_%H-%m`.old.log";fi
-  touch "${BASE_PATH}/build/creation-general.log"
+  if [ -f "$BASE_PATH/build/creation-general.log" ];then
+    mv "$BASE_PATH/build/creation-general.log" "$BASE_PATH/build/creation-general-`date +%F_%H-%m`.old.log";fi
+  touch "$BASE_PATH/build/creation-general.log"
 
-  bash "${BASE_PATH}/tools/basic-system-creation.build" --temp-dir "$TEMP_DIR" >> "/dev/stdout" 2>&1 | \
-  tee "${BASE_PATH}/build/creation-general.log"
+  bash "$BASE_PATH/tools/basic-system-creation.build" --temp-dir "$TEMP_DIR" >> "/dev/stdout" 2>&1 | \
+  tee "$BASE_PATH/build/creation-general.log"
 
   local error_value=${?}
   if [ -f $TEMP_DIR/creation-general.failed ];then
@@ -452,21 +452,21 @@ function buildThreadForOS()
 
   loadConfigFile
 
-  if [ -f "${BASE_PATH}/build/creation-kodi-${system}.log" ];then
-    mv "${BASE_PATH}/build/creation-kodi-${system}.log" "${BASE_PATH}/build/creation-kodi-${system}-`date +%F_%H-%m`.old.log";fi
-  if [ -f "${BASE_PATH}/build/creation-cef-${system}.log" ];then
-    mv "${BASE_PATH}/build/creation-cef-${system}.log" "${BASE_PATH}/build/creation-cef-${system}-`date +%F_%H-%m`.old.log";fi
-  if [ -f "${BASE_PATH}/build/creation-user-script0-${system}.log" ];then
-    mv "${BASE_PATH}/build/creation-user-script-${system}.log" "${BASE_PATH}/build/creation-user-script-${system}-`date +%F_%H-%m`.old.log";fi
+  if [ -f "$BASE_PATH/build/creation-kodi-$system.log" ];then
+    mv "$BASE_PATH/build/creation-kodi-$system.log" "$BASE_PATH/build/creation-kodi-$system-`date +%F_%H-%m`.old.log";fi
+  if [ -f "$BASE_PATH/build/creation-cef-$system.log" ];then
+    mv "$BASE_PATH/build/creation-cef-$system.log" "$BASE_PATH/build/creation-cef-$system-`date +%F_%H-%m`.old.log";fi
+  if [ -f "$BASE_PATH/build/creation-user-script0-$system.log" ];then
+    mv "$BASE_PATH/build/creation-user-script-$system.log" "$BASE_PATH/build/creation-user-script-$system-`date +%F_%H-%m`.old.log";fi
 
   if [[ $INCLUDE_CEF = "TRUE" ]];then
-    touch "${BASE_PATH}/build/creation-cef-${system}.log";fi
+    touch "$BASE_PATH/build/creation-cef-$system.log";fi
 
   if [[ $INCLUDE_KODI = "TRUE" ]];then
-    touch "${BASE_PATH}/build/creation-kodi-${system}.log";fi
+    touch "$BASE_PATH/build/creation-kodi-$system.log";fi
 
   if [[ $INCLUDE_USER_SCRIPT = "TRUE" ]];then
-    touch "${BASE_PATH}/build/creation-user-script-${system}.log";fi
+    touch "$BASE_PATH/build/creation-user-script-$system.log";fi
 
   if [[ $system = win* ]];then
   {
@@ -547,28 +547,28 @@ function buildThreadForOS()
               direct="";fi
 
             touch "$TEMP_DIR/build_thread-cef_active";
-            touch "$TEMP_DIR/build_thread-cef_active-${system}";
+            touch "$TEMP_DIR/build_thread-cef_active-$system";
 
             if [[ $system = win* ]];then
-              sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -l $WINDOWS_SSH_USERNAME -- bash --login "//10.0.2.4/qemu/build/tools/cef-${system}.build" $direct >> "${BASE_PATH}/build/creation-cef-${system}.log" 2>&1 &
+              sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -l $WINDOWS_SSH_USERNAME -- bash --login "//10.0.2.4/qemu/build/tools/cef-$system.build" $direct >> "$BASE_PATH/build/creation-cef-$system.log" 2>&1 &
             elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
-              ${BASE_PATH}/tools/cef-${system}.build $direct >> "${BASE_PATH}/build/creation-cef-${system}.log" 2>&1 &
+              $BASE_PATH/tools/cef-$system.build $direct >> "$BASE_PATH/build/creation-cef-$system.log" 2>&1 &
             else
-              $caller bash "${BASE_PATH}/tools/cef-${system}.build" --temp-dir "$TEMP_DIR" $direct >> "${BASE_PATH}/build/creation-cef-${system}.log" 2>&1 &
+              $caller bash "$BASE_PATH/tools/cef-$system.build" --temp-dir "$TEMP_DIR" $direct >> "$BASE_PATH/build/creation-cef-$system.log" 2>&1 &
             fi
-            tail -f --pid=$! "${BASE_PATH}/build/creation-cef-${system}.log"
+            tail -f --pid=$! "$BASE_PATH/build/creation-cef-$system.log"
 
             step_cef=1;
             rm -f "$TEMP_DIR/build_thread-cef_active";
-            rm -f "$TEMP_DIR/build_thread-cef_active-${system}";
-            if [ -f $TEMP_DIR/cef-${system}.failed ];then
+            rm -f "$TEMP_DIR/build_thread-cef_active-$system";
+            if [ -f $TEMP_DIR/cef-$system.failed ];then
             {
-              rm $TEMP_DIR/cef-${system}.failed
+              rm $TEMP_DIR/cef-$system.failed
               showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
-                         --image-on-top --form --text="CEF ${system} creation failed! \nRelated build stopped." \
+                         --image-on-top --form --text="CEF $system creation failed! \nRelated build stopped." \
                          --button=gtk-ok:1 2> /dev/null &
-              touch "$TEMP_DIR/build_thread-cef-${system}-failed.txt"
-              rm -f "$TEMP_DIR/build_thread-${system}.pid";
+              touch "$TEMP_DIR/build_thread-cef-$system-failed.txt"
+              rm -f "$TEMP_DIR/build_thread-$system.pid";
               exit 1
             } fi
           }
@@ -608,33 +608,32 @@ function buildThreadForOS()
             direct="";fi
 
           if [[ $system = win* ]];then
-            sshpass -p $WINDOWS_SSH_PASSWORD ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME -- bash --login "//10.0.2.4/qemu/build/tools/kodi-${system}.build" $direct >> "${BASE_PATH}/build/creation-kodi-${system}.log" 2>&1 &
+            sshpass -p $WINDOWS_SSH_PASSWORD ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME -- bash --login "//10.0.2.4/qemu/build/tools/kodi-$system.build" $direct >> "$BASE_PATH/build/creation-kodi-$system.log" 2>&1 &
           elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
-            ${BASE_PATH}/tools/kodi-${system}.build --temp-dir "$TEMP_DIR" $direct >> "${BASE_PATH}/build/creation-kodi-${system}.log" 2>&1 &
+            $BASE_PATH/tools/kodi-$system.build --temp-dir "$TEMP_DIR" $direct >> "$BASE_PATH/build/creation-kodi-$system.log" 2>&1 &
           else
-            $caller bash "${BASE_PATH}/tools/kodi-${system}.build" --temp-dir "$TEMP_DIR" $direct >> "${BASE_PATH}/build/creation-kodi-${system}.log" 2>&1 &
+            $caller bash "$BASE_PATH/tools/kodi-$system.build" --temp-dir "$TEMP_DIR" $direct >> "$BASE_PATH/build/creation-kodi-$system.log" 2>&1 &
           fi
-          tail -f --pid=$! "${BASE_PATH}/build/creation-kodi-${system}.log";
+          tail -f --pid=$! "$BASE_PATH/build/creation-kodi-$system.log";
 
-          if [ -f $TEMP_DIR/kodi-${system}.failed ];then
+          if [ -f $TEMP_DIR/kodi-$system.failed ];then
           {
-            rm $TEMP_DIR/kodi-${system}.failed
+            rm $TEMP_DIR/kodi-$system.failed
             showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
-                       --image-on-top --form --text="Kodi ${system} creation failed! \nRelated build stopped." \
+                       --image-on-top --form --text="Kodi $system creation failed! \nRelated build stopped." \
                        --button=gtk-ok:1 2> /dev/null &
-            touch "$TEMP_DIR/build_thread-${system}_failed.txt";
-            rm -f "$TEMP_DIR/build_thread-${system}.pid";
+            rm -f "$TEMP_DIR/build_thread-$system.pid";
             exit 1
           } fi
 
           step_kodi=1
 
-          if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-${system}/kodi.bin" ] ||
-             [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-${system}/kodiapp-x86-debug.apk" ];then
+          if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-$system/kodi.bin" ] ||
+             [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-$system/kodiapp-x86-debug.apk" ];then
           {
             echo "#> msg field 1:enable 1";
             echo "#> msg field 2:enable 1";
-            parse_values "add-ons" "${system}";
+            parse_values "add-ons" "$system";
           }
           else
           {
@@ -652,23 +651,22 @@ function buildThreadForOS()
         if [[ $step_user = 0 ]];then
         {
           if [[ $system = win* ]];then
-            sshpass -p $WINDOWS_SSH_PASSWORD ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME -- bash --login "//10.0.2.4/qemu/build/tools/user-script-${system}.build" >> "${BASE_PATH}/build/creation-user-script-${system}.log" 2>&1 &
+            sshpass -p $WINDOWS_SSH_PASSWORD ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME -- bash --login "//10.0.2.4/qemu/build/tools/user-script-$system.build" >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1 &
           elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
-            ${BASE_PATH}/tools/user-script-${system}.build --temp-dir "$TEMP_DIR" >> "${BASE_PATH}/build/creation-user-script-${system}.log" 2>&1 &
+            $BASE_PATH/tools/user-script-$system.build --temp-dir "$TEMP_DIR" >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1 &
           else
-            $caller bash "${BASE_PATH}/tools/user-script-${system}.build" --temp-dir "$TEMP_DIR" >> "${BASE_PATH}/build/creation-user-script-${system}.log" 2>&1 &
+            $caller bash "$BASE_PATH/tools/user-script-$system.build" --temp-dir "$TEMP_DIR" >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1 &
           fi
-          tail -f --pid=$! "${BASE_PATH}/build/creation-user-script-${system}.log"
+          tail -f --pid=$! "$BASE_PATH/build/creation-user-script-$system.log"
 
           step_user=1
-          if [ -f $TEMP_DIR/user_script-${system}.failed ];then
+          if [ -f $TEMP_DIR/user_script-$system.failed ];then
           {
-            rm $TEMP_DIR/user_script-${system}.failed;
+            rm $TEMP_DIR/user_script-$system.failed;
             showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
-                       --image-on-top --form --text="User script ${system} creation failed! \nRelated build stopped." \
+                       --image-on-top --form --text="User script $system creation failed! \nRelated build stopped." \
                        --button=gtk-ok:1 2> /dev/null &
-            touch "$TEMP_DIR/build_thread-user_script_${system}_failed.txt"
-            rm -f "$TEMP_DIR/build_thread-${system}.pid";
+            rm -f "$TEMP_DIR/build_thread-$system.pid";
             exit 1
           } fi
         } fi
@@ -680,7 +678,7 @@ function buildThreadForOS()
       {
         printf "${BRIGHT}${GREEN}All build steps successfully performed${NORMAL}\n";
 
-        rm -f "$TEMP_DIR/build_thread-${system}.pid";
+        rm -f "$TEMP_DIR/build_thread-$system.pid";
         exit 0;
       } fi
 
@@ -689,8 +687,8 @@ function buildThreadForOS()
   ) &
   pid=$!
 
-  echo $pid > "$TEMP_DIR/build_thread-${system}.pid"
-  echo "Build of ${system} started ...";
+  echo $pid > "$TEMP_DIR/build_thread-$system.pid"
+  echo "Build of $system started ...";
 }
 
 function buildThreadKodiAddonForOS()
@@ -700,41 +698,40 @@ function buildThreadKodiAddonForOS()
   local addon_build="$3"
   local addon_name="$4"
 
-  if [ -f "${BASE_PATH}/build/creation-kodi-addon-${addon_name}-${system}.log" ];then
-    mv "${BASE_PATH}/build/creation-kodi-addon-${addon_name}-${system}.log" "${BASE_PATH}/build/creation-kodi-addon-${addon_name}-${system}-`date +%F_%H-%m`.old.log";fi
+  if [ -f "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" ];then
+    mv "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system-`date +%F_%H-%m`.old.log";fi
 
-  touch "${BASE_PATH}/build/creation-kodi-addon-${addon_name}-${system}.log"
+  touch "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log"
   (
     sleep 3
-
     loadConfigFile
 
     if [[ $system = win* ]];then
-      sshpass -p $WINDOWS_SSH_PASSWORD ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME -- bash --login "//10.0.2.4/qemu/build/tools/kodi-addon-${addon_name}-${system}.build --addon $addon_name" >> "${BASE_PATH}/build/creation-kodi-addon-${system}.log" 2>&1 &
+      sshpass -p $WINDOWS_SSH_PASSWORD ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME -- bash --login "//10.0.2.4/qemu/build/tools/kodi-addon-${addon_name}-$system.build --addon $addon_name" >> "$BASE_PATH/build/creation-kodi-addon-$system.log" 2>&1
     elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
-      ${BASE_PATH}/tools/kodi-addon-${system}.build --temp-dir "$TEMP_DIR" --addon "$addon_name" >> "${BASE_PATH}/build/creation-kodi-addon-${addon_name}-${system}.log" 2>&1 &
+      $BASE_PATH/tools/kodi-addon-$system.build --temp-dir "$TEMP_DIR" --addon "$addon_name" >> "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" 2>&1
     else
-      $caller bash "${BASE_PATH}/tools/kodi-${system}.build" --temp-dir "$TEMP_DIR" --addon "$addon_name" >> "${BASE_PATH}/build/creation-kodi-addon-${addon_name}-${system}.log" 2>&1 &
+      $caller bash "$BASE_PATH/tools/kodi-$system.build" --temp-dir "$TEMP_DIR" --addon "$addon_name" >> "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" 2>&1
     fi
-    error_value=${?}
 
-    rm -f "$TEMP_DIR/build_thread-${system}.pid";
-    if [ ${error_value} != 0 ];then
+    rm -f "$TEMP_DIR/build_thread-$system.pid";
+
+    if [ -f $TEMP_DIR/kodi-$system.failed ];then
     {
+      rm $TEMP_DIR/kodi-$system.failed
       showdialog --title="Warning" \
           --image="$BASE_PATH/icons/icon-warning-128x128.png" \
           --image-on-top --form \
-          --text="Kodi add-on ${system} for ${addon_name} creation failed! \nRelated build stopped." \
+          --text="Kodi add-on $system for ${addon_name} creation failed! \nRelated build stopped." \
           --button=gtk-ok:1 2> /dev/null &
-      touch "$TEMP_DIR/build_thread-${system}_failed.txt"
-      exit ${error_value}
+      exit 1
     } fi
   ) &
   pid=$!
-  tail -f --pid=$pid "${BASE_PATH}/build/creation-kodi-addon-${addon_name}-${system}.log" &
+  tail -f --pid=$pid "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" &
 
-  echo $pid > "$TEMP_DIR/build_thread-${system}.pid"
-  echo "Build of kodi add-on ${system} for ${addon_name} started ...";
+  echo $pid > "$TEMP_DIR/build_thread-$system.pid"
+  echo "Build of kodi add-on $system for ${addon_name} started ...";
 }
 
 function getAndroidAVDS()
@@ -1281,7 +1278,7 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
       echo "#> msg field 8:enable 1;";
       echo "#> msg field 9:enable $kodi_direct;";
 
-      if [ -f "${BASE_PATH}/build/.cef-linux-x86_32.active" ];then
+      if [ -f "$BASE_PATH/build/.cef-linux-x86_32.active" ];then
         cef_direct=1
       else
         cef_direct=0;fi
@@ -1383,7 +1380,7 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
               echo "#> msg field 7:enable $kodi_direct;";
               echo "#> msg field 8:enable 1;";
               echo "#> msg field 9:enable $kodi_direct;";
-              if [ -f "${BASE_PATH}/build/.cef-linux-x86_32.active" ];then
+              if [ -f "$BASE_PATH/build/.cef-linux-x86_32.active" ];then
                 cef_direct=1
               else
                 cef_direct=0;fi
@@ -1442,7 +1439,7 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
           process_active=0;
         } fi
 
-        if [[ $cef_direct = 1 ]] && [ ! -f "${BASE_PATH}/build/.cef-linux-x86_32.active" ];then
+        if [[ $cef_direct = 1 ]] && [ ! -f "$BASE_PATH/build/.cef-linux-x86_32.active" ];then
         {
           cef_direct=0
           echo "#> msg field 2:enable $cef_direct;";
@@ -1463,7 +1460,7 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread2_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread2_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread2_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER ${BASE_PATH}/build/creation-kodi-linux-x86_32.log ${BASE_PATH}/build/creation-general.log ${BASE_PATH}/build/creation-cef-linux-x86_32.log;'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-linux-x86_32.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-linux-x86_32.log;'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-linux-x86_32 $thread2_in" \
              --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread2_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
@@ -1516,7 +1513,7 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
       echo "#> msg field 8:enable 1;";
       echo "#> msg field 9:enable $kodi_direct;";
 
-      if [ -f "${BASE_PATH}/build/.cef-linux-x86_64.active" ];then
+      if [ -f "$BASE_PATH/build/.cef-linux-x86_64.active" ];then
         cef_direct=1
       else
         cef_direct=0;fi
@@ -1618,7 +1615,7 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
               echo "#> msg field 7:enable $kodi_direct;";
               echo "#> msg field 8:enable 1;";
               echo "#> msg field 9:enable $kodi_direct;";
-              if [ -f "${BASE_PATH}/build/.cef-linux-x86_64.active" ];then
+              if [ -f "$BASE_PATH/build/.cef-linux-x86_64.active" ];then
                 cef_direct=1
               else
                 cef_direct=0;fi
@@ -1677,7 +1674,7 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
           process_active=0;
         } fi
 
-        if [[ $cef_direct = 1 ]] && [ ! -f "${BASE_PATH}/build/.cef-linux-x86_64.active" ];then
+        if [[ $cef_direct = 1 ]] && [ ! -f "$BASE_PATH/build/.cef-linux-x86_64.active" ];then
         {
           cef_direct=0
           echo "#> msg field 2:enable $cef_direct;";
@@ -1698,7 +1695,7 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread3_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread3_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread3_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER ${BASE_PATH}/build/creation-kodi-linux-x86_64.log ${BASE_PATH}/build/creation-general.log ${BASE_PATH}/build/creation-cef-linux-x86_64.log;'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-linux-x86_64.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-linux-x86_64.log;'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-linux-x86_64 $thread3_in" \
              --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread3_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
@@ -1751,7 +1748,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
       echo "#> msg field 8:enable 1;";
       echo "#> msg field 9:enable $kodi_direct;";
 
-      if [ -f "${BASE_PATH}/build/.cef-linux-rpbi.active" ];then
+      if [ -f "$BASE_PATH/build/.cef-linux-rpbi.active" ];then
         cef_direct=1
       else
         cef_direct=0;fi
@@ -1853,7 +1850,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
               echo "#> msg field 7:enable $kodi_direct;";
               echo "#> msg field 8:enable 1;";
               echo "#> msg field 9:enable $kodi_direct;";
-              if [ -f "${BASE_PATH}/build/.cef-linux-rpbi.active" ];then
+              if [ -f "$BASE_PATH/build/.cef-linux-rpbi.active" ];then
                 cef_direct=1
               else
                 cef_direct=0;fi
@@ -1912,7 +1909,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
           process_active=0;
         } fi
 
-        if [[ $cef_direct = 1 ]] && [ ! -f "${BASE_PATH}/build/.cef-linux-rpbi.active" ];then
+        if [[ $cef_direct = 1 ]] && [ ! -f "$BASE_PATH/build/.cef-linux-rpbi.active" ];then
         {
           cef_direct=0
           echo "#> msg field 2:enable $cef_direct;";
@@ -1933,7 +1930,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread4_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread4_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread4_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER ${BASE_PATH}/build/creation-kodi-linux-rpbi.log ${BASE_PATH}/build/creation-general.log ${BASE_PATH}/build/creation-cef-linux-rpbi.log;'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-linux-rpbi.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-linux-rpbi.log;'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-linux-rpbi $thread4_in" \
              --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread4_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
@@ -1989,7 +1986,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
       echo "#> msg field 8:enable 1;";
       echo "#> msg field 9:enable $kodi_direct;";
 
-      if [ -f "${BASE_PATH}/build/.cef-win-${WINDOWS_BUILD_TYPE}.active" ];then
+      if [ -f "$BASE_PATH/build/.cef-win-${WINDOWS_BUILD_TYPE}.active" ];then
         cef_direct=1
       else
         cef_direct=0;fi
@@ -2091,7 +2088,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
               echo "#> msg field 7:enable $kodi_direct;";
               echo "#> msg field 8:enable 1;";
               echo "#> msg field 9:enable $kodi_direct;";
-              if [ -f "${BASE_PATH}/build/.cef-win-${WINDOWS_BUILD_TYPE}.active" ];then
+              if [ -f "$BASE_PATH/build/.cef-win-${WINDOWS_BUILD_TYPE}.active" ];then
                 cef_direct=1
               else
                 cef_direct=0;fi
@@ -2151,7 +2148,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
           process_active=0;
         } fi
 
-        if [[ $cef_direct = 1 ]] && [ ! -f "${BASE_PATH}/build/.cef-win-${WINDOWS_BUILD_TYPE}.active" ];then
+        if [[ $cef_direct = 1 ]] && [ ! -f "$BASE_PATH/build/.cef-win-${WINDOWS_BUILD_TYPE}.active" ];then
         {
           cef_direct=0
           echo "#> msg field 2:enable $cef_direct;";
@@ -2172,7 +2169,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread5_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread5_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread5_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER ${BASE_PATH}/build/creation-kodi-win-${WINDOWS_BUILD_TYPE}.log ${BASE_PATH}/build/creation-general.log ${BASE_PATH}/build/creation-cef-win-${WINDOWS_BUILD_TYPE}.log;'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-win-${WINDOWS_BUILD_TYPE}.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-win-${WINDOWS_BUILD_TYPE}.log;'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-win32 $thread5_in" \
              --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread5_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
@@ -2227,7 +2224,7 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
       echo "#> msg field 8:enable 1;";
       echo "#> msg field 9:enable $kodi_direct;";
 
-      if [ -f "${BASE_PATH}/build/.cef-osx-${MAC_OS_X_BUILD_TYPE}.active" ];then
+      if [ -f "$BASE_PATH/build/.cef-osx-${MAC_OS_X_BUILD_TYPE}.active" ];then
         cef_direct=1
       else
         cef_direct=0;fi
@@ -2329,7 +2326,7 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
               echo "#> msg field 7:enable $kodi_direct;";
               echo "#> msg field 8:enable 1;";
               echo "#> msg field 9:enable $kodi_direct;";
-              if [ -f "${BASE_PATH}/build/.cef-osx-${MAC_OS_X_BUILD_TYPE}.active" ];then
+              if [ -f "$BASE_PATH/build/.cef-osx-${MAC_OS_X_BUILD_TYPE}.active" ];then
                 cef_direct=1
               else
                 cef_direct=0;fi
@@ -2388,7 +2385,7 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
           process_active=0;
         } fi
 
-        if [[ $cef_direct = 1 ]] && [ ! -f "${BASE_PATH}/build/.cef-osx-${MAC_OS_X_BUILD_TYPE}.active" ];then
+        if [[ $cef_direct = 1 ]] && [ ! -f "$BASE_PATH/build/.cef-osx-${MAC_OS_X_BUILD_TYPE}.active" ];then
         {
           cef_direct=0
           echo "#> msg field 2:enable $cef_direct;";
@@ -2409,7 +2406,7 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread6_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread6_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread6_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER ${BASE_PATH}/build/creation-kodi-osx-${MAC_OS_X_BUILD_TYPE}.log ${BASE_PATH}/build/creation-general.log ${BASE_PATH}/build/creation-cef-osx-${MAC_OS_X_BUILD_TYPE}.log;'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-osx-${MAC_OS_X_BUILD_TYPE}.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-osx-${MAC_OS_X_BUILD_TYPE}.log;'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-osx32 $thread6_in" \
              --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread6_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
@@ -2462,7 +2459,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
       echo "#> msg field 8:enable 1;";
       echo "#> msg field 9:enable $kodi_direct;";
 
-      if [ -f "${BASE_PATH}/build/.cef-android-${ANDROID_BUILD_TYPE}.active" ];then
+      if [ -f "$BASE_PATH/build/.cef-android-${ANDROID_BUILD_TYPE}.active" ];then
         cef_direct=1
       else
         cef_direct=0;fi
@@ -2564,7 +2561,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
               echo "#> msg field 7:enable $kodi_direct;";
               echo "#> msg field 8:enable 1;";
               echo "#> msg field 9:enable $kodi_direct;";
-              if [ -f "${BASE_PATH}/build/.cef-android-${ANDROID_BUILD_TYPE}.active" ];then
+              if [ -f "$BASE_PATH/build/.cef-android-${ANDROID_BUILD_TYPE}.active" ];then
                 cef_direct=1
               else
                 cef_direct=0;fi
@@ -2638,7 +2635,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
           process_active=0;
         } fi
 
-        if [[ $cef_direct = 1 ]] && [ ! -f "${BASE_PATH}/build/.cef-android-${ANDROID_BUILD_TYPE}.active" ];then
+        if [[ $cef_direct = 1 ]] && [ ! -f "$BASE_PATH/build/.cef-android-${ANDROID_BUILD_TYPE}.active" ];then
         {
           cef_direct=0
           echo "#> msg field 2:enable $cef_direct;";
@@ -2659,7 +2656,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread7_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread7_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread7_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER ${BASE_PATH}/build/creation-kodi-android-${ANDROID_BUILD_TYPE}.log ${BASE_PATH}/build/creation-general.log ${BASE_PATH}/build/creation-cef-android-${ANDROID_BUILD_TYPE}.log;'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-android-${ANDROID_BUILD_TYPE}.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-android-${ANDROID_BUILD_TYPE}.log;'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-android-${ANDROID_BUILD_TYPE} $thread7_in" \
              --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread7_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
@@ -2714,7 +2711,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
       echo "#> msg field 8:enable 1;";
       echo "#> msg field 9:enable $kodi_direct;";
 
-      if [ -f "${BASE_PATH}/build/.cef-${IOS_ATV2_BUILD_TYPE}.active" ];then
+      if [ -f "$BASE_PATH/build/.cef-${IOS_ATV2_BUILD_TYPE}.active" ];then
         cef_direct=1
       else
         cef_direct=0;fi
@@ -2816,7 +2813,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
               echo "#> msg field 7:enable $kodi_direct;";
               echo "#> msg field 8:enable 1;";
               echo "#> msg field 9:enable $kodi_direct;";
-              if [ -f "${BASE_PATH}/build/.cef-${IOS_ATV2_BUILD_TYPE}.active" ];then
+              if [ -f "$BASE_PATH/build/.cef-${IOS_ATV2_BUILD_TYPE}.active" ];then
                 cef_direct=1
               else
                 cef_direct=0;fi
@@ -2875,7 +2872,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
           process_active=0;
         } fi
 
-        if [[ $cef_direct = 1 ]] && [ ! -f "${BASE_PATH}/build/.cef-${IOS_ATV2_BUILD_TYPE}.active" ];then
+        if [[ $cef_direct = 1 ]] && [ ! -f "$BASE_PATH/build/.cef-${IOS_ATV2_BUILD_TYPE}.active" ];then
         {
           cef_direct=0
           echo "#> msg field 2:enable $cef_direct;";
@@ -2896,7 +2893,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread8_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread8_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread8_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER ${BASE_PATH}/build/creation-kodi-${IOS_ATV2_BUILD_TYPE}.log ${BASE_PATH}/build/creation-general.log ${BASE_PATH}/build/creation-cef-${IOS_ATV2_BUILD_TYPE}.log;'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-${IOS_ATV2_BUILD_TYPE}.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-${IOS_ATV2_BUILD_TYPE}.log;'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-ios-atv2 $thread8_in" \
              --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread8_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
@@ -3023,7 +3020,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
             {
               showdialog --title="Mupel - Jenkins place" \
                          --width=520 --height=474 --html \
-                         --uri=${BASE_PATH}/icons/jenkins-holiday.png \
+                         --uri=$BASE_PATH/icons/jenkins-holiday.png \
                          --text="<i><span size=\"large\">Hi, I'm still in holiday</span></i>" \
                          --button=gtk-ok:0 &
             }

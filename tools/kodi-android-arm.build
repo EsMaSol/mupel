@@ -21,8 +21,8 @@
 
 BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
 
-. "${HOME}/.mupel/mupel.conf";
-. "${BASE_PATH}/tools/tool_functions";
+. "$HOME/.mupel/mupel.conf";
+. "$BASE_PATH/tools/tool_functions";
 
 DEBUG_BUILD="--enable-debug=no"
 BUILD_SYSTEM="android-arm"
@@ -106,7 +106,6 @@ process_opts "$@";
 
 initBuildScript_Kodi;
 
-set -e;
 trap '[ ! -z $OWN_TEMP ] && [[ ! -z $TEMP_DIR ]] && rm -rf $TEMP_DIR; trapError ${LINENO};' ERR;
 
 touch $TEMP_DIR/kodi-android-arm.failed;
@@ -117,8 +116,8 @@ touch $TEMP_DIR/kodi-android-arm.failed;
 # Load or update kodi
 loadKodiBuildDir $BUILD_SYSTEM "Android ARM";
 
-ANDROID_SDK_DEFAULT_VERSION=$(cat ${BASE_PATH}/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/defaultenv | awk '/^  android)$/{i=1;next} i && i++ <= 2' | grep "DEFAULT_SDK_VERSION" | awk -F '="' '{print $2}' | awk -F '"' '{print $1}')
-ANDROID_NDK_DEFAULT_VERSION=$(cat ${BASE_PATH}/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/defaultenv | awk '/^  android)$/{i=1;next} i && i++ <= 2' | grep "DEFAULT_NDK_VERSION" | awk -F '="' '{print $2}' | awk -F '"' '{print $1}')
+ANDROID_SDK_DEFAULT_VERSION=$(cat $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/defaultenv | awk '/^  android)$/{i=1;next} i && i++ <= 2' | grep "DEFAULT_SDK_VERSION" | awk -F '="' '{print $2}' | awk -F '"' '{print $1}')
+ANDROID_NDK_DEFAULT_VERSION=$(cat $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/defaultenv | awk '/^  android)$/{i=1;next} i && i++ <= 2' | grep "DEFAULT_NDK_VERSION" | awk -F '="' '{print $2}' | awk -F '"' '{print $1}')
 ANDROID_SEL_TARGET_VERSION=$(echo $ANDROID_SEL_TARGET | awk -F '-' '{print $2}');
 
 if [[ $ANDROID_SEL_TARGET_VERSION = $ANDROID_SDK_DEFAULT_VERSION ]];then
@@ -185,7 +184,7 @@ printf "
 sleep 3
 
 # Change to source code path
-cd ${BASE_PATH}/build/kodi-$GIT_USER/kodi-${BUILD_SYSTEM}
+cd $BASE_PATH/build/kodi-$GIT_USER/kodi-${BUILD_SYSTEM}
 
 if [ -z $ADDON_BUILD ];then
 {
@@ -193,25 +192,25 @@ if [ -z $ADDON_BUILD ];then
   {
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}prepare-depends${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
-    bash ${BASE_PATH}/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/android/prepare-depends
+    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/android/prepare-depends
     printf $CURS_UP
     log_success_msg
 
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}configure-depends${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
-    bash ${BASE_PATH}/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/android/configure-depends
+    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/android/configure-depends
     printf $CURS_UP
     log_success_msg
 
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}make-depends${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
-    bash ${BASE_PATH}/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/android/make-depends
+    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/android/make-depends
     printf $CURS_UP
     log_success_msg
 
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}prepare-xbmc${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
-    bash ${BASE_PATH}/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/android/prepare-xbmc
+    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/android/prepare-xbmc
     printf $CURS_UP
     log_success_msg
   }
@@ -226,14 +225,14 @@ if [ -z $ADDON_BUILD ];then
   {
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}configure-xbmc${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
-    bash ${BASE_PATH}/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/android/configure-xbmc
+    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/android/configure-xbmc
     printf $CURS_UP
     log_success_msg
   } fi
 
   printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}make-xbmc${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
   sleep 2
-  bash ${BASE_PATH}/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/android/make-xbmc
+  bash $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/android/make-xbmc
   make apk;
   if [ -z $DIRECT_KODI_BUILD ];then
     make install;fi
@@ -246,7 +245,7 @@ if [ -z $ADDON_BUILD ];then
     if [[ $INCLUDE_KODI_ADDONS != FALSE ]];then
     {
       printf "\n"
-      bash ${BASE_PATH}/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/android/make-binary-addons
+      bash $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/android/make-binary-addons
       printf $CURS_UP
       log_success_msg
     }
@@ -259,7 +258,7 @@ if [ -z $ADDON_BUILD ];then
   if [[ $KODI_RUN_TESTS != FALSE ]];then
   {
     printf "\n"
-    bash ${BASE_PATH}/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/android/run-tests
+    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/tools/buildsteps/android/run-tests
     printf $CURS_UP
     log_success_msg
   }
@@ -270,11 +269,13 @@ else
 {
   CONFIGURE=1
 
+  trap '' ERR
   if [ -f ./tools/depends/target/binary-addons/arm-linux-androideabi-${ANDROID_SEL_TARGET}/Makefile ];then
   {
-    grep -q ${ADDON_BUILD} ./tools/depends/target/binary-addons/arm-linux-androideabi-${ANDROID_SEL_TARGET}/Makefile
+    grep -q $ADDON_BUILD ./tools/depends/target/binary-addons/arm-linux-androideabi-${ANDROID_SEL_TARGET}/Makefile
     [[ $? = 0 ]] && CONFIGURE=0
   } fi
+  trap '[[ ! -z $OWN_TEMP ]] && [[ ! -z $TEMP_DIR ]] && rm -rf $TEMP_DIR; trapError ${LINENO};' ERR;
 
   if [[ $CONFIGURE = 1 ]];then
   {
@@ -296,7 +297,7 @@ for i in `ls -1 $HOME/.android/avd/*.avd -d`;do
 
 printf "\n \
 ${BRIGHT}${WHITE}All steps successfully performed and test build present on:${NORMAL}
- - ${BRIGHT}${BLUE}${UNDERLINE}${BASE_PATH}`ls -1 -t $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/*.apk | head -1`${NORMAL}\n"
+ - ${BRIGHT}${GREEN}${UNDERLINE}${BASE_PATH}`ls -1 -t $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/*.apk | head -1`${NORMAL}\n"
 
 rm -f $TEMP_DIR/kodi-android-arm.failed;
 [ ! -z $OWN_TEMP ] && [[ ! -z $TEMP_DIR ]] && rm -rf $TEMP_DIR;

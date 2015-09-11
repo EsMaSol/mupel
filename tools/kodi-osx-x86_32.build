@@ -21,9 +21,9 @@
 
 BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
 
-. "${HOME}/.mupel/mupel.conf";
+. "$HOME/.mupel/mupel.conf";
 . "$HOME/.mupel/mac-osx.conf";
-. "${BASE_PATH}/tools/tool_functions";
+. "$BASE_PATH/tools/tool_functions";
 
 DEBUG_BUILD="--enable-debug=no"
 BUILD_SYSTEM="osx-x86_32"
@@ -114,16 +114,15 @@ if [ -z $TEMP_DIR ];then
   exit 1
 } fi
 
-set -e
 trap 'trapError ${LINENO};' ERR
 
 touch $TEMP_DIR/kodi-osx-x86_32.failed;
 
-if [ ! -d "${BASE_PATH}/build/kodi" ];then
+if [ ! -d "$BASE_PATH/build/kodi" ];then
 {
   printf "\
 ${RED}${BRIGHT}ERROR: ${WHITE}Needed source code on${NORMAL}
-${BRIGHT}${WHITE}${BASE_PATH}/build/kodi${NORMAL}
+${BRIGHT}${WHITE}$BASE_PATH/build/kodi${NORMAL}
 ${BRIGHT}${WHITE}for build not present!${NORMAL}\n";
   exit 1;
 } fi
@@ -149,7 +148,6 @@ sleep 3
 
 # Create development directory on Mac where all kodi parts becomes stored
 sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- "\
-set -e
 trap 'echo Error on line ${LINENO} inside Mac OS X system call;' ERR
 
 if [ ! -d ${MAC_HOME_DIR}/kodi-development/remote_access ];then
@@ -318,15 +316,22 @@ else
 {
     sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- \
       bash -c "\
-CONFIGURE=1
-cd ${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM
+export TARBALLS=\"${MAC_HOME_DIR}/kodi-development/remote_access/build/build/kodi-tarballs\"
+export BUILDTHREADS=$CPU_PROC_JOBS
+export XBMC_PLATFORM_DIR=\"osx32\"
+export WORKSPACE=\"${MAC_HOME_DIR}/kodi-development/kodi-${BUILD_SYSTEM}\"
+export XBMC_DEPENDS_ROOT=\"${MAC_HOME_DIR}/kodi-development/remote_access/build/build/kodi-$GIT_USER/binary_distrib/${INSTALL_DIR_TYPE}/kodi\"
 
+cd ${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM
 CONFIGURE=1
+
+trap '' ERR
 if [ ! -f ./tools/depends/target/binary-addons/x86_32-osx-gnu/Makefile ];then
 {
-  grep -q ${ADDON_BUILD} ./tools/depends/target/binary-addons/x86_32-osx-gnu/Makefile
+  grep -q $ADDON_BUILD ./tools/depends/target/binary-addons/x86_32-osx-gnu/Makefile
   [[ $? = 0 ]] && CONFIGURE=0
 } fi
+trap 'echo Error on line \${LINENO} inside Mac OS X system call;' ERR
 
 if [[ $CONFIGURE = 1 ]];then
 {
@@ -344,7 +349,7 @@ trap '' ERR
 
 printf "\n \
 ${BRIGHT}${WHITE}All steps successfully performed and test build present and can started with:${NORMAL}
- - ${BRIGHT}${BLUE}${UNDERLINE}${BASE_PATH}/build/kodi-${BUILD_SYSTEM}/kodi.bin${NORMAL}\n"
+ - ${BRIGHT}${GREEN}${UNDERLINE}$BASE_PATH/build/kodi-${BUILD_SYSTEM}/kodi.bin${NORMAL}\n"
 
 sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- \
   umount -f //guest:@10.0.2.4/qemu

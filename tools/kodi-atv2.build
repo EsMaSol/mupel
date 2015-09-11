@@ -21,8 +21,8 @@
 
 BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
 
-. "${HOME}/.mupel/mupel.conf";
-. "${BASE_PATH}/tools/tool_functions";
+. "$HOME/.mupel/mupel.conf";
+. "$BASE_PATH/tools/tool_functions";
 
 DEBUG_BUILD="--enable-debug=no"
 BUILD_SYSTEM="atv2"
@@ -106,7 +106,6 @@ process_opts "$@";
 
 initBuildScript_Kodi;
 
-set -e;
 trap '[ ! -z $OWN_TEMP ] && [[ ! -z $TEMP_DIR ]] && rm -rf $TEMP_DIR; trapError ${LINENO};' ERR;
 
 touch $TEMP_DIR/kodi-atv2.failed;
@@ -390,15 +389,16 @@ export XBMC_PLATFORM_DIR=\"atv2\"
 #export WORKSPACE=\"${MAC_HOME_DIR}/kodi-development/kodi-${BUILD_SYSTEM}\"
 #export XBMC_DEPENDS_ROOT=\"${MAC_HOME_DIR}/kodi-development/remote_access/build/build/kodi-$GIT_USER/binary_distrib/${INSTALL_DIR_TYPE}/kodi\"
 
-CONFIGURE=1
 cd ${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM
-
 CONFIGURE=1
+
+trap '' ERR
 if [ ! -f ./tools/depends/target/binary-addons/x86_32-osx-gnu/Makefile ];then
 {
-  grep -q ${ADDON_BUILD} ./tools/depends/target/binary-addons/x86_32-osx-gnu/Makefile
+  grep -q $ADDON_BUILD ./tools/depends/target/binary-addons/x86_32-osx-gnu/Makefile
   [[ $? = 0 ]] && CONFIGURE=0
 } fi
+trap 'echo Error on line \${LINENO} inside Mac OS X system call;' ERR
 
 if [[ $CONFIGURE = 1 ]];then
 {
@@ -416,7 +416,7 @@ trap '' ERR
 
 printf "\n \
 ${BRIGHT}${WHITE}All steps successfully performed and test build present and can started with:${NORMAL}
- - ${BRIGHT}${BLUE}${UNDERLINE}${BASE_PATH}/build/kodi-${BUILD_SYSTEM}/kodi.bin${NORMAL}\n"
+ - ${BRIGHT}${GREEN}${UNDERLINE}$BASE_PATH/build/kodi-${BUILD_SYSTEM}/kodi.bin${NORMAL}\n"
 
 sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- \
   umount -f //guest:@10.0.2.4/qemu

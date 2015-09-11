@@ -29,8 +29,6 @@ BUILD_SYSTEM="linux-arm"
 TEMP_DIR=
 INSTALL_DIR_TYPE="Release"
 
-set -e
-
 ##
 # Usage help function return as string the available values
 function usage()

@@ -21,8 +21,8 @@
 
 BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
 
-. "${HOME}/.mupel/mupel.conf";
-. "${BASE_PATH}/tools/tool_functions";
+. "$HOME/.mupel/mupel.conf";
+. "$BASE_PATH/tools/tool_functions";
 
 DEBUG_BUILD="--enable-debug=no"
 BUILD_SYSTEM="linux-rpbi"
@@ -106,7 +106,6 @@ process_opts "$@"
 
 initBuildScript_Kodi;
 
-set -e;
 trap '[ ! -z $OWN_TEMP ] && [[ !-z $TEMP_DIR ]] && rm -rf $TEMP_DIR; trapError ${LINENO};' ERR;
 
 touch $TEMP_DIR/kodi-linux-rpbi.failed;
@@ -195,7 +194,7 @@ printf "
 sleep 3
 
 # Change to source code path
-cd ${BASE_PATH}/build/kodi-$GIT_USER/kodi-${BUILD_SYSTEM}
+cd $BASE_PATH/build/kodi-$GIT_USER/kodi-${BUILD_SYSTEM}
 
 if [ -z $ADDON_BUILD ];then
 {
@@ -278,11 +277,14 @@ if [ -z $ADDON_BUILD ];then
 else
 {
   CONFIGURE=1
+
+  trap '' ERR
   if [ -f ./tools/depends/target/binary-addons/arm-linux-gnu*/Makefile ];then
   {
-    grep -q ${ADDON_BUILD} ./tools/depends/target/binary-addons/arm-linux-gnu*/Makefile
+    grep -q $ADDON_BUILD ./tools/depends/target/binary-addons/arm-linux-gnu*/Makefile
     [[ $? = 0 ]] && CONFIGURE=0
   } fi
+  trap '[[ ! -z $OWN_TEMP ]] && [[ ! -z $TEMP_DIR ]] && rm -rf $TEMP_DIR; trapError ${LINENO};' ERR;
 
   if [[ $CONFIGURE = 1 ]];then
   {
@@ -299,7 +301,7 @@ trap '' ERR
 
 printf "\n \
 ${BRIGHT}${WHITE}All steps successfully performed and test build present on:${NORMAL}
- - ${BRIGHT}${BLUE}${UNDERLINE}${BASE_PATH}/build/kodi-$GIT_USER/kodi-${BUILD_SYSTEM}/kodi.bin${NORMAL}\n"
+ - ${BRIGHT}${GREEN}${UNDERLINE}$BASE_PATH/build/kodi-$GIT_USER/kodi-${BUILD_SYSTEM}/kodi.bin${NORMAL}\n"
 
 rm -f $TEMP_DIR/kodi-linux-rpbi.failed;
 [ ! -z $OWN_TEMP ] && [[ ! -z $TEMP_DIR ]] && rm -rf $TEMP_DIR;

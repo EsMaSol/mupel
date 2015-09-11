@@ -100,7 +100,6 @@ process_opts "$@"
 initBuildScript_CEF;
 
 # Set error return
-set -e;
 trap '[[ ! -z $OWN_TEMP ]] && [[ ! -z $TEMP_DIR ]] && rm -rf $TEMP_DIR; trapError ${LINENO};' ERR;
 
 # Add failed file which becomes removed if everything is ok, this way is more
