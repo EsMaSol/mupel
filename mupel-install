@@ -215,15 +215,12 @@ Do you want to select script?";
   if [ "$target" == "64" ] && [ "$USE_LINUX_RPBI" == "TRUE" ];then
   {
     # arm cross toolchain packages needed to build chrome on armhf
-    extra_list="libc6-dev-armhf-cross
-                linux-libc-dev-armhf-cross
-                g++-arm-linux-gnueabihf";
+    extra_list="libc6-dev-armhf-cross linux-libc-dev-armhf-cross g++-arm-linux-gnueabihf";
 
     # Work around for dependency issue Ubuntu/Trusty: http://crbug.com/435056
     if [ "x$lsb_release" = "xtrusty" ]; then
     {
-      extra_list+=" g++-4.8-multilib-arm-linux-gnueabihf
-                    gcc-4.8-multilib-arm-linux-gnueabihf";
+      extra_list+=" g++-4.8-multilib-arm-linux-gnueabihf gcc-4.8-multilib-arm-linux-gnueabihf";
     } fi
   } fi
   if [ "$target" == "64" ];then
