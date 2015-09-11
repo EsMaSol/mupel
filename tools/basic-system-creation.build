@@ -198,6 +198,11 @@ else
 printf "\n${WHITE}${BRIGHT}Handle kodi related parts${NORMAL} ...\n";
 [ ! -d "$BASE_PATH/build/kodi-$GIT_USER" ] && mkdir -p "$BASE_PATH/build/kodi-$GIT_USER"
 handleGITLoad "$BASE_PATH/build/kodi-$GIT_USER" kodi $KODI_SOURCE_URL $KODI_SOURCE_BRANCH "build_thread_1_general";
+if [[ $GIT_USER != xbmc ]] && [ -z `git -C $BASE_PATH/build/kodi-$GIT_USER/kodi remote | grep upstream` ];then
+{
+  git -C $BASE_PATH/build/kodi-$GIT_USER/kodi remote add upstream https://github.com/xbmc/xbmc.git
+  git -C $BASE_PATH/build/kodi-$GIT_USER/kodi fetch upstream
+} fi
 
 ##
 # Start CEF source code load here
