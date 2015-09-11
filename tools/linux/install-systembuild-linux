@@ -566,13 +566,8 @@ EOF
         sudo -A -- sh -c 'cat >>'"${fstab}"
     } fi
 
-    # Share Pulse Audio
-    if ! grep -qs '^/run/shm/dbus' "${fstab}" && [ -d /var/lib/dbus ];then
-    {
-      echo '#/var/lib/dbus /var/lib/dbus none rw,bind 0 0'   | sudo -A -- sh -c 'cat >>'"${fstab}";
-      echo '#/var/run/dbus /var/run/dbus none rw,bind 0 0'   | sudo -A -- sh -c 'cat >>'"${fstab}";
-      echo '/run/user/1000 /run/user/1000 none rw,bind 0 0' | sudo -A -- sh -c 'cat >>'"${fstab}";
-    } fi
+    grep -qs '^/run/user/1000' "${fstab}" ||
+      echo '/run/user/1000  /run/user/1000  none    rw,bind         0       0' | sudo -A -- sh -c 'cat >>'"${fstab}";
 
     # Install a helper script to launch commands in the chroot
     sudo -A -- sh -c 'cat > /usr/local/bin/'"${target%bit}" << EOF

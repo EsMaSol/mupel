@@ -391,7 +391,7 @@ while :; do
         esac
       done
     }
-    mkdir -p $INSTALL_PREFIX/emulate/${target}
+    mkdir -p $INSTALL_PREFIX/emulate/${target}/mount
     mkdir -p $INSTALL_PREFIX/emulate/data_share/base
     mkdir -p $INSTALL_PREFIX/emulate/data_share/mount
 
@@ -684,11 +684,9 @@ profile=${target}
 
 EOF
 
-    echo "${GPI_IMAGE}      /               auto    loop,offset=$((512*${OFFSET_ROOT})) 0       0" |
-      sudo -A -- sh -c 'cat >'"${fstab}"
-
-    echo "${GPI_IMAGE}      /boot           auto    loop,offset=$((512*${OFFSET_BOOT})) 0       0" |
-      sudo -A -- sh -c 'cat >>'"${fstab}"
+    echo "${GPI_IMAGE} /     auto   loop,offset=$((512*${OFFSET_ROOT})) 0 0" | sudo -A -- sh -c 'cat >'"${fstab}"
+    echo "${GPI_IMAGE} /boot auto   loop,offset=$((512*${OFFSET_BOOT})) 0 0" | sudo -A -- sh -c 'cat >>'"${fstab}"
+    echo "/home           /home           none    rw,bind         0       0" | sudo -A -- sh -c 'cat >>'"${fstab}"
 
     echo "-----------------------------------------------------------------------------"
     echo "Add the extra mount points that the user told us about"
@@ -703,39 +701,23 @@ EOF
     echo "environment. Most modern distributions use this mount point to"
     echo "automatically mount devices such as CDROMs, USB sticks, etc..."
     if [ -d /media ] && ! grep -qs '^/media' "${fstab}";then
-      echo '/media /media none rw,rbind 0 0' | sudo -A -- sh -c 'cat >>'"${fstab}";fi
+      echo '/media          /media          none    rw,rbind        0       0' | sudo -A -- sh -c 'cat >>'"${fstab}";fi
     echo "OK"
     echo "-----------------------------------------------------------------------------"
     echo ""
 
-    # Share /dev/shm, /run and /run/shm.
     grep -qs '^/dev/pts' "${fstab}" ||
-      echo '/dev/pts        /dev/pts        none    rw,bind         0       0' |
-        sudo -A -- sh -c 'cat >>'"${fstab}"
+      echo '/dev/pts        /dev/pts        none    rw,bind         0       0' | sudo -A -- sh -c 'cat >>'"${fstab}"
     grep -qs '^/proc' "${fstab}" ||
-      echo '/proc           /proc           none    rw,bind         0       0' |
-        sudo -A -- sh -c 'cat >>'"${fstab}"
+      echo '/proc           /proc           none    rw,bind         0       0' | sudo -A -- sh -c 'cat >>'"${fstab}"
     grep -qs '^/sys' "${fstab}" ||
-      echo '/sys            /sys            none    rw,bind         0       0' |
-        sudo -A -- sh -c 'cat >>'"${fstab}"
+      echo '/sys            /sys            none    rw,bind         0       0' | sudo -A -- sh -c 'cat >>'"${fstab}"
     grep -qs '^/tmp' "${fstab}" ||
-      echo 'tmpfs           /tmp            tmpfs   defaults        0       0' |
-        sudo -A -- sh -c 'cat >>'"${fstab}"
+      echo 'tmpfs           /tmp            tmpfs   defaults        0       0' | sudo -A -- sh -c 'cat >>'"${fstab}"
     grep -qs '^/home' "${fstab}" ||
-      echo '/home           /home           none    rw,bind         0       0' |
-        sudo -A -- sh -c 'cat >>'"${fstab}"
-
-    echo "-----------------------------------------------------------------------------"
-    echo "Share Pulse Audio"
-    if ! grep -qs '^/run/shm/dbus' "${fstab}" && [ -d /var/lib/dbus ];then
-    {
-      echo '/var/lib/dbus /var/lib/dbus none rw,bind 0 0'   | sudo -A -- sh -c 'cat >>'"${fstab}";
-      echo '/var/run/dbus /var/run/dbus none rw,bind 0 0'   | sudo -A -- sh -c 'cat >>'"${fstab}";
-      echo '/run/user/1000 /run/user/1000 none rw,bind 0 0' | sudo -A -- sh -c 'cat >>'"${fstab}";
-    } fi
-    echo "OK"
-    echo "-----------------------------------------------------------------------------"
-    echo ""
+      echo '/home           /home           none    rw,bind         0       0' | sudo -A -- sh -c 'cat >>'"${fstab}"
+    grep -qs '^/run/user/1000' "${fstab}" ||
+      echo '/run/user/1000  /run/user/1000  none    rw,bind         0       0' | sudo -A -- sh -c 'cat >>'"${fstab}";
 
 #    echo "-----------------------------------------------------------------------------"
 #    echo "Set up a special directory that changes contents depending on the target that is executing."
