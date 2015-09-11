@@ -1778,9 +1778,9 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
               pulse_on=1
               echo "#> msg field 11:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
+                buildThreadForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}32" 5 $is_direct_cef $is_direct_kodi
               elif [[ "$line" = *"start_addon_build"* ]];then
-                buildThreadKodiAddonForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";fi
+                buildThreadKodiAddonForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}32" 1 "$KODI_SEL_ADDON";fi
             }
             elif [[ "$line" = *"stop_build"* ]];then
             {
