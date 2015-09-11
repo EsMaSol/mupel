@@ -507,14 +507,14 @@ Install from CD/DVD/ISO\!\
 Use already present package\!\
 Use machine from VirtualBox" \
                              --field="Set used virtual Windows memory size in MByte:NUM" "$WINDOWS_LAST_USED_MEM_SIZE" \
-                             --field="Set used virtual Windows hard disk size in MByte:NUM" "$WINDOWS_LAST_USED_DISK_SIZE" \
+                             --field="Set used virtual Windows hard disk size in GByte:NUM" "$WINDOWS_LAST_USED_DISK_SIZE" \
                              --field="Used source as cdrom/dvd device after installation:FL" "$WINDOWS_LAST_CDROM_POINT" \
                              --field="Due you want to include virtual additional disk to Windows?:CHK" "false" \
                              --field="Where to store desktop icon:DIR" "$WINDOWS_DESKTOP_ICON_PATH" \
                              --field="Use single desktop icon:CHK" "$WINDOWS_SINGLE_LAUNCH_ICON" \
                              --field="System UUID:" "$WINDOWS_LAST_USED_UUID" \
                              --field=":LBL" "" \
-                             --field="<b>Remote SSH access</b>\nIf known username and password can be entered here or later on Muple settings.:LBL" "" \
+                             --field="<b>Remote SSH access</b>\nIf known, username and password can be entered here or later on Muple settings.:LBL" "" \
                              --field="Username (ssh):" "$WINDOWS_SSH_USERNAME" \
                              --field="Password (ssh):H" "$WINDOWS_SSH_PASSWORD" \
                              --field=":LBL" "" \
