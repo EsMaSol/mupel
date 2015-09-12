@@ -115,11 +115,11 @@ function parse_values()
 
   if [ "$field" = "general" ];then
   {
-    if [[ $id = 6 ]];then # handle 'Include Kodi' change
+    if [[ $id = 9 ]];then # handle 'Include Kodi' change
       INCLUDE_KODI=${value%|};
-    elif [[ $id = 7 ]];then # handle 'Include Kodi add-ons' change
+    elif [[ $id = 10 ]];then # handle 'Include Kodi add-ons' change
       INCLUDE_KODI_ADDONS=${value%|};
-    elif [[ $id = 8 ]];then # handle 'Include CEF' change
+    elif [[ $id = 11 ]];then # handle 'Include CEF' change
       INCLUDE_CEF=${value%|};fi
   }
   elif [ "$field" = "add-ons" ];then
@@ -529,8 +529,10 @@ function buildThreadForOS()
     step_user=0
     bar_position=0;
 
-    if [ ! -f "$TEMP_DIR/build_thread-base_general.pid" ] && [[ $direct_build_cef = 0 ]] && [[ $direct_build_kodi = 0 ]];then
+    mutexLock_BaseBuild
+    if [ $? = 0 ] && [ ! -f "$TEMP_DIR/build_thread-base_general.pid" ] && [[ $direct_build_cef = 0 ]] && [[ $direct_build_kodi = 0 ]];then
       buildThreadBaseGeneralProcess 0;fi
+    mutexUnlock_BaseBuild
 
     while :;do
     {
@@ -1062,7 +1064,8 @@ touch ${TEMP_DIR}/thread9_in
       # Set buttons to initial state
       echo "#> msg field 0:visible 1;";
       echo "#> msg field 1:visible 0;";
-      echo "#> msg field 9:visible 0;"; # Dummy
+      echo "#> msg field 3:visible 0;"; # Dummy
+      echo "#> msg field 12:visible 0;"; # Dummy
       if [[ $USE_LINUX_X86_32 = "FALSE" ]] &&
          [[ $USE_LINUX_X86_64 = "FALSE" ]] &&
          [[ $USE_LINUX_RPBI = "FALSE" ]] &&
@@ -1085,10 +1088,10 @@ touch ${TEMP_DIR}/thread9_in
         echo "#> msg field 2:visible 0;";
       } fi
 
-      echo "#> msg field 6:set $INCLUDE_KODI;";
-      echo "#> msg field 7:set $INCLUDE_KODI_ADDONS;";
-      echo "#> msg field 8:set $INCLUDE_CEF;";
-      [[ $SUPPORT_CEF = "TRUE" ]] && echo "#> msg field 8:enable 1;" || echo "#> msg field 8:enable 0;";
+      echo "#> msg field 9:set $INCLUDE_KODI;";
+      echo "#> msg field 10:set $INCLUDE_KODI_ADDONS;";
+      echo "#> msg field 11:set $INCLUDE_CEF;";
+      [[ $SUPPORT_CEF = "TRUE" ]] && echo "#> msg field 11:enable 1;" || echo "#> msg field 11:enable 0;";
 
       sleep 2
       kill $start_dialog_pid
@@ -1116,7 +1119,7 @@ touch ${TEMP_DIR}/thread9_in
 
         proc=$(cat "$thread1_in")
         echo -n "" > "$thread1_in";
-        IFS='\n';
+        IFS=$'\n';
         for line in ${proc}; do
         {
           if [[ "$line" == "#< msg"* ]];then
@@ -1126,9 +1129,11 @@ touch ${TEMP_DIR}/thread9_in
               echo "#> msg pulse on;";
               echo "#> msg field 0:visible 0;";
               echo "#> msg field 1:visible 1;";
-              echo "#> msg field 6:enable 0;";
               echo "#> msg field 7:enable 0;";
               echo "#> msg field 8:enable 0;";
+              echo "#> msg field 9:enable 0;";
+              echo "#> msg field 10:enable 0;";
+              echo "#> msg field 11:enable 0;";
               PULSE_ON=1
 
               buildThreadBaseGeneral
@@ -1169,11 +1174,22 @@ touch ${TEMP_DIR}/thread9_in
               echo "#> msg percent 0;";
               echo "#> msg field 0:visible 1;";
               echo "#> msg field 1:visible 0;";
-              echo "#> msg field 6:enable 1;";
               echo "#> msg field 7:enable 1;";
               echo "#> msg field 8:enable 1;";
+              echo "#> msg field 9:enable 1;";
+              echo "#> msg field 10:enable 1;";
+              echo "#> msg field 11:enable 1;";
             }
-            elif [[ "$line" = *"prepare_patches"* ]];then
+            elif [[ "$line" = *"download_only"* ]];then
+            {
+              mutexLock_BaseBuild
+              echo "#> msg field 4:enable 0;";
+              if [ $? = 0 ];then
+                buildThreadBaseGeneralProcess 0;fi
+              echo "#> msg field 4:enable 1;";
+              mutexUnlock_BaseBuild
+            }
+            elif [[ "$line" = *"kodi_prepare_patches"* ]];then
             {
               unset IFS;
               printf "\
@@ -1187,7 +1203,54 @@ ${BRIGHT}${WHITE}Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'${NORMAL}
 
 \\-------------------------------------------------------------------------------\n"
             }
-            elif [[ "$line" = *"field"* ]];then {
+            elif [[ "$line" = *"kodi_new_branch"* ]];then
+            {
+              unset IFS;
+              echo "#> msg field 5:enable 0;";
+              while :;do
+              {
+                new_kodi_branch=$(showdialog --entry \
+                                             --title="New kodi branch" \
+                                             --text="<b>Enter new kodi branch name</b>\nBecomes also loaded up if possible" \
+                                             --width=260 --center);
+                if [[ ! -z  `echo $new_kodi_branch | grep " "` ]];then
+                {
+                  showErrorDialog_YesNo "<b>Your new branch contains not allowed spaced</b>\n - '${new_kodi_branch}'\n\nDo you want to try again?";
+                  [ $? != 0 ] && break;
+                  continue;
+                } fi
+                if [ ! -z $new_kodi_branch ];then
+                {
+                  printf "\
+/------------------------------------------------------------------------------
+
+${BRIGHT}${WHITE}Creating new kodi branch '$new_kodi_branch' ...${NORMAL}
+"
+                git -C $BASE_PATH/build/kodi-$GIT_USER/kodi checkout master
+                git -C $BASE_PATH/build/kodi-$GIT_USER/kodi checkout -b $new_kodi_branch;
+                # If new branch is not on kodi source from github.com/xbmc and is loaded
+                # with access rights ask to upload new branch
+                if [ $GIT_USER != xbmc ] && [ ! -z `echo $KODI_SOURCE_URL | grep ":" | grep "@"` ];then
+                {
+                  showQuestionDialog "Do you want also upload '$new_kodi_branch' to $KODI_SOURCE_URL?";
+                  if [ $? = 0 ];then
+                    git -C $BASE_PATH/build/kodi-$GIT_USER/kodi push --set-upstream origin $new_kodi_branch;fi
+                } fi;
+                git -C $BASE_PATH/build/kodi-$GIT_USER/kodi checkout $KODI_SOURCE_BRANCH
+                # Trigger to reload available branches
+                echo "#< msg field 2:$KODI_SOURCE_URL;" >> $thread9_in
+
+                printf "\
+${BRIGHT}${WHITE}Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'${NORMAL}
+
+\\-------------------------------------------------------------------------------\n"
+                } fi
+                break;
+              } done
+              echo "#> msg field 5:enable 1;";
+            }
+            elif [[ "$line" = *"field"* ]];then
+            {
               IFS=$'\n'; for p in ${line}; do
                 id=$(echo ${p} | awk -F ' ' '{print $4}' | awk -F ':' '{print $1}')
                 value=$(echo ${p#*:} | awk -F ';' '{print $1}')
@@ -1206,7 +1269,8 @@ ${BRIGHT}${WHITE}Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'${NORMAL}
               done; unset IFS;
               [ -z $SYSTEM_ACTIVE ] && exit 0;
             }
-            else {
+            else
+            {
               echo "Wrong command! $line" > /dev/stderr
             } fi
           }
@@ -1237,14 +1301,17 @@ ${BRIGHT}${WHITE}Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'${NORMAL}
             --field="Start build all:FBTN@0,8,0,2" "bash -c 'echo \"#< msg start_build;\" > $thread1_in'" \
             --field="Stop build all:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build;\" > $thread1_in'" \
             --field="Create and install Mupel system:FBTN@0,8,4,6" "bash $BASE_PATH/mupel-install --main-msg $thread1_in" \
-            --field="Prepare patches from Kodi:FBTN@0,0,6,8" "bash -c 'echo \"#< msg prepare_patches;\" > $thread1_in'" \
-            --field="Clear log:FBTN@8,8,6,8" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread1_in'" \
-            --field=":lbl@0,8,10,12" \
-            --field="Include Kodi:chk@0,0,12,14" $INCLUDE_KODI \
-            --field="Include Kodi add-ons:chk@2,2,12,14" $INCLUDE_KODI_ADDONS \
-            --field="Include CEF:chk@4,4,12,14" $INCLUDE_CEF \
-            --field="dummy:FBTN@8,8,16,18" "" \
-            --field="Build log:termproc@0,9,20,22" ""  &
+            --field="dummy:FBTN@8,8,4,6" "" \
+            --field="Download/Update only:FBTN@0,0,12,14" "bash -c 'echo \"#< msg download_only;\" > $thread1_in'" \
+            --field="Create new branch:FBTN@1,1,12,14" "bash -c 'echo \"#< msg kodi_new_branch;\" > $thread1_in'" \
+            --field="Prepare patches:FBTN@2,2,12,14" "bash -c 'echo \"#< msg kodi_prepare_patches;\" > $thread1_in'" \
+            --field="Clear log:FBTN@8,8,12,14" "bash -c 'echo \"#> msg field 14:clear;\" >> $thread1_in'" \
+            --field=":lbl@0,8,16,18" \
+            --field="Include Kodi:chk@0,0,20,22" $INCLUDE_KODI \
+            --field="Include Kodi add-ons:chk@2,2,20,22" $INCLUDE_KODI_ADDONS \
+            --field="Include CEF:chk@4,4,20,22" $INCLUDE_CEF \
+            --field="dummy:FBTN@8,8,24,26" "" \
+            --field="Build log:termproc@0,9,28,30" ""  &
   pid_thread1=$!
 }
 #

@@ -612,6 +612,31 @@ function showQuestionDialog()
 }
 ##
 
+lockdir_BaseBuild=/tmp/Mupel_mutexLock_BaseBuild.lock
+mutexLock_BaseBuild()
+{
+  local ret=0;
+  while :; do
+  {
+    if mkdir "$lockdir_BaseBuild" 2>/dev/null;then      # directory did not exist, but was created successfully
+    {
+      trap 'rm -rf "$lockdir_BaseBuild"' 0;             # remove directory when script finishes
+      break;                                            # continue with script
+    }
+    else
+    {
+      sleep 0.1;
+      ret=1;
+    } fi                                      # sleep for 0.1 seconds and try again
+  } done
+  return $ret;
+}
+
+mutexUnlock_BaseBuild()
+{
+  rm -rf "$lockdir_BaseBuild"
+}
+
 ##
 # saveConfigFile()
 # Write configuration file about available options
@@ -908,7 +933,8 @@ function handleGITLoad()
   if [ ! -d "${to_dir}/${out_name}" ];then
   {
     echo "Git Download: $url - branch: $branch";
-    git -C $to_dir clone --progress $url --branch $branch $out_name > /dev/stdout 2>&1
+    git -C $to_dir clone --progress $url $out_name > /dev/stdout 2>&1
+    git -C $to_dir/$out_name checkout $branch > /dev/stdout 2>&1
     if [[ $out_name = kodi ]] && [[ $GIT_USER != xbmc ]];then
     {
       git -C $to_dir/kodi remote add upstream https://github.com/xbmc/xbmc.git > /dev/stdout 2>&1
