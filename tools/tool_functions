@@ -912,7 +912,7 @@ function handleGITLoad()
     if [[ $out_name = kodi ]] && [[ $GIT_USER != xbmc ]];then
     {
       git -C $to_dir/kodi remote add upstream https://github.com/xbmc/xbmc.git > /dev/stdout 2>&1
-      git fetch upstream > /dev/stdout 2>&1
+      git -C $to_dir/kodi fetch upstream > /dev/stdout 2>&1
     } fi
   }
   else
@@ -1058,8 +1058,27 @@ function loadKodiBuildDir()
     echo " - Current Checkout: $KODI_CURRENT_HASH"
     echo " - Desired Checkout: $KODI_DESIRED_HASH"
 
+    local sleep_time=10;
     if [[ $KODI_CURRENT_HASH != $KODI_DESIRED_HASH ]];then
-      git -C $directory pull;fi
+    {
+      local active_branch=`git rev-parse --abbrev-ref HEAD`
+      if [ $active_branch != master ];then
+      {
+        printf "${RED}${BRIGHT}WARNING: ${WHITE}Build branch for $REAL_NAME becomes updated, if branch '$active_branch' contains other changes are they deleted!\n"
+        while [ $sleep_time > 0 ];do
+        {
+          printf "\r$         {YELLOW}Sleeping $sleep_time seconds to allow cancel of update.$NORMAL";
+          let sleep_time=sleep_time-1;
+          sleep 1;
+        } done
+        printf "\r$         {WHITE}Code becomes reseted to base from $SOURCE ...            $NORMAL";
+        sleep 2;
+      } fi
+      git -C $directory checkout master;
+      git -C $directory branch -D $active_branch;
+      git -C $directory pull;
+      git -C $directory checkout $active_branch;
+    } fi
 
     local current_branch;
     local branchName=`git -C "$directory" symbolic-ref HEAD 2>/dev/null || echo detached`;
