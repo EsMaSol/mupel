@@ -651,7 +651,7 @@ function loadConfigFile()
   if [ $COUNTER -lt 10 ];then
   {
     . "$HOME/.mupel/mupel.conf";
-    GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+    GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
     export KODI_SEL_ADDON;
     export GIT_USER;
   }
@@ -963,10 +963,10 @@ function isNetworkDrive()
 ##
 function initBuildScript_Kodi()
 {
-  GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+  GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
   if [ -z $GIT_USER ];then
   {
-    printf "${RED}${BRIGHT}ERROR: ${WHITE}Needed git user name could not be detected${NORMAL}\n";
+    printf "${RED}${BRIGHT}ERROR: ${WHITE}Needed git user name could not be detected for Kodi${NORMAL}\n";
     exit 1;
   } fi
 
@@ -993,10 +993,10 @@ ${BRIGHT}${WHITE}for build not present!${NORMAL}\n";
 ##
 function initBuildScript_CEF()
 {
-  GIT_CEF_USER=$(echo $CEF_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+  GIT_CEF_USER=$(echo $CEF_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
   if [ -z $GIT_CEF_USER ];then
   {
-    printf "${RED}${BRIGHT}ERROR: ${WHITE}Needed git user name could not be detected${NORMAL}\n";
+    printf "${RED}${BRIGHT}ERROR: ${WHITE}Needed git user name could not be detected for CEF${NORMAL}\n";
     exit 1;
   } fi
 
@@ -1028,8 +1028,7 @@ function loadKodiBuildDir()
   local DEST="$3";
   local directory;
 
-
-  local GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+  local GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
   local SOURCE=$BASE_PATH/build/kodi-$GIT_USER/kodi
   if [[ -z $DEST ]];then
     DEST=$BASE_PATH/build/kodi-$GIT_USER/;fi

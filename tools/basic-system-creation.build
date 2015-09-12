@@ -124,7 +124,7 @@ printf "${WHITE}${BRIGHT}|                                                      
 printf "${WHITE}${BRIGHT}|-----------------------------------------------------------------------------|\n"
 printf "\n"
 
-GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
 
 printf "${WHITE}${BRIGHT}Build info:${NORMAL}\n"
 printf "${WHITE} - Depot tools :\t${NORMAL}%s\n" $DEPOT_TOOLS_URL
@@ -132,7 +132,7 @@ printf "${WHITE} - Kodi URL :\t\t%s${NORMAL}\n" $KODI_SOURCE_URL
 printf "${WHITE} - Kodi branch :\t%s${NORMAL}\n" $KODI_SOURCE_BRANCH
 printf "${WHITE} - Kodi source dir. :\t%s${NORMAL}\n" "$BASE_PATH/build/kodi-$GIT_USER/kodi"
 if [ $INCLUDE_CEF != 0 ];then
-  GIT_CEF_USER=$(echo $CEF_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+  GIT_CEF_USER=$(echo $CEF_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
   printf "${WHITE} - CEF URL :\t\t%s${NORMAL}\n" $CEF_SOURCE_URL
   printf "${WHITE} - CEF branch :\t\t%s${NORMAL}\n" $CEF_SOURCE_BRANCH
   printf "${WHITE} - CEF source dir. :\t%s${NORMAL}\n" "$BASE_PATH/build/cef-$GIT_CEF_USER/cef"
