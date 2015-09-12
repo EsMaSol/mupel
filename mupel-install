@@ -887,8 +887,13 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
       env_install_windows=$(showdialog --title="Select creation script for access to MS Windows system over ssh" --file --file-filter="install-systembuild-windows *.install *.sh" --width=700 --height=480 2> /dev/null);
       if [ $? != 0 ];then
       {
-        showWarningDialog_YesNo "Selection of MS Windows access creation script failed! \n\nTry again?";
-        [ $? != 0 ] && exit_build 1;
+        showWarningDialog_YesNo "Selection of Microsoft Windows access creation script failed! \n\nTry again?";
+        if [ $? != 0 ];then
+        {
+          showQuestionDialog "<b>Continue without Microsoft Windows access install?</b>";
+          [ $? = 0 ] && break;
+          exit_build 1;
+        } fi
       }
       else
         break;fi
@@ -909,8 +914,13 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
       env_install_mac_os_x=$(showdialog --title="Select creation script for access to Mac OS X system over ssh" --file --file-filter="install-systembuild-mac-osx *.install *.sh" --width=700 --height=480 2> /dev/null);
       if [ $? != 0 ];then
       {
-        showWarningDialog_YesNo "Selection of Mac OS X access creation script failed! \n\nTry again?";
-        [ $? != 0 ] && exit_build 1;
+        showWarningDialog_YesNo "<b>Selection of Mac OS X access creation script failed!</b>\n\nTry again?";
+        if [ $? != 0 ];then
+        {
+          showQuestionDialog "<b>Continue without Mac OS X access install?</b>";
+          [ $? = 0 ] && break;
+          exit_build 1;
+        } fi
       }
       else
         break;fi
@@ -944,8 +954,13 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
       env_install_ios_atv2=$(showdialog --title="Select creation script for access to IOS-ATV2 system over ssh" --file --file-filter="install-systembuild-android *.install *.sh" --width=700 --height=480 2> /dev/null);,
       if [ $? != 0 ];then
       {
-        showWarningDialog_YesNo "Selection of IOS-ATV2 access creation script failed! \n\nTry again?";
-        [ $? != 0 ] && exit_build 1;
+        showWarningDialog_YesNo "<b>Selection of IOS-ATV2 access creation script failed!</b>\n\nTry again?";
+        if [ $? != 0 ];then
+        {
+          showQuestionDialog "<b>Continue without IOS-ATV2 access install?</b>";
+          [ $? = 0 ] && break;
+          exit_build 1;
+        } fi
       }
       else
         break;fi
