@@ -801,8 +801,7 @@ EOF
     err=$?; [ $err != 0 ] && showErrorDialog "Error on or near line ${LINENO}, Error code: $err" && exit_build 1
 
     # Install a few more commonly used packages
-    sudo -A -- "/usr
-    /local/bin/${target%bit}" apt-get -y install                         \
+    sudo -A -- "/usr/local/bin/${target%bit}" apt-get -y install                         \
             autoconf automake1.9 dpkg-dev g++-multilib gcc-multilib gdb less libtool     \
             lsof strace
     err=$?; [ $err != 0 ] && showErrorDialog "Error on or near line ${LINENO}, Error code: $err" && exit_build 1
