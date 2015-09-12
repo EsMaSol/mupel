@@ -951,7 +951,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
   {
     while :; do
     {
-      env_install_ios_atv2=$(showdialog --title="Select creation script for access to IOS-ATV2 system over ssh" --file --file-filter="install-systembuild-android *.install *.sh" --width=700 --height=480 2> /dev/null);,
+      env_install_ios_atv2=$(showdialog --title="Select creation script for access to IOS-ATV2 system over ssh" --file --file-filter="install-systembuild-android *.install *.sh" --width=700 --height=480 2> /dev/null);
       if [ $? != 0 ];then
       {
         showWarningDialog_YesNo "<b>Selection of IOS-ATV2 access creation script failed!</b>\n\nTry again?";
