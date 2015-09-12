@@ -632,7 +632,7 @@ DISTRIBUTION_VERSIONS="${DISTRIBUTION_VERSIONS/$USE_LINUX_X86_DISTR/^$USE_LINUX_
 while :; do
 {
   install_values=$(showdialog --form --title="Mupel - Installer" \
-                             --window-icon="$BASE_PATH/icons/icon-kodi-48x48.png" \
+                             --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" \
                              --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
                              --width=1024 \
                              --height=500 \

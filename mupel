@@ -3112,7 +3112,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
 yad-mupel-x86_64 --notebook \
       --width=1024 --height=768 \
       --title="Mupel" \
-      --window-icon="$BASE_PATH/icons/icon-kodi-48x48.png" \
+      --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" \
       --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
       --image-on-top \
       --text="\

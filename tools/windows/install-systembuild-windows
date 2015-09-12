@@ -492,7 +492,7 @@ WINDOWS_VERSIONS="ReactOS\!Windows 2000\!Windows ME\!Windows XP\!Windows Vista\!
 while :; do
 {
   install_values=$(showdialog --form --title="Windows system installer" \
-                             --window-icon="$BASE_PATH/icons/icon-kodi-48x48.png" \
+                             --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" \
                              --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
                              --field="<i><span size=\"large\">Windows build / emulation system installation</span></i>:LBL" "" \
                              --field=":LBL" "" \
@@ -785,7 +785,7 @@ show_ssh_info_dialog()
              --text-align=center \\
              --text="\n\n\n<b>SSH access to \$app_name not known, starting mount of related emulation disk and readout of needed keys</b>" \\
              --image="$INSTALL_PREFIX/icons/icon-kodi-mbe.png" \\
-             --window-icon="$INSTALL_PREFIX/icons/icon-kodi-48x48.png" \\
+             --window-icon="$INSTALL_PREFIX/icons/icon-mupel-128x128.png" \\
              --button=gtk-ok:0
 }
 
@@ -804,7 +804,7 @@ if [[ ! -z \$active_qemu ]];then
 {
   app_name=\$(echo \$active_qemu | awk -F '$INSTALL_PREFIX/emulate/' '{print $2}' | awk -F '/root_disk.qcow2' '{print $1}');
   showdialog --form --title="Windows emulation commands" \\
-             --window-icon="$INSTALL_PREFIX/icons/icon-kodi-48x48.png" \\
+             --window-icon="$INSTALL_PREFIX/icons/icon-mupel-128x128.png" \\
              --image="$INSTALL_PREFIX/icons/icon-kodi-mbe.png" \\
              --field="<i><span size=\"large\">Command selection</span></i>:LBL" "" \\
              --field=":LBL" "" \\
@@ -834,7 +834,7 @@ if [ -z \$app_name ];then
 
     app_name=\$(showdialog --list \\
                           --title="Windows system to start" \\
-                          --window-icon="$INSTALL_PREFIX/icons/icon-kodi-48x48.png" \\
+                          --window-icon="$INSTALL_PREFIX/icons/icon-mupel-128x128.png" \\
                           --image="$INSTALL_PREFIX/icons/icon-kodi-mbe.png" \\
                           --text="The following systems are available to select:" \\
                           --radiolist \\
@@ -1049,7 +1049,7 @@ trap '' INT TERM QUIT HUP
 trap '' EXIT
 
 showdialog --form --title="Windows system installer" \
-                  --window-icon="$BASE_PATH/icons/icon-kodi-48x48.png" \
+                  --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" \
                   --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
                   --button=gtk-info:1 --button=gtk-ok:0 --text="\
   Everything done :-)

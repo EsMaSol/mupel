@@ -265,7 +265,7 @@ Do you want to select one from a file?"
 while :; do
 {
   install_values=$(showdialog --form --title="Raspberry PI system installer" \
-                             --window-icon="$BASE_PATH/icons/icon-kodi-48x48.png" \
+                             --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" \
                              --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
                              --field="<i><span size=\"large\">Raspberry PI build / emulation system installation</span></i>:LBL" "" \
                              --field=":LBL" "" \

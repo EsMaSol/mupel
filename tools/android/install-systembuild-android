@@ -90,7 +90,7 @@ function installAndroidDevSystem()
   while :; do
   {
     install_values=$(showdialog --form --title="Android system installer" \
-                               --window-icon="$BASE_PATH/icons/icon-kodi-48x48.png" \
+                               --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" \
                                --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
                                --field="<i><span size=\"large\">Android-x86 build / emulation system installation</span></i>:LBL" "" \
                                --field=":LBL" "" \
@@ -951,7 +951,7 @@ Do you want to try again (otherwise cancel install)?</b>
   trap '' EXIT
 
   showdialog --form --title="Android system installer" \
-                    --window-icon="$BASE_PATH/icons/icon-kodi-48x48.png" \
+                    --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" \
                     --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
                     --ok-label="Details" --button=gtk-ok:0 --text="\
   Everything done :-)

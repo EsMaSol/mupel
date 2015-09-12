@@ -80,7 +80,7 @@ memory=`grep MemTotal /proc/meminfo | awk '{print $2}'`
 memory=`expr $memory / 1024`
 
 function showdialog() {
-  $basic_dialog --center --window-icon="$BASE_PATH/icons/icon-kodi-48x48.png" "$@"
+  $basic_dialog --center --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" "$@"
 }
 ##
 #####
