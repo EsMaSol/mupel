@@ -653,6 +653,7 @@ function loadConfigFile()
     . "$HOME/.mupel/mupel.conf";
     GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');
     export KODI_SEL_ADDON;
+    export GIT_USER;
   }
   else
     printf "${RED}${BRIGHT}ERROR: ${WHITE}Needed Mupel config file '$HOME/.mupel/mupel.conf' not present${NORMAL}\n";fi

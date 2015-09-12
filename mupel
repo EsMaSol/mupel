@@ -1062,7 +1062,7 @@ touch ${TEMP_DIR}/thread9_in
       # Set buttons to initial state
       echo "#> msg field 0:visible 1;";
       echo "#> msg field 1:visible 0;";
-      echo "#> msg field 3:visible 0;"; # Dummy
+      echo "#> msg field 9:visible 0;"; # Dummy
       if [[ $USE_LINUX_X86_32 = "FALSE" ]] &&
          [[ $USE_LINUX_X86_64 = "FALSE" ]] &&
          [[ $USE_LINUX_RPBI = "FALSE" ]] &&
@@ -1173,6 +1173,20 @@ touch ${TEMP_DIR}/thread9_in
               echo "#> msg field 7:enable 1;";
               echo "#> msg field 8:enable 1;";
             }
+            elif [[ "$line" = *"prepare_patches"* ]];then
+            {
+              unset IFS;
+              printf "\
+/------------------------------------------------------------------------------
+
+${BRIGHT}${WHITE}Prepare each commit with its patch in one file per commit ...${NORMAL}
+"
+              git -C $BASE_PATH/build/kodi-$GIT_USER/kodi format-patch origin -o $BASE_PATH/build/kodi-$GIT_USER
+              printf "\
+${BRIGHT}${WHITE}Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'${NORMAL}
+
+\\-------------------------------------------------------------------------------\n"
+            }
             elif [[ "$line" = *"field"* ]];then {
               IFS=$'\n'; for p in ${line}; do
                 id=$(echo ${p} | awk -F ' ' '{print $4}' | awk -F ':' '{print $1}')
@@ -1223,13 +1237,14 @@ touch ${TEMP_DIR}/thread9_in
             --field="Start build all:FBTN@0,8,0,2" "bash -c 'echo \"#< msg start_build;\" > $thread1_in'" \
             --field="Stop build all:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build;\" > $thread1_in'" \
             --field="Create and install Mupel system:FBTN@0,8,4,6" "bash $BASE_PATH/mupel-install --main-msg $thread1_in" \
-            --field="dummy:FBTN@0,1,6,8" "" \
-            --field="Clear log:FBTN@8,8,6,8" "bash -c 'echo \"#> msg field 10:clear;\" >> $thread1_in'" \
+            --field="Prepare patches from Kodi:FBTN@0,0,6,8" "bash -c 'echo \"#< msg prepare_patches;\" > $thread1_in'" \
+            --field="Clear log:FBTN@8,8,6,8" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread1_in'" \
             --field=":lbl@0,8,10,12" \
             --field="Include Kodi:chk@0,0,12,14" $INCLUDE_KODI \
             --field="Include Kodi add-ons:chk@2,2,12,14" $INCLUDE_KODI_ADDONS \
             --field="Include CEF:chk@4,4,12,14" $INCLUDE_CEF \
-            --field="Build log:termproc@0,9,16,18" "" > /dev/null 2>&1 &
+            --field="dummy:FBTN@8,8,16,18" "" \
+            --field="Build log:termproc@0,9,20,22" ""  &
   pid_thread1=$!
 }
 #
