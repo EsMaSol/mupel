@@ -32,6 +32,7 @@ IN_DATA_ARRAY=$2
 
 trap 'trapError ${LINENO};' ERR
 
+
 if [ -f "${BASE_PATH}/build/run-${USED_SYSTEM}.log" ];then
   mv "${BASE_PATH}/build/run-${USED_SYSTEM}.log" "${BASE_PATH}/build/run-${USED_SYSTEM}-`date +%F_%H-%m`.old.log";fi
 touch "${BASE_PATH}/build/run-${USED_SYSTEM}.log"

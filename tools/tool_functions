@@ -1092,25 +1092,33 @@ function loadKodiBuildDir()
     local sleep_time=10;
     if [[ $KODI_CURRENT_HASH != $KODI_DESIRED_HASH ]];then
     {
-      local active_branch=`git -C $SOURCE rev-parse --abbrev-ref HEAD`
+      local active_branch=`git -C $directory rev-parse --abbrev-ref HEAD`
       if [ $active_branch != master ];then
       {
         printf "${RED}${BRIGHT}WARNING: ${WHITE}Build branch for $REAL_NAME becomes updated, if branch '$active_branch' contains other changes are they deleted!\n"
-        while [ $sleep_time > 0 ];do
+        while [ $sleep_time != 0 ];do
         {
-          printf "\r$         {YELLOW}Sleeping $sleep_time seconds to allow cancel of update.$NORMAL";
+          printf "\r$        ${YELLOW}Sleeping $sleep_time seconds to allow cancel of update.$NORMAL";
           let sleep_time=sleep_time-1;
           sleep 1;
         } done
-        printf "\r$         {WHITE}Code becomes reseted to base from $SOURCE ...            $NORMAL";
+        printf "\r$         ${WHITE}Code becomes reseted to base from $SOURCE ...            $NORMAL\n";
         sleep 2;
 
-        git -C $directory checkout master;
-        git -C $directory branch -D $active_branch;
+        git -C $directory reset --hard
         git -C $directory pull;
-        git -C $directory checkout $active_branch;
+        if [ $? != 0 ];then
+        {
+          git -C $directory checkout master;
+          git -C $directory branch -D $active_branch;
+          git -C $directory pull;
+          git -C $directory checkout $active_branch;
+        } fi
+      }
+      else
+      {
+        git -C $directory pull;
       } fi
-      git -C $directory pull;
     } fi
 
     local current_branch;

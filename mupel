@@ -1007,6 +1007,9 @@ unset IFS;
 
 process_opts "$@";
 
+mutexUnlock_ConfigFile
+mutexUnlock_BaseBuild
+
 ##
 # Due to sometimes problems of the big app chain from yad make sure on start of
 # them here every else is killed, due to the separate name used on this is it
@@ -3076,22 +3079,22 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field=":LBL@0,8,18,20" '' \
              --field="<b>Windows settings:</b>:LBL@0,8,20,22" '' \
              --field="Build and emulation system target:CB@0,1,22,24" "$(getWindowsTargets)" \
-             --field="Username (ssh):@2,3,22,24" "$WINDOWS_SSH_USERNAME" \
-             --field="Password (ssh):H@5,6,22,24" "$WINDOWS_SSH_PASSWORD" \
+             --field="Username/Password (ssh):@2,3,22,24" "$WINDOWS_SSH_USERNAME" \
+             --field=":H@3,4,22,24" "$WINDOWS_SSH_PASSWORD" \
              --field="Build type:CB@7,8,22,24" 'x86_32!x86_64' \
              --field=":LBL@0,8,24,26" '' \
              --field="<b>Mac OS X settings:</b>:LBL@0,8,26,28" '' \
              --field="Build and emulation system target:CB@0,1,28,30" "$(getMacOSXTargets)" \
-             --field="Username (ssh):@2,3,28,30" "$MAC_OS_X_SSH_USERNAME" \
-             --field="Password (ssh):H@5,6,28,30" "$MAC_OS_X_SSH_PASSWORD" \
+             --field="Username/Password (ssh):@2,3,28,30" "$MAC_OS_X_SSH_USERNAME" \
+             --field=":H@3,4,28,30" "$MAC_OS_X_SSH_PASSWORD" \
              --field="Build type:CB@7,8,28,30" 'x86_32!x86_64' \
              --field="iOS/ATV2 builds:CB@0,1,30,32" 'IOS!ATV2' \
              --field=":LBL@0,8,32,34" '' \
              --field="<b>Android settings:</b>:LBL@0,6,34,36" '' \
              --field="Build type:CB@7,8,34,36" 'arm!x86' \
-             --field="ARM AVD emulation system:CB@0,6,36,38" "$(getAndroidAVDS arm)" \
+             --field="ARM AVD emulation system:CB@0,3,36,38" "$(getAndroidAVDS arm)" \
              --field="Build system target:CB@7,8,36,38" "$(getAndroidTargets)" \
-             --field="x86 AVD emulation system:CB@0,6,38,40" "$(getAndroidAVDS x86)" \
+             --field="x86 AVD emulation system:CB@0,3,38,40" "$(getAndroidAVDS x86)" \
              --field="Android Virtual Device (AVD) Manager:FBTN@7,8,38,40" "bash -c 'echo \"#< msg open_avd_control\" >> $thread9_in'" \
              --field=":LBL@0,8,40,42" '' \
              --field="CPU process jobs:NUM@0,8,42,44" "${CPU_PROC_JOBS}!1..32" \
