@@ -977,6 +977,20 @@ function showAndroidEmulatorKeyHelp()
   note that NumLock must be deactivated for keypad keys to work</tt>" 2> /dev/null
 }
 
+function showGitCommandHelp()
+{
+  showdialog --skip-taskbar --on-top \
+             --title="Git commands" \
+             --image="$BASE_PATH/icons/icon-info-64x64.png" \
+             --image-on-top \
+             --button=gtk-ok:0 \
+             --width=830 --height=600 \
+             --text-info \
+             --filename="$BASE_PATH/help/git-help.txt" \
+             --text="<tt><b><i><span size=\"large\">Usable Git commands:</span></i></b></tt>" 2> /dev/null
+}
+
+
 }
 #
 ###############################################################################
@@ -1319,9 +1333,9 @@ ${BRIGHT}${WHITE}Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'${NORMAL}
             --field="Clear log:FBTN@8,8,12,14" "bash -c 'echo \"#> msg field 14:clear;\" >> $thread1_in'" \
             --field=":lbl@0,8,16,18" \
             --field="Include Kodi:chk@0,0,20,22" $INCLUDE_KODI \
-            --field="Include Kodi add-ons:chk@2,2,20,22" $INCLUDE_KODI_ADDONS \
-            --field="Include CEF:chk@4,4,20,22" $INCLUDE_CEF \
-            --field="dummy:FBTN@8,8,24,26" "" \
+            --field="Include Kodi add-ons:chk@1,1,20,22" $INCLUDE_KODI_ADDONS \
+            --field="Include CEF:chk@2,2,20,22" $INCLUDE_CEF \
+            --field="dummy:FBTN@0,1,24,26" "" \
             --field="Build log:termproc@0,9,28,30" ""  &
   pid_thread1=$!
 }
@@ -3034,6 +3048,10 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
             {
               showAndroidEmulatorKeyHelp &
             }
+            elif [[ "$line" = *"git_command_help"* ]];then
+            {
+              showGitCommandHelp &
+            }
             elif [[ "$line" = *"jenkins"* ]];then
             {
               showdialog --title="Mupel - Jenkins place" \
@@ -3071,8 +3089,8 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field="Run tests:CHK@0,0,6,8" "$KODI_RUN_TESTS" \
              --field="Include configure in direct build:CHK@1,1,6,8" "$KODI_CONF_IN_DIRECT_BUILD" \
              --field="Perform depclean on branch change:CHK@2,2,6,8" "$KODI_DEP_CLEAN" \
-             --field=":LBL@0,1,10,12" '' \
-             --field="<b>CEF (Chromium embedded framwork):</b>:LBL@0,1,12,14" '' \
+             --field=":LBL@0,8,10,12" '' \
+             --field="<b>CEF (Chromium embedded framwork):</b>:LBL@0,8,12,14" '' \
              --field="Repository:@0,5,14,16" "$CEF_SOURCE_URL" \
              --field="Branch:CB@7,8,14,16" '' \
              --field="Verbose build:CHK@0,1,16,18" "$CEF_VERBOSE_BUILD" \
@@ -3090,7 +3108,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field="Build type:CB@7,8,28,30" 'x86_32!x86_64' \
              --field="iOS/ATV2 builds:CB@0,1,30,32" 'IOS!ATV2' \
              --field=":LBL@0,8,32,34" '' \
-             --field="<b>Android settings:</b>:LBL@0,6,34,36" '' \
+             --field="<b>Android settings:</b>:LBL@0,8,34,36" '' \
              --field="Build type:CB@7,8,34,36" 'arm!x86' \
              --field="ARM AVD emulation system:CB@0,3,36,38" "$(getAndroidAVDS arm)" \
              --field="Build system target:CB@7,8,36,38" "$(getAndroidTargets)" \
@@ -3110,6 +3128,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
 {
   yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
              --text="Help" \
+             --field="Git command help:FBTN" "bash -c 'echo \"#< msg git_command_help\" >> $thread9_in'" \
              --field="Android emulator keys:FBTN" "bash -c 'echo \"#< msg android_emu_keys\" >> $thread9_in'" \
              --field="What does jenkins?:FBTN" "bash -c 'echo \"#< msg hello_jenkins\" >> $thread9_in'" \
              --field="About:FBTN" "bash ./mupel --info" > /dev/null &

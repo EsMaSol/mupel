@@ -1,0 +1,38 @@
+Get patches from added commits:
+  git format-patch origin
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+Reset the last commit without delete of changed files:
+  git reset --soft HEAD~1
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+Reset last commit with the changed files:
+  git reset --hard HEAD~1
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+Manual update of own forked Kodi repository with changes from there:
+
+  git remote add upstream https://github.com/xbmc/xbmc.git
+  git fetch upstream
+
+Update Master:
+  git checkout master
+  git merge upstream/master
+  git push origin
+
+Update other branch:
+  git checkout <YOUR_BRANCH>
+  git rebase upstream/master
+  git push origin -f
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+Create a new branch:
+  git checkout -b <YOUR_NEW_BRANCH>
+  git push --set-upstream origin <YOUR_NEW_BRANCH>
+
+---------------------------------------------------------------------------------------------------------------------------------
+
