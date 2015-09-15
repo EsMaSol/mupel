@@ -222,30 +222,35 @@ function handleErrorsCodes()
   if [ $code = 0 ];then
     return;fi
 
-  local error="Unknown error occoured for check of '$label'"
+  local error="<b>Unknown error occoured for check of '$label'</b>"
 
   if [[ $source = sshpass ]];then
     if [[ $code = 1 ]];then
-      error="The '$label' have invalid command line argument"
+      error="<b>The '$label' have invalid command line argument</b>"
     elif [[ $code = 2 ]];then
-      error="The '$label' have conflicting arguments given"
+      error="<b>The '$label' have conflicting arguments given</b>"
     elif [[ $code = 3 ]];then
-      error="The '$label' have general runtime error"
+      error="<b>The '$label' have general runtime error</b>"
     elif [[ $code = 4 ]];then
-      error="The '$label' have unrecognized response from ssh (parse error)"
+      error="<b>The '$label' have unrecognized response from ssh (parse error)</b>"
     elif [[ $code = 5 ]];then
-      error="The '$label' have invalid/incorrect password"
+      error="<b>The '$label' have invalid/incorrect password</b>"
     elif [[ $code = 6 ]];then
-      error="Host public key for '$label' is unknown. exits without confirming the new key."
+      error="<b>Host public key for '$label' is unknown. exits without confirming the new key.</b>"
+    elif [[ $code = 255 ]];then
+      error="\<b>
+Connection to '$label' was not possible!
+
+Is the related source running and have SSH access enabled?</b>"
     fi
   elif [[ $source = git ]];then
     if [[ $code = 128 ]];then
-      error="\
-  The '$label' does not appear to be a git repository
-  Could not read from remote repository.
+      error="<b>\
+The '$label' does not appear to be a git repository
+Could not read from remote repository.
 
-  Please make sure you have the correct access rights
-  and the repository exists."
+Please make sure you have the correct access rights
+and the repository exists.</b>"
     fi
   fi
   showErrorDialog "$error"
