@@ -858,37 +858,49 @@ if [ -z \$app_name ];then
 ssh_name=\`echo \$app_name | tr '(' '_' | tr ')' '_'\`;
 ssh_cmp_name="# Known qemu ssh windows access \$app_name"
 
-if [ ! -f "\$HOME/.ssh/config" ] || [[ -z \`cat \$HOME/.ssh/config | grep "\$ssh_cmp_name"\` ]];then
-  show_ssh_info_dialog
-  hide_next_dialog=1
-
-  if [[ ! -z \$(cat \$HOME/.ssh/config) ]];then
-    echo "" >> \$HOME/.ssh/config;fi
-
-  echo "# Known qemu ssh windows access \$app_name"   >> \$HOME/.ssh/config
-  echo "Host \$ssh_name"                              >> \$HOME/.ssh/config
-  echo "  Hostname 127.0.0.1"                        >> \$HOME/.ssh/config
-  echo "  HostKeyAlias \$ssh_name"                    >> \$HOME/.ssh/config
-  echo "  CheckHostIP no"                            >> \$HOME/.ssh/config
-  echo "  Port 2222"                                 >> \$HOME/.ssh/config
-fi
-
 if [ ! -f "\$HOME/.ssh/known_hosts" ] || [[ -z \`cat \$HOME/.ssh/known_hosts | grep "\$ssh_cmp_name"\` ]];then
-  if [ -z $hide_next_dialog ];then
+  if [ -z \$hide_next_dialog ];then
     show_ssh_info_dialog;fi
 
   TEMP_DIR=\`mktemp -d\`
   sudo -A -- modprobe nbd max_part=8
-  sudo -A -- qemu-nbd --connect=/dev/nbd0 "$INSTALL_PREFIX/emulate/\$app_name/root_disk.qcow2"
+  [ \$? != 0 ] && rm -rf \$TEMP_DIR && exit 1
+  sudo -A -- qemu-nbd --connect=/dev/nbd0 "\$HOME/.mupel/emulate/\$app_name/root_disk.qcow2"
+  [ \$? != 0 ] && rm -rf \$TEMP_DIR && exit 1
   sudo -A -- mount /dev/nbd0p2 \$TEMP_DIR
+  [ \$? != 0 ] && rm -rf \$TEMP_DIR && exit 1
 
-  if [[ ! -z \$(cat \$HOME/.ssh/known_hosts) ]];then
-    echo "" >> \$HOME/.ssh/known_hosts;fi
-  echo "# Known qemu ssh windows access \$app_name"                      >> \$HOME/.ssh/known_hosts
-  echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub\`     >> \$HOME/.ssh/known_hosts
-  echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub\`   >> \$HOME/.ssh/known_hosts
-  echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub\` >> \$HOME/.ssh/known_hosts
-  echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub\`     >> \$HOME/.ssh/known_hosts
+  [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub ]]     && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub\` ]] &&
+    ssh_host_dsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub\`)
+  [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub ]]   && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub\` ]] &&
+    ssh_host_ecdsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub\`)
+  [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub ]] && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub\` ]] &&
+    ssh_host_ed25519_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub\`)
+  [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub ]]     && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub\` ]] &&
+    ssh_host_rsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub\`)
+
+  if [[ -z \$ssh_host_dsa_key ]] && [[ -z \$ssh_host_ecdsa_key ]] && [[ -z \$ssh_host_ed25519_key ]] && [[ -z \$ssh_host_rsa_key ]];then
+    showErrorDialog_YesNo "<b>\
+SSH access to Windows '\$app_name' not possible, needed keys not found!
+Remote build with Mupel not available for it.
+
+Anyway start emulation?</b>"
+    if [ \$? != 0 ];then
+      sudo -A -- umount \$TEMP_DIR
+      rm -rf \$TEMP_DIR
+      sudo -A -- qemu-nbd --disconnect /dev/nbd0
+      exit 1
+    fi
+  else
+    if [[ ! -z \`cat \$HOME/.ssh/known_hosts\` ]];then
+      echo "" >> \$HOME/.ssh/known_hosts;fi
+
+    echo "# Known qemu ssh windows access \$app_name"              >> \$HOME/.ssh/known_hosts
+    [[ ! -z \$ssh_host_ed25519_key ]] && echo \$ssh_host_dsa_key     >> \$HOME/.ssh/known_hosts
+    [[ ! -z \$ssh_host_ecdsa_key ]]   && echo \$ssh_host_ecdsa_key   >> \$HOME/.ssh/known_hosts
+    [[ ! -z \$ssh_host_ed25519_key ]] && echo \$ssh_host_ed25519_key >> \$HOME/.ssh/known_hosts
+    [[ ! -z \$ssh_host_dsa_key ]]     && echo \$ssh_host_dsa_key     >> \$HOME/.ssh/known_hosts
+  fi
 
   sudo -A -- umount \$TEMP_DIR
   rm -rf \$TEMP_DIR
