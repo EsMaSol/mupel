@@ -21,7 +21,7 @@ if [ $ret = 6 ];then
     konsole --hide-tabbar --hide-menubar --e ssh $WINDOWS_DEFAULT_RUN -l $WINDOWS_SSH_USERNAME 2> /dev/null;
   fi
   exit 0
-elif [ $ret != 0];then
+elif [ $ret != 0 ];then
   handleErrorsCodes $ret sshpass "Windows ssh access"
   exit 1
 fi
