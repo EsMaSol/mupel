@@ -219,20 +219,36 @@ function handleErrorsCodes()
   local code=$1
   local source=$2
   local label=$3
+  if [ $code = 0 ];then
+    return;fi
 
-  if [[ $source = git ]];then
+  local error="Unknown error occoured for check of '$label'"
+
+  if [[ $source = sshpass ]];then
+    if [[ $code = 1 ]];then
+      error="The '$label' have invalid command line argument"
+    elif [[ $code = 2 ]];then
+      error="The '$label' have conflicting arguments given"
+    elif [[ $code = 3 ]];then
+      error="The '$label' have general runtime error"
+    elif [[ $code = 4 ]];then
+      error="The '$label' have unrecognized response from ssh (parse error)"
+    elif [[ $code = 5 ]];then
+      error="The '$label' have invalid/incorrect password"
+    elif [[ $code = 6 ]];then
+      error="Host public key for '$label' is unknown. exits without confirming the new key."
+    fi
+  elif [[ $source = git ]];then
     if [[ $code = 128 ]];then
-        showErrorDialog "\
+      error="\
   The '$label' does not appear to be a git repository
   Could not read from remote repository.
 
   Please make sure you have the correct access rights
   and the repository exists."
-    else
-      showErrorDialog "\
-  Unknown error occoured for check of '$label'"
     fi
   fi
+  showErrorDialog "$error"
 }
 ##
 
