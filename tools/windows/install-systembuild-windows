@@ -896,10 +896,10 @@ Anyway start emulation?</b>"
       echo "" >> \$HOME/.ssh/known_hosts;fi
 
     echo "# Known qemu ssh windows access \$app_name"              >> \$HOME/.ssh/known_hosts
-    [[ ! -z \$ssh_host_ed25519_key ]] && echo \$ssh_host_dsa_key     >> \$HOME/.ssh/known_hosts
+    [[ ! -z \$ssh_host_dsa_key ]]     && echo \$ssh_host_dsa_key     >> \$HOME/.ssh/known_hosts
     [[ ! -z \$ssh_host_ecdsa_key ]]   && echo \$ssh_host_ecdsa_key   >> \$HOME/.ssh/known_hosts
     [[ ! -z \$ssh_host_ed25519_key ]] && echo \$ssh_host_ed25519_key >> \$HOME/.ssh/known_hosts
-    [[ ! -z \$ssh_host_dsa_key ]]     && echo \$ssh_host_dsa_key     >> \$HOME/.ssh/known_hosts
+    [[ ! -z \$ssh_host_rsa_key ]]     && echo \$ssh_host_rsa_key     >> \$HOME/.ssh/known_hosts
   fi
 
   sudo -A -- umount \$TEMP_DIR
