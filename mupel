@@ -990,6 +990,69 @@ function showGitCommandHelp()
              --text="<tt><b><i><span size=\"large\">Usable Git commands:</span></i></b></tt>" 2> /dev/null
 }
 
+function ssh_access_windows()
+{
+  if [[ $USE_MS_WINDOWS_32 != "TRUE" ]] && [[ $USE_MS_WINDOWS_64 != "TRUE" ]];then
+  {
+    showErrorDialog "<b>\
+Use of Windows not installed or enabled.
+
+SSH access console not possible!</b>"
+    return
+  }
+  elif [[ ! -f $HOME/.mupel/windows.conf ]];then
+  {
+    showErrorDialog "<b>\
+Needed Windows configuration file missing.
+
+SSH access console not possible!</b>"
+    return
+  }
+  elif [[ ! -f $BASE_PATH/tools/mac-osx/open-ssh-console-access ]];then
+  {
+    showErrorDialog "<b>\
+Needed Windows SSH access script file missing:</b>
+ - $BASE_PATH/tools/windows/open-ssh-console-access
+
+<b>SSH access console not possible!</b>"
+    return
+  } fi
+
+  $BASE_PATH/tools/windows/open-ssh-console-access
+}
+
+function ssh_access_mac_os_x()
+{
+  if [[ $USE_MAC_OS_X_32 != "TRUE" ]] && [[ $USE_MAC_OS_X_64 != "TRUE" ]];then
+  {
+    showErrorDialog "<b>\
+Use of Mac OS X not installed or enabled.
+
+SSH access console not possible!</b>"
+    return
+  }
+  elif [[ ! -f $HOME/.mupel/mac-osx.conf ]];then
+  {
+    showErrorDialog "<b>\
+Needed Mac OS X configuration file missing.
+
+SSH access console not possible!</b>"
+    return
+  }
+  elif [[ ! -f $BASE_PATH/tools/mac-osx/open-ssh-console-access ]];then
+  {
+    showErrorDialog "<b>\
+Needed Mac OS X SSH access script file missing:</b>
+ - $BASE_PATH/tools/mac-osx/open-ssh-console-access
+
+<b>SSH access console not possible!</b>"
+    return
+  } fi
+
+
+  $BASE_PATH/tools/mac-osx/open-ssh-console-access
+}
+
 function forceKodiSelectedBuild()
 {
   unset IFS;
@@ -3267,6 +3330,14 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
             {
               showGitCommandHelp &
             }
+            elif [[ "$line" = *"ssh_access_windows"* ]];then
+            {
+              ssh_access_windows &
+            }
+            elif [[ "$line" = *"ssh_access_mac_os_x"* ]];then
+            {
+              ssh_access_mac_os_x &
+            }
             elif [[ "$line" = *"jenkins"* ]];then
             {
               showdialog --title="Mupel - Jenkins place" \
@@ -3343,10 +3414,17 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
 {
   yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
              --text="Help" \
-             --field="Git command help:FBTN" "bash -c 'echo \"#< msg git_command_help\" >> $thread9_in'" \
-             --field="Android emulator keys:FBTN" "bash -c 'echo \"#< msg android_emu_keys\" >> $thread9_in'" \
-             --field="What does jenkins?:FBTN" "bash -c 'echo \"#< msg hello_jenkins\" >> $thread9_in'" \
-             --field="About:FBTN" "bash ./mupel --info" > /dev/null &
+             --field=":LBL@0,1,0,1" '' \
+             --field="<b>Helper commands:</b>:LBL@0,1,1,2" '' \
+             --field="Open ssh access console to Windows:FBTN@0,0,2,3" "bash -c 'echo \"#< msg ssh_access_windows\" >> $thread9_in'" \
+             --field="Open ssh access console to Mac OS X:FBTN@1,1,2,3" "bash -c 'echo \"#< msg ssh_access_mac_os_x\" >> $thread9_in'" \
+             --field=":LBL@0,1,3,4" '' \
+             --field="<b>Help documentation:</b>:LBL@0,1,4,5" '' \
+             --field="Git command help:FBTN@0,0,5,6" "bash -c 'echo \"#< msg git_command_help\" >> $thread9_in'" \
+             --field="Android emulator keys:FBTN@1,1,5,6" "bash -c 'echo \"#< msg android_emu_keys\" >> $thread9_in'" \
+             --field=":LBL@0,1,6,7" '' \
+             --field="What does jenkins?:FBTN@0,1,7,8" "bash -c 'echo \"#< msg hello_jenkins\" >> $thread9_in'" \
+             --field="About:FBTN@0,1,8,9" "bash ./mupel --info" > /dev/null &
   ((TAB_NUM++))
 }
 #
