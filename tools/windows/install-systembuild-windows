@@ -812,7 +812,7 @@ if [[ ! -z \$active_qemu ]];then
 Windows emulation active and following run
 commands are available:LBL" "" \\
              --field="Select DVD/CD-Rom source:FBTN" "$INSTALL_PREFIX/emulate/\$app_name/qemu-windows-cdrom-change" \\
-             --field="Open ssh access console:FBTN" "$INSTALL_PREFIX/emulate/\$app_name/open-ssh-console-access-windows";
+             --field="Open ssh access console:FBTN" "$INSTALL_PREFIX/emulate/\$app_name/open-ssh-console-access";
   exit 0;
 } fi
 
@@ -999,7 +999,7 @@ EONF
 sudo -A -- mv -f ./qemu-windows /usr/local/bin
 sudo -A -- chmod 777 /usr/local/bin/qemu-windows
 chmod 666 $INSTALL_PREFIX/emulate/$app_name/root_disk.qcow2
-cp -f $BASE_PATH/tools/windows/open-ssh-console-access-windows $INSTALL_PREFIX/emulate/$app_name
+cp -f $BASE_PATH/tools/windows/open-ssh-console-access $INSTALL_PREFIX/emulate/$app_name
 cp -f $BASE_PATH/icons/icon-microsoft-windows*.png $INSTALL_PREFIX/icons
 [ ! -d "$INSTALL_PREFIX/tools" ]                  && mkdir "$INSTALL_PREFIX/tools"
 [ ! -f "$INSTALL_PREFIX/tools/tool_functions" ]   && cp -f $BASE_PATH/tools/tool_functions   $INSTALL_PREFIX/tools
