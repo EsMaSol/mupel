@@ -1,6 +1,26 @@
 #!/bin/bash
 
+BASE_PATH=$HOME/.mupel
+
 . $HOME/.mupel/windows.conf
+. $HOME/.mupel/tools/tool_functions
+
+sshpass -p $WINDOWS_SSH_PASSWORD ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME test echo
+ret=$?
+if [ $ret = 6 ];then
+  showQuestionDialog "<b>Host public key is unknown, do you want to start ssh access manualy to include missing key?</b>"
+  [ $? != 0 ] && exit 1
+  which konsole >/dev/null
+  if [ "$?" != "0" ];then
+    xterm -T "Windows ssh access (Manual access)" -bg black -fg white -e ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME
+  else
+    konsole --hide-tabbar --hide-menubar --e ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME 2> /dev/null;
+  fi
+  exit 0
+elif [ $ret != 0];then
+  handleErrorsCodes $ret sshpass "Windows ssh access"
+  exit 1
+fi
 
 which konsole >/dev/null
 if [ "$?" != "0" ];then
