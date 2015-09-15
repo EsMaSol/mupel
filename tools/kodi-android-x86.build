@@ -38,6 +38,7 @@ function usage()
   echo "--debug           build debug version"
   echo "--addon <name>    start a build of given add-on directly, usable during"
   echo "                  programming time"
+  echo "--selected <name> start only given build of a single step inside build steps"
   echo "--build-direct    if inserted kodi becomes direct build without perform of pre"
   echo "                  steps, becomes possible after one time the complete build"
   echo "                  was done. Usable during programming to reduce time"
@@ -64,6 +65,17 @@ function process_opts()
         DEBUG_BUILD="--enable-debug=yes"
         INSTALL_DIR_TYPE="Debug"
         ;;
+      --selected)
+        case "$2" in
+            "")
+              echo "Option '--selected', no argument"
+              shift
+              ;;
+            *)
+              SELECTED_BUILD="$2"
+              shift
+              ;;
+        esac ;;
       --addon)
         case "$2" in
             "")
@@ -106,8 +118,11 @@ process_opts "$@";
 
 initBuildScript_Kodi;
 
+# Set error return
 trap '[[ ! -z $OWN_TEMP ]] && [[ ! -z $TEMP_DIR ]] && rm -rf $TEMP_DIR; trapError ${LINENO};' ERR;
 
+# Add failed file which becomes removed if everything is ok, this way is more
+# secure
 touch $TEMP_DIR/kodi-android-x86.failed;
 
 . "$HOME/.mupel/android.conf"
@@ -145,7 +160,9 @@ export CURRENT_TOOLCHAIN=$ANDROID_DEV_ROOT/android-toolchain-$NDK_ARCH-$SDK_VERS
 export TOOLCHAIN=$CURRENT_TOOLCHAIN
 export TOOLCHAIN_X86=$CURRENT_TOOLCHAIN
 
-if [ ! -z $ADDON_BUILD ];then
+if [ ! -z $SELECTED_BUILD ];then
+  KODI_BUILD="Single selection build of '$SELECTED_BUILD'"
+elif [ ! -z $ADDON_BUILD ];then
   KODI_BUILD="$ADDON_BUILD add-on only";
 elif [ -z $DIRECT_KODI_BUILD ];then
   KODI_BUILD="complete";
@@ -186,7 +203,19 @@ sleep 3
 # Change to source code path
 cd $BASE_PATH/build/kodi-$GIT_USER/kodi-${BUILD_SYSTEM}
 
-if [ -z $ADDON_BUILD ];then
+if [ ! -z $SELECTED_BUILD ];then
+{
+  printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}$SELECTED_BUILD${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
+  sleep 2
+  ./tools/buildsteps/androidx86/$SELECTED_BUILD
+  if [ $SELECTED_BUILD = make-xbmc ];then
+    make apk;
+    make install;
+  fi
+  printf $CURS_UP
+  log_success_msg
+}
+elif [ -z $ADDON_BUILD ];then
 {
   if [ -z $DIRECT_KODI_BUILD ];then
   {

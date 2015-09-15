@@ -38,6 +38,7 @@ function usage()
   echo "--debug           build debug version"
   echo "--addon <name>    start a build of given add-on directly, usable during"
   echo "                  programming time"
+  echo "--selected <name> start only given build of a single step inside build steps"
   echo "--build-direct    if inserted kodi becomes direct build without perform of pre"
   echo "                  steps, becomes possible after one time the complete build"
   echo "                  was done. Usable during programming to reduce time"
@@ -64,6 +65,17 @@ function process_opts()
         DEBUG_BUILD="--enable-debug=yes"
         INSTALL_DIR_TYPE="Debug"
         ;;
+      --selected)
+        case "$2" in
+            "")
+              echo "Option '--selected', no argument"
+              shift
+              ;;
+            *)
+              SELECTED_BUILD="$2"
+              shift
+              ;;
+        esac ;;
       --addon)
         case "$2" in
             "")
@@ -125,7 +137,9 @@ export XBMC_PLATFORM_DIR="linux64";
 export WORKSPACE=$BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM;
 export XBMC_DEPENDS_ROOT=$BASE_PATH/build/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE/kodi;
 
-if [ ! -z $ADDON_BUILD ];then
+if [ ! -z $SELECTED_BUILD ];then
+  KODI_BUILD="Single selection build of '$SELECTED_BUILD'"
+elif [ ! -z $ADDON_BUILD ];then
   KODI_BUILD="$ADDON_BUILD add-on only";
 elif [ -z $DIRECT_KODI_BUILD ];then
   KODI_BUILD="complete";
@@ -157,7 +171,17 @@ sleep 3
 # Change to source code path
 cd $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM
 
-if [ -z $ADDON_BUILD ];then
+if [ ! -z $SELECTED_BUILD ];then
+{
+  printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}$SELECTED_BUILD${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
+  sleep 2
+  ./tools/buildsteps/linux64/$SELECTED_BUILD
+  if [ $SELECTED_BUILD = make-xbmc ];then
+    make install;fi
+  printf $CURS_UP
+  log_success_msg
+}
+elif [ -z $ADDON_BUILD ];then
 {
   if [ -z $DIRECT_KODI_BUILD ];then
   {

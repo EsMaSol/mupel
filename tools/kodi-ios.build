@@ -38,6 +38,7 @@ function usage()
   echo "--debug           build debug version"
   echo "--addon <name>    start a build of given add-on directly, usable during"
   echo "                  programming time"
+  echo "--selected <name> start only given build of a single step inside build steps"
   echo "--build-direct    if inserted kodi becomes direct build without perform of pre"
   echo "                  steps, becomes possible after one time the complete build"
   echo "                  was done. Usable during programming to reduce time"
@@ -64,6 +65,17 @@ function process_opts()
         DEBUG_BUILD="--enable-debug=yes"
         INSTALL_DIR_TYPE="Debug"
         ;;
+      --selected)
+        case "$2" in
+            "")
+              echo "Option '--selected', no argument"
+              shift
+              ;;
+            *)
+              SELECTED_BUILD="$2"
+              shift
+              ;;
+        esac ;;
       --addon)
         case "$2" in
             "")
@@ -106,8 +118,11 @@ process_opts "$@"
 
 initBuildScript_Kodi;
 
+# Set error return
 trap '[ ! -z $OWN_TEMP ] && [[ ! -z $TEMP_DIR ]] && rm -rf $TEMP_DIR; trapError ${LINENO};' ERR;
 
+# Add failed file which becomes removed if everything is ok, this way is more
+# secure
 touch $TEMP_DIR/kodi-ios.failed;
 
 ssh_name=`echo $MAC_OS_X_DEFAULT_RUN | tr '(' '_' | tr ')' '_'`;
@@ -123,10 +138,34 @@ export XBMC_DEPENDS_ROOT="${MAC_HOME_DIR}/kodi-development/remote_access/build/b
 . "$BASE_PATH/versions"
 . "$HOME/.mupel/mac-osx.conf";
 
-printf "
--------------------------------------------------------------------------------
- Kodi build Apple iOS
+if [ ! -z $SELECTED_BUILD ];then
+  KODI_BUILD="Single selection build of '$SELECTED_BUILD'"
+elif [ ! -z $ADDON_BUILD ];then
+  KODI_BUILD="$ADDON_BUILD add-on only";
+elif [ -z $DIRECT_KODI_BUILD ];then
+  KODI_BUILD="complete";
+else
+  KODI_BUILD="direct";fi
 
+printf "
+/------------------------------------------------------------------------------
+|
+|  Kodi build Apple iOS
+| ======================
+|
+|  Build type :        $KODI_BUILD
+|  Build add-ons :     $([[ $INCLUDE_KODI_ADDONS = "TRUE" ]] && echo "yes" || echo "no")
+|  Test run :          $([[ $KODI_RUN_TESTS = "TRUE" ]] && echo "yes" || echo "no")
+|  Configuration :     $Configuration
+|
+|  TARBALLS :          $TARBALLS
+|  BUILDTHREADS :      $BUILDTHREADS
+|  XBMC_PLATFORM_DIR : $XBMC_PLATFORM_DIR
+|  XBMC_DEPENDS_ROOT : $XBMC_DEPENDS_ROOT
+|  WORKSPACE :         $WORKSPACE
+|  JENKINS_RBPI_DEVENV:$JENKINS_RBPI_DEVENV
+|
+\\-------------------------------------------------------------------------------
 "
 
 sleep 3
@@ -203,7 +242,23 @@ else
 } fi
 "
 
-if [ -z $ADDON_BUILD ];then
+if [ ! -z $SELECTED_BUILD ];then
+{
+  printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}$SELECTED_BUILD${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
+  sleep 2
+  sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -l $MAC_OS_X_SSH_USERNAME -- \
+    bash -c "\
+export TARBALLS=\"${MAC_HOME_DIR}/kodi-development/remote_access/build/build/kodi-tarballs\"
+export BUILDTHREADS=1;
+export XBMC_PLATFORM_DIR=\"ios\"
+#export WORKSPACE=\"${MAC_HOME_DIR}/kodi-development/kodi-${BUILD_SYSTEM}\"
+#export XBMC_DEPENDS_ROOT=\"${MAC_HOME_DIR}/kodi-development/remote_access/build/build/kodi-$GIT_USER/binary_distrib/${INSTALL_DIR_TYPE}/kodi\"
+
+${MAC_HOME_DIR}/kodi-development/kodi-$BUILD_SYSTEM/tools/buildsteps/ios/$SELECTED_BUILD"
+  printf $CURS_UP
+  log_success_msg
+}
+elif [ -z $ADDON_BUILD ];then
 {
   if [ -z $DIRECT_KODI_BUILD ];then
   {

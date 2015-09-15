@@ -152,7 +152,7 @@ function parse_values()
     } done
     targets+="!"
 
-    echo "#> msg field 9:set ${targets};"
+    echo "#> msg field 10:set ${targets};"
   }
   elif [ "$field" = "settings" ];then
   {
@@ -719,7 +719,7 @@ function buildThreadKodiAddonForOS()
     if [[ $system = win* ]];then
       sshpass -p $WINDOWS_SSH_PASSWORD ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME -- bash --login "//10.0.2.4/qemu/build/tools/kodi-addon-${addon_name}-$system.build --addon $addon_name" >> "$BASE_PATH/build/creation-kodi-addon-$system.log" 2>&1
     elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
-      $BASE_PATH/tools/kodi-addon-$system.build --temp-dir "$TEMP_DIR" --addon "$addon_name" >> "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" 2>&1
+      $BASE_PATH/tools/kodi-$system.build --temp-dir "$TEMP_DIR" --addon "$addon_name" >> "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" 2>&1
     else
       $caller bash "$BASE_PATH/tools/kodi-$system.build" --temp-dir "$TEMP_DIR" --addon "$addon_name" >> "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" 2>&1
     fi
@@ -988,6 +988,78 @@ function showGitCommandHelp()
              --text-info \
              --filename="$BASE_PATH/help/git-help.txt" \
              --text="<tt><b><i><span size=\"large\">Usable Git commands:</span></i></b></tt>" 2> /dev/null
+}
+
+function forceKodiSelectedBuild()
+{
+  unset IFS;
+  local system="$1"
+  local caller="$2"
+  local kodi_buildstep="$3"
+
+  if [ ! -d $BASE_PATH/build/kodi-$GIT_USER/kodi-$system ];then
+    loadKodiBuildDir $system $system;fi
+
+  # Ask user to pick one of the available targets
+  local targets="$(cd $BASE_PATH/build/kodi-$GIT_USER/kodi-$system/tools/buildsteps/$kodi_buildstep; ls)"
+  local selection="";
+  for i in $targets; do
+    selection=`printf "$selection FALSE %s" "$i"`;done
+
+  while :; do
+  {
+    selection=$(showdialog --list \
+                           --title="Selectable direct build" \
+                           --text="The following Kodi direct build steps are available:" \
+                           --radiolist \
+                           --column "Use" \
+                           --column "Type" \
+                           --print-column=2 \
+                           $selection \
+                           --width=400 --height=390 2> /dev/null)
+    selection=${selection%|};
+    if [ -z $selection ];then
+    {
+      showWarningDialog_YesNo "No step selected! \n\nTry again?"
+      [ $? != 0 ] && return;
+    }
+    else
+      break;fi
+  } done
+
+  if [ -f "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log" ];then
+    mv "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log" "$BASE_PATH/build/creation-kodi-selected-$selection-$system-`date +%F_%H-%m`.old.log";fi
+  touch "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log"
+  (
+    sleep 3
+    loadConfigFile
+
+    if [[ $system = win* ]];then
+      printf "${RED}${BRIGHT}Selection build for Windows not possible!${NORMAL}\n";
+    elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
+      $BASE_PATH/tools/kodi-$system.build --temp-dir "$TEMP_DIR" --selected $selection >> "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log" 2>&1
+    else
+      $caller bash "$BASE_PATH/tools/kodi-$system.build" --temp-dir "$TEMP_DIR" --selected $selection >> "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log" 2>&1
+    fi
+
+    rm -f "$TEMP_DIR/build_thread-$system.pid";
+
+    if [ -f $TEMP_DIR/kodi-$system.failed ];then
+    {
+      rm $TEMP_DIR/kodi-$system.failed
+      showdialog --title="Warning" \
+          --image="$BASE_PATH/icons/icon-warning-128x128.png" \
+          --image-on-top --form \
+          --text="Kodi $system for selection $selected creation failed! \nRelated build stopped." \
+          --button=gtk-ok:1 2> /dev/null &
+      exit 1
+    } fi
+  ) &
+  pid=$!
+  tail -f --pid=$pid "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log" &
+
+  echo $pid > "$TEMP_DIR/build_thread-$system.pid"
+  echo "Build of kodi $system part for $selected started ...";
 }
 
 
@@ -1379,11 +1451,13 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
       }
       else
         kodi_direct=0;fi
-      echo "#> msg field 1:enable $kodi_direct;";
+      echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/Makefile" ] && echo 1 || echo 0);";
       echo "#> msg field 3:enable $kodi_direct;";
       echo "#> msg field 7:enable $kodi_direct;";
+
       echo "#> msg field 8:enable 1;";
-      echo "#> msg field 9:enable $kodi_direct;";
+      echo "#> msg field 9:enable 1;";
+      echo "#> msg field 10:enable $kodi_direct;";
 
       if [ -f "$BASE_PATH/build/.cef-linux-x86_32.active" ];then
         cef_direct=1
@@ -1422,7 +1496,8 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
             else
               is_direct_cef=0;fi
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] || [[ "$line" = *"start_addon_build"* ]];then
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] ||
+               [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
             {
               echo "#> msg pulse on;";
               echo "#> msg field 0:visible 0;";
@@ -1433,13 +1508,16 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
               echo "#> msg field 7:enable 0;";
               echo "#> msg field 8:enable 0;";
               echo "#> msg field 9:enable 0;";
+              echo "#> msg field 10:enable 0;";
 
               pulse_on=1
-              echo "#> msg field 11:clear;"
+              echo "#> msg field 12:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "linux-x86_32" "${USE_LINUX_X86_DISTR}32" 5 $is_direct_cef $is_direct_kodi
+                buildThreadForOS "linux-x86_32" "${USE_LINUX_X86_DISTR}32" 5 $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
-                buildThreadKodiAddonForOS "linux-x86_32" "${USE_LINUX_X86_DISTR}32" 1 "$KODI_SEL_ADDON";fi
+                buildThreadKodiAddonForOS "linux-x86_32" "${USE_LINUX_X86_DISTR}32" 1 "$KODI_SEL_ADDON";
+              elif [[ "$line" = *"kodi_force_build_step"* ]];then
+                forceKodiSelectedBuild "linux-x86_32" "${USE_LINUX_X86_DISTR}32" linux32;fi
             }
             elif [[ "$line" = *"stop_build"* ]];then
             {
@@ -1467,27 +1545,43 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
               echo "#> msg field 2:visible 1;";
               echo "#> msg field 3:visible 1;";
               echo "#> msg field 4:visible 0;";
-              echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/Makefile" ] && echo 1 || echo 0);";
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/kodi.bin" ];then
                 kodi_direct=1
               else
                 kodi_direct=0;fi
+              echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/Makefile" ] && echo 1 || echo 0);";
               echo "#> msg field 3:enable $kodi_direct;";
               echo "#> msg field 7:enable $kodi_direct;";
               echo "#> msg field 8:enable 1;";
-              echo "#> msg field 9:enable $kodi_direct;";
+              echo "#> msg field 9:enable 1;";
+              echo "#> msg field 10:enable $kodi_direct;";
               if [ -f "$BASE_PATH/build/.cef-linux-x86_32.active" ];then
                 cef_direct=1
               else
                 cef_direct=0;fi
               echo "#> msg field 2:enable $cef_direct;";
             }
+            elif [[ "$line" = *"depclean"* ]];then
+            {
+              showWarningDialog_YesNo "<b>All extra files on kodi not included in GIT becomes removed! \n\nAre you sure?</b>"
+              if [ $? = 0 ];then
+              {
+                echo "#> msg field 8:enable 0;";
+                git -C "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32" clean -dffx;
+                echo "Cleanup done"
+                echo "#> msg field 8:enable 1;";
+                echo "#> msg field 1:enable 0;";
+                echo "#> msg field 3:enable 0;";
+                echo "#> msg field 9:enable 0;";
+                echo "#> msg field 10:enable 0;";
+              } fi
+            }
             elif [[ "$line" = *"field 7:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
               echo "#> msg field 7:enable $enable;"
             }
-            elif [[ "$line" = *"field 8:"* ]];then
+            elif [[ "$line" = *"field 10:"* ]];then
             {
               KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
               if [[ $KODI_SEL_ADDON != "(null)" ]];then
@@ -1558,7 +1652,8 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread2_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-linux-x86_32.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-linux-x86_32.log;'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-linux-x86_32 $thread2_in" \
-             --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread2_in'" \
+             --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread2_in'" \
+             --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread2_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
              --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
   pid_thread2=$!
@@ -1596,7 +1691,6 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
       echo "#> msg field 2:visible 1;";
       echo "#> msg field 3:visible 1;";
       echo "#> msg field 4:visible 0;";
-      echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/Makefile" ] && echo 1 || echo 0);";
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/kodi.bin" ];then
       {
         kodi_direct=1
@@ -1604,10 +1698,13 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
       }
       else
         kodi_direct=0;fi
+      echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/Makefile" ] && echo 1 || echo 0);";
       echo "#> msg field 3:enable $kodi_direct;";
       echo "#> msg field 7:enable $kodi_direct;";
+
       echo "#> msg field 8:enable 1;";
-      echo "#> msg field 9:enable $kodi_direct;";
+      echo "#> msg field 9:enable 1;";
+      echo "#> msg field 10:enable $kodi_direct;";
 
       if [ -f "$BASE_PATH/build/.cef-linux-x86_64.active" ];then
         cef_direct=1
@@ -1646,7 +1743,8 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
             else
               is_direct_cef=0;fi
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] || [[ "$line" = *"start_addon_build"* ]];then
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] ||
+               [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
             {
               echo "#> msg pulse on;";
               echo "#> msg field 0:visible 0;";
@@ -1657,13 +1755,16 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
               echo "#> msg field 7:enable 0;";
               echo "#> msg field 8:enable 0;";
               echo "#> msg field 9:enable 0;";
+              echo "#> msg field 10:enable 0;";
 
               pulse_on=1
-              echo "#> msg field 11:clear;"
+              echo "#> msg field 12:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "linux-x86_64" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
+                buildThreadForOS "linux-x86_64" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
-                buildThreadKodiAddonForOS "linux-x86_64" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";fi
+                buildThreadKodiAddonForOS "linux-x86_64" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";
+              elif [[ "$line" = *"kodi_force_build_step"* ]];then
+                forceKodiSelectedBuild "linux-x86_64" "${USE_LINUX_X86_DISTR}64" linux64;fi
             }
             elif [[ "$line" = *"stop_build"* ]];then
             {
@@ -1691,27 +1792,43 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
               echo "#> msg field 2:visible 1;";
               echo "#> msg field 3:visible 1;";
               echo "#> msg field 4:visible 0;";
-              echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/Makefile" ] && echo 1 || echo 0);";
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/kodi.bin" ];then
                 kodi_direct=1
               else
                 kodi_direct=0;fi
+              echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/Makefile" ] && echo 1 || echo 0);";
               echo "#> msg field 3:enable $kodi_direct;";
               echo "#> msg field 7:enable $kodi_direct;";
               echo "#> msg field 8:enable 1;";
-              echo "#> msg field 9:enable $kodi_direct;";
+              echo "#> msg field 9:enable 1;";
+              echo "#> msg field 10:enable $kodi_direct;";
               if [ -f "$BASE_PATH/build/.cef-linux-x86_64.active" ];then
                 cef_direct=1
               else
                 cef_direct=0;fi
               echo "#> msg field 2:enable $cef_direct;";
             }
+            elif [[ "$line" = *"depclean"* ]];then
+            {
+              showWarningDialog_YesNo "<b>All extra files on kodi not included in GIT becomes removed! \n\nAre you sure?</b>"
+              if [ $? = 0 ];then
+              {
+                echo "#> msg field 8:enable 0;";
+                git -C "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64" clean -dffx;
+                echo "Cleanup done"
+                echo "#> msg field 8:enable 1;";
+                echo "#> msg field 1:enable 0;";
+                echo "#> msg field 3:enable 0;";
+                echo "#> msg field 9:enable 0;";
+                echo "#> msg field 10:enable 0;";
+              } fi
+            }
             elif [[ "$line" = *"field 7:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
               echo "#> msg field 7:enable $enable;"
             }
-            elif [[ "$line" = *"field 9:"* ]];then
+            elif [[ "$line" = *"field 10:"* ]];then
             {
               KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
               if [[ $KODI_SEL_ADDON != "(null)" ]];then
@@ -1779,10 +1896,11 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
              --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" > $thread3_in'" \
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread3_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread3_in'" \
-             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread3_in'" \
+             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 12:clear;\" >> $thread3_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-linux-x86_64.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-linux-x86_64.log;'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-linux-x86_64 $thread3_in" \
-             --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread3_in'" \
+             --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread3_in'" \
+             --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread3_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
              --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
   pid_thread3=$!
@@ -1820,7 +1938,6 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
       echo "#> msg field 2:visible 1;";
       echo "#> msg field 3:visible 1;";
       echo "#> msg field 4:visible 0;";
-      echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/Makefile" ] && echo 1 || echo 0);";
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/kodi.bin" ];then
       {
         kodi_direct=1
@@ -1828,10 +1945,13 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
       }
       else
         kodi_direct=0;fi
+      echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/Makefile" ] && echo 1 || echo 0);";
       echo "#> msg field 3:enable $kodi_direct;";
       echo "#> msg field 7:enable $kodi_direct;";
+
       echo "#> msg field 8:enable 1;";
-      echo "#> msg field 9:enable $kodi_direct;";
+      echo "#> msg field 9:enable 1;";
+      echo "#> msg field 10:enable $kodi_direct;";
 
       if [ -f "$BASE_PATH/build/.cef-linux-rpbi.active" ];then
         cef_direct=1
@@ -1870,7 +1990,8 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
             else
               is_direct_cef=0;fi
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] || [[ "$line" = *"start_addon_build"* ]];then
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] ||
+               [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
             {
               echo "#> msg pulse on;";
               echo "#> msg field 0:visible 0;";
@@ -1881,13 +2002,16 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
               echo "#> msg field 7:enable 0;";
               echo "#> msg field 8:enable 0;";
               echo "#> msg field 9:enable 0;";
+              echo "#> msg field 10:enable 0;";
 
               pulse_on=1
-              echo "#> msg field 11:clear;"
+              echo "#> msg field 12:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}32" 5 $is_direct_cef $is_direct_kodi
+                buildThreadForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}32" 5 $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
-                buildThreadKodiAddonForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}32" 1 "$KODI_SEL_ADDON";fi
+                buildThreadKodiAddonForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}32" 1 "$KODI_SEL_ADDON";
+              elif [[ "$line" = *"kodi_force_build_step"* ]];then
+                forceKodiSelectedBuild "linux-rpbi" "${USE_LINUX_X86_DISTR}32" linux32;fi
             }
             elif [[ "$line" = *"stop_build"* ]];then
             {
@@ -1915,27 +2039,43 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
               echo "#> msg field 2:visible 1;";
               echo "#> msg field 3:visible 1;";
               echo "#> msg field 4:visible 0;";
-              echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/Makefile" ] && echo 1 || echo 0);";
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/kodi.bin" ];then
                 kodi_direct=1
               else
                 kodi_direct=0;fi
+              echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/Makefile" ] && echo 1 || echo 0);";
               echo "#> msg field 3:enable $kodi_direct;";
               echo "#> msg field 7:enable $kodi_direct;";
               echo "#> msg field 8:enable 1;";
-              echo "#> msg field 9:enable $kodi_direct;";
+              echo "#> msg field 9:enable 1;";
+              echo "#> msg field 10:enable $kodi_direct;";
               if [ -f "$BASE_PATH/build/.cef-linux-rpbi.active" ];then
                 cef_direct=1
               else
                 cef_direct=0;fi
               echo "#> msg field 2:enable $cef_direct;";
             }
+            elif [[ "$line" = *"depclean"* ]];then
+            {
+              showWarningDialog_YesNo "<b>All extra files on kodi not included in GIT becomes removed! \n\nAre you sure?</b>"
+              if [ $? = 0 ];then
+              {
+                echo "#> msg field 8:enable 0;";
+                git -C "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi" clean -dffx;
+                echo "Cleanup done"
+                echo "#> msg field 8:enable 1;";
+                echo "#> msg field 1:enable 0;";
+                echo "#> msg field 3:enable 0;";
+                echo "#> msg field 9:enable 0;";
+                echo "#> msg field 10:enable 0;";
+              } fi
+            }
             elif [[ "$line" = *"field 7:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
-              echo "#> msg field 6:enable $enable;"
+              echo "#> msg field 7:enable $enable;"
             }
-            elif [[ "$line" = *"field 9:"* ]];then
+            elif [[ "$line" = *"field 10:"* ]];then
             {
               KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
               if [[ $KODI_SEL_ADDON != "(null)" ]];then
@@ -2006,7 +2146,8 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread4_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-linux-rpbi.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-linux-rpbi.log;'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-linux-rpbi $thread4_in" \
-             --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread4_in'" \
+             --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread4_in'" \
+             --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread4_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
              --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
   pid_thread4=$!
@@ -2058,7 +2199,8 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
       echo "#> msg field 7:enable $kodi_direct;";
       echo "#> msg field 7:visible 0;"; # Hide "Launch Kodi" until a good way is found to start on windows
       echo "#> msg field 8:enable 1;";
-      echo "#> msg field 9:enable $kodi_direct;";
+      echo "#> msg field 9:visible 0;";
+      echo "#> msg field 10:enable $kodi_direct;";
 
       if [ -f "$BASE_PATH/build/.cef-win-${WINDOWS_BUILD_TYPE}.active" ];then
         cef_direct=1
@@ -2097,7 +2239,8 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
             else
               is_direct_cef=0;fi
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] || [[ "$line" = *"start_addon_build"* ]];then
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] ||
+               [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
             {
               echo "#> msg pulse on;";
               echo "#> msg field 0:visible 0;";
@@ -2108,13 +2251,16 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
               echo "#> msg field 7:enable 0;";
               echo "#> msg field 8:enable 0;";
               echo "#> msg field 9:enable 0;";
+              echo "#> msg field 10:enable 0;";
 
               pulse_on=1
-              echo "#> msg field 11:clear;"
+              echo "#> msg field 12:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "win-${WINDOWS_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
+                buildThreadForOS "win-${WINDOWS_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
-                buildThreadKodiAddonForOS "win-${WINDOWS_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";fi
+                buildThreadKodiAddonForOS "win-${WINDOWS_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";
+              elif [[ "$line" = *"kodi_force_build_step"* ]];then
+                echo "NOT SUPPORTED!";fi
             }
             elif [[ "$line" = *"stop_build"* ]];then
             {
@@ -2150,24 +2296,39 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
               echo "#> msg field 3:enable $kodi_direct;";
               echo "#> msg field 7:enable $kodi_direct;";
               echo "#> msg field 8:enable 1;";
-              echo "#> msg field 9:enable $kodi_direct;";
+              echo "#> msg field 9:enable 1;";
+              echo "#> msg field 10:enable $kodi_direct;";
               if [ -f "$BASE_PATH/build/.cef-win-${WINDOWS_BUILD_TYPE}.active" ];then
                 cef_direct=1
               else
                 cef_direct=0;fi
               echo "#> msg field 2:enable $cef_direct;";
             }
+            elif [[ "$line" = *"depclean"* ]];then
+            {
+              showWarningDialog_YesNo "<b>All extra files on kodi not included in GIT becomes removed! \n\nAre you sure?</b>"
+              if [ $? = 0 ];then
+              {
+                echo "NOT SUPPORTED!";
+
+
+
+
+
+
+
+              } fi
+            }
             elif [[ "$line" = *"field 7:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
-              echo "#> msg field 6:enable $enable;"
+              echo "#> msg field 7:enable $enable;"
             }
-            elif [[ "$line" = *"field 9:"* ]];then
+            elif [[ "$line" = *"field 10:"* ]];then
             {
               KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
               if [[ $KODI_SEL_ADDON != "(null)" ]];then
               {
-                #echo ----------------------KODI_SEL_ADDON=$KODI_SEL_ADDON > /dev/stderr
                 export KODI_SEL_ADDON
                 saveConfigFile;
               } fi
@@ -2234,7 +2395,8 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread5_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-win-${WINDOWS_BUILD_TYPE}.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-win-${WINDOWS_BUILD_TYPE}.log;'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-win32 $thread5_in" \
-             --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread5_in'" \
+             --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread5_in'" \
+             --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread5_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
              --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
   pid_thread5=$!
@@ -2284,8 +2446,10 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
       echo "#> msg field 1:enable $kodi_direct;";
       echo "#> msg field 3:enable $kodi_direct;";
       echo "#> msg field 7:enable $kodi_direct;";
+
       echo "#> msg field 8:enable 1;";
-      echo "#> msg field 9:enable $kodi_direct;";
+      echo "#> msg field 9:enable 1;";
+      echo "#> msg field 10:enable $kodi_direct;";
 
       if [ -f "$BASE_PATH/build/.cef-osx-${MAC_OS_X_BUILD_TYPE}.active" ];then
         cef_direct=1
@@ -2324,7 +2488,8 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
             else
               is_direct_cef=0;fi
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] || [[ "$line" = *"start_addon_build"* ]];then
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] ||
+               [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
             {
               echo "#> msg pulse on;";
               echo "#> msg field 0:visible 0;";
@@ -2335,13 +2500,16 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
               echo "#> msg field 7:enable 0;";
               echo "#> msg field 8:enable 0;";
               echo "#> msg field 9:enable 0;";
+              echo "#> msg field 10:enable 0;";
 
               pulse_on=1
-              echo "#> msg field 11:clear;"
+              echo "#> msg field 12:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "osx-${MAC_OS_X_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
+                buildThreadForOS "osx-${MAC_OS_X_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
-                buildThreadKodiAddonForOS "osx-${MAC_OS_X_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";fi
+                buildThreadKodiAddonForOS "osx-${MAC_OS_X_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";
+              elif [[ "$line" = *"kodi_force_build_step"* ]];then
+                forceKodiSelectedBuild "osx-${MAC_OS_X_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" osx${MAC_OS_X_BUILD_TYPE};fi
             }
             elif [[ "$line" = *"stop_build"* ]];then
             {
@@ -2377,19 +2545,35 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
               echo "#> msg field 3:enable $kodi_direct;";
               echo "#> msg field 7:enable $kodi_direct;";
               echo "#> msg field 8:enable 1;";
-              echo "#> msg field 9:enable $kodi_direct;";
+              echo "#> msg field 9:enable 1;";
+              echo "#> msg field 10:enable $kodi_direct;";
               if [ -f "$BASE_PATH/build/.cef-osx-${MAC_OS_X_BUILD_TYPE}.active" ];then
                 cef_direct=1
               else
                 cef_direct=0;fi
               echo "#> msg field 2:enable $cef_direct;";
             }
+            elif [[ "$line" = *"depclean"* ]];then
+            {
+              showWarningDialog_YesNo "<b>All extra files on kodi not included in GIT becomes removed! \n\nAre you sure?</b>"
+              if [ $? = 0 ];then
+              {
+                echo "NOT SUPPORTED!";
+
+
+
+
+
+
+
+              } fi
+            }
             elif [[ "$line" = *"field 7:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
-              echo "#> msg field 6:enable $enable;"
+              echo "#> msg field 7:enable $enable;"
             }
-            elif [[ "$line" = *"field 9:"* ]];then
+            elif [[ "$line" = *"field 10:"* ]];then
             {
               KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
               if [[ $KODI_SEL_ADDON != "(null)" ]];then
@@ -2460,7 +2644,8 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread6_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-osx-${MAC_OS_X_BUILD_TYPE}.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-osx-${MAC_OS_X_BUILD_TYPE}.log;'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-osx32 $thread6_in" \
-             --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread6_in'" \
+             --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread6_in'" \
+             --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread6_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
              --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
   pid_thread6=$!
@@ -2510,8 +2695,10 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
       echo "#> msg field 1:enable $kodi_direct;";
       echo "#> msg field 3:enable $kodi_direct;";
       echo "#> msg field 7:enable $kodi_direct;";
+
       echo "#> msg field 8:enable 1;";
-      echo "#> msg field 9:enable $kodi_direct;";
+      echo "#> msg field 9:enable 1;";
+      echo "#> msg field 10:enable $kodi_direct;";
 
       if [ -f "$BASE_PATH/build/.cef-android-${ANDROID_BUILD_TYPE}.active" ];then
         cef_direct=1
@@ -2550,7 +2737,8 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
             else
               is_direct_cef=0;fi
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] || [[ "$line" = *"start_addon_build"* ]];then
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] ||
+               [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
             {
               echo "#> msg pulse on;";
               echo "#> msg field 0:visible 0;";
@@ -2561,13 +2749,16 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
               echo "#> msg field 7:enable 0;";
               echo "#> msg field 8:enable 0;";
               echo "#> msg field 9:enable 0;";
+              echo "#> msg field 10:enable 0;";
 
               pulse_on=1
-              echo "#> msg field 11:clear;"
+              echo "#> msg field 12:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
                 buildThreadForOS "android-${ANDROID_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
               elif [[ "$line" = *"start_addon_build"* ]];then
-                buildThreadKodiAddonForOS "android-${ANDROID_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";fi
+                buildThreadKodiAddonForOS "android-${ANDROID_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";
+              elif [[ "$line" = *"kodi_force_build_step"* ]];then
+                forceKodiSelectedBuild "android-${ANDROID_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" `[ ${ANDROID_BUILD_TYPE} = x86 ] && echo androidx86 || echo android`;fi
             }
             elif [[ "$line" = *"stop_build"* ]];then
             {
@@ -2603,7 +2794,8 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
               echo "#> msg field 3:enable $kodi_direct;";
               echo "#> msg field 7:enable $kodi_direct;";
               echo "#> msg field 8:enable 1;";
-              echo "#> msg field 9:enable $kodi_direct;";
+              echo "#> msg field 9:enable 1;";
+              echo "#> msg field 10:enable $kodi_direct;";
               if [ -f "$BASE_PATH/build/.cef-android-${ANDROID_BUILD_TYPE}.active" ];then
                 cef_direct=1
               else
@@ -2615,22 +2807,22 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
               showWarningDialog_YesNo "<b>All extra files on kodi not included in GIT becomes removed! \n\nAre you sure?</b>"
               if [ $? = 0 ];then
               {
-                echo "#> msg field 7:enable 0;";
+                echo "#> msg field 8:enable 0;";
                 git -C "$BASE_PATH/build/kodi-$GIT_USER/kodi-android-${ANDROID_BUILD_TYPE}" clean -dffx;
                 echo "Cleanup done"
-                echo "#> msg field 7:enable 1;";
+                echo "#> msg field 8:enable 1;";
                 echo "#> msg field 1:enable 0;";
                 echo "#> msg field 3:enable 0;";
-                echo "#> msg field 7:enable 0;";
                 echo "#> msg field 9:enable 0;";
+                echo "#> msg field 10:enable 0;";
               } fi
             }
             elif [[ "$line" = *"field 7:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
-              echo "#> msg field 6:enable $enable;"
+              echo "#> msg field 7:enable $enable;"
             }
-            elif [[ "$line" = *"field 9:"* ]];then
+            elif [[ "$line" = *"field 10:"* ]];then
             {
               KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
               if [[ $KODI_SEL_ADDON != "(null)" ]];then
@@ -2701,7 +2893,8 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread7_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-android-${ANDROID_BUILD_TYPE}.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-android-${ANDROID_BUILD_TYPE}.log;'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-android-${ANDROID_BUILD_TYPE} $thread7_in" \
-             --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread7_in'" \
+             --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread7_in'" \
+             --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread7_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
              --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
   pid_thread7=$!
@@ -2713,7 +2906,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
 ###############################################################################
 
 ###############################################################################
-# Thread nine: Handle IOS ATV2
+# Thread eight: Handle IOS ATV2
 if [[ $USE_IOS_ATV2 = "TRUE" ]];then
 {
   (
@@ -2751,8 +2944,10 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
       echo "#> msg field 1:enable $kodi_direct;";
       echo "#> msg field 3:enable $kodi_direct;";
       echo "#> msg field 7:enable $kodi_direct;";
+
       echo "#> msg field 8:enable 1;";
-      echo "#> msg field 9:enable $kodi_direct;";
+      echo "#> msg field 9:enable 1;";
+      echo "#> msg field 10:enable $kodi_direct;";
 
       if [ -f "$BASE_PATH/build/.cef-${IOS_ATV2_BUILD_TYPE}.active" ];then
         cef_direct=1
@@ -2791,7 +2986,8 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
             else
               is_direct_cef=0;fi
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] || [[ "$line" = *"start_addon_build"* ]];then
+            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] ||
+               [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
             {
               echo "#> msg pulse on;";
               echo "#> msg field 0:visible 0;";
@@ -2802,13 +2998,16 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
               echo "#> msg field 7:enable 0;";
               echo "#> msg field 8:enable 0;";
               echo "#> msg field 9:enable 0;";
+              echo "#> msg field 10:enable 0;";
 
               pulse_on=1
-              echo "#> msg field 11:clear;"
+              echo "#> msg field 12:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "${IOS_ATV2_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
+                buildThreadForOS "${IOS_ATV2_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
-                buildThreadKodiAddonForOS "${IOS_ATV2_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";fi
+                buildThreadKodiAddonForOS "${IOS_ATV2_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";
+              elif [[ "$line" = *"kodi_force_build_step"* ]];then
+                forceKodiSelectedBuild "${IOS_ATV2_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" ${IOS_ATV2_BUILD_TYPE};fi
             }
             elif [[ "$line" = *"stop_build"* ]];then
             {
@@ -2844,19 +3043,35 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
               echo "#> msg field 3:enable $kodi_direct;";
               echo "#> msg field 7:enable $kodi_direct;";
               echo "#> msg field 8:enable 1;";
-              echo "#> msg field 9:enable $kodi_direct;";
+              echo "#> msg field 9:enable 1;";
+              echo "#> msg field 10:enable $kodi_direct;";
               if [ -f "$BASE_PATH/build/.cef-${IOS_ATV2_BUILD_TYPE}.active" ];then
                 cef_direct=1
               else
                 cef_direct=0;fi
               echo "#> msg field 2:enable $cef_direct;";
             }
+            elif [[ "$line" = *"depclean"* ]];then
+            {
+              showWarningDialog_YesNo "<b>All extra files on kodi not included in GIT becomes removed! \n\nAre you sure?</b>"
+              if [ $? = 0 ];then
+              {
+                echo "NOT SUPPORTED!";
+
+
+
+
+
+
+
+              } fi
+            }
             elif [[ "$line" = *"field 7:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
               echo "#> msg field 7:enable $enable;"
             }
-            elif [[ "$line" = *"field 9:"* ]];then
+            elif [[ "$line" = *"field 10:"* ]];then
             {
               KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
               if [[ $KODI_SEL_ADDON != "(null)" ]];then
@@ -2927,7 +3142,8 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread8_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-${IOS_ATV2_BUILD_TYPE}.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-${IOS_ATV2_BUILD_TYPE}.log;'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-ios-atv2 $thread8_in" \
-             --field="Perform code depclean:FBTN@4,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread8_in'" \
+             --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread8_in'" \
+             --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread8_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
              --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
   pid_thread8=$!
@@ -2939,7 +3155,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
 ###############################################################################
 
 ###############################################################################
-# Thread ten: Handle Settings
+# Thread nine: Handle Settings
 
 if [ -f $HOME/.mupel/android.conf ];then
   . $HOME/.mupel/android.conf;fi
@@ -3021,7 +3237,6 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
         IFS=$'\n';
         for line in ${proc}; do
         {
-          echo "--- $line" > /dev/stderr
           if [[ "$line" == "#< msg"* ]];then
           {
             if [[ "$line" = *"field"* ]];then
@@ -3124,7 +3339,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
 ###############################################################################
 
 ###############################################################################
-# Thread eleven: Handle help
+# Thread ten: Handle help
 {
   yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
              --text="Help" \
