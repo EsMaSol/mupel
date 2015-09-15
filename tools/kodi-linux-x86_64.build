@@ -22,6 +22,7 @@
 BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
 
 . "$HOME/.mupel/mupel.conf";
+
 . "$BASE_PATH/tools/tool_functions";
 
 DEBUG_BUILD="--enable-debug=no"
@@ -248,10 +249,10 @@ elif [ -z $ADDON_BUILD ];then
   } fi
 
   printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}tests${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'"
-  sleep 2
   if [[ $KODI_RUN_TESTS != FALSE ]];then
   {
     printf "\n"
+    sleep 2
     ./tools/buildsteps/linux64/run-tests
     printf $CURS_UP
     log_success_msg
@@ -287,6 +288,8 @@ trap '' ERR
 printf "\n \
 ${BRIGHT}${WHITE}All steps successfully performed and test build present and can started with:${NORMAL}
  - ${BRIGHT}${GREEN}${UNDERLINE}$BASE_PATH/build/kodi-${BUILD_SYSTEM}/kodi.bin${NORMAL}\n"
+
+
 
 rm -f $TEMP_DIR/kodi-linux-x86_64.failed;
 [ ! -z $OWN_TEMP ] && [[ ! -z $TEMP_DIR ]] && rm -rf $TEMP_DIR;

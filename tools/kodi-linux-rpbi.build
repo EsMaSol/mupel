@@ -22,6 +22,7 @@
 BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
 
 . "$HOME/.mupel/mupel.conf";
+
 . "$BASE_PATH/tools/tool_functions";
 
 DEBUG_BUILD="--enable-debug=no"
@@ -119,7 +120,7 @@ process_opts "$@"
 initBuildScript_Kodi;
 
 # Set error return
-trap '[ ! -z $OWN_TEMP ] && [[ ! -z $TEMP_DIR ]] && rm -rf $TEMP_DIR; trapError ${LINENO};' ERR;
+trap '[[ ! -z $OWN_TEMP ]] && [[ ! -z $TEMP_DIR ]] && rm -rf $TEMP_DIR; trapError ${LINENO};' ERR;
 
 # Add failed file which becomes removed if everything is ok, this way is more
 # secure

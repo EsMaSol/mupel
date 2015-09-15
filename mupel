@@ -1639,6 +1639,13 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
                 echo "#> msg field 10:enable 0;";
               } fi
             }
+            elif [[ "$line" = *"openlogs"* ]];then
+            {
+              $TEXT_VIEVER \
+                $BASE_PATH/build/creation-general.log \
+                $BASE_PATH/build/creation-kodi-linux-x86_32.log \
+                $BASE_PATH/build/creation-cef-linux-x86_32.log;
+            }
             elif [[ "$line" = *"field 7:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
@@ -1713,7 +1720,7 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread2_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread2_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread2_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-linux-x86_32.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-linux-x86_32.log;'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" > $thread2_in'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-linux-x86_32 $thread2_in" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread2_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread2_in'" \
@@ -1886,6 +1893,13 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
                 echo "#> msg field 10:enable 0;";
               } fi
             }
+            elif [[ "$line" = *"openlogs"* ]];then
+            {
+              $TEXT_VIEVER \
+                $BASE_PATH/build/creation-general.log \
+                $BASE_PATH/build/creation-kodi-linux-x86_64.log \
+                $BASE_PATH/build/creation-cef-linux-x86_64.log;
+            }
             elif [[ "$line" = *"field 7:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
@@ -1960,7 +1974,7 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread3_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread3_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 12:clear;\" >> $thread3_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-linux-x86_64.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-linux-x86_64.log;'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" > $thread3_in'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-linux-x86_64 $thread3_in" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread3_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread3_in'" \
@@ -2133,6 +2147,13 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
                 echo "#> msg field 10:enable 0;";
               } fi
             }
+            elif [[ "$line" = *"openlogs"* ]];then
+            {
+              $TEXT_VIEVER \
+                $BASE_PATH/build/creation-general.log \
+                $BASE_PATH/build/creation-kodi-linux-rpbi.log \
+                $BASE_PATH/build/creation-cef-linux-rpbi.log;
+            }
             elif [[ "$line" = *"field 7:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
@@ -2207,7 +2228,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread4_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread4_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread4_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-linux-rpbi.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-linux-rpbi.log;'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" > $thread4_in'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-linux-rpbi $thread4_in" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread4_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread4_in'" \
@@ -2382,6 +2403,13 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
 
               } fi
             }
+            elif [[ "$line" = *"openlogs"* ]];then
+            {
+              $TEXT_VIEVER \
+                $BASE_PATH/build/creation-general.log \
+                $BASE_PATH/build/creation-kodi-win-$WINDOWS_BUILD_TYPE.log \
+                $BASE_PATH/build/creation-cef-win-$WINDOWS_BUILD_TYPE.log;
+            }
             elif [[ "$line" = *"field 7:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
@@ -2456,7 +2484,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread5_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread5_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread5_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-win-${WINDOWS_BUILD_TYPE}.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-win-${WINDOWS_BUILD_TYPE}.log;'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" > $thread5_in'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-win32 $thread5_in" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread5_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread5_in'" \
@@ -2492,6 +2520,7 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
       loadConfigFile
 
       . "$HOME/.mupel/mac-osx.conf";
+      export MAC_OS_X_BUILD_TYPE=$MAC_OS_X_BUILD_TYPE;
 
       # Set buttons to initial state
       echo "#> msg field 0:visible 1;";
@@ -2631,6 +2660,13 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
 
               } fi
             }
+            elif [[ "$line" = *"openlogs"* ]];then
+            {
+              $TEXT_VIEVER \
+                $BASE_PATH/build/creation-general.log \
+                $BASE_PATH/build/creation-kodi-osx-${MAC_OS_X_BUILD_TYPE}.log \
+                $BASE_PATH/build/creation-cef-osx-${MAC_OS_X_BUILD_TYPE}.log;
+            }
             elif [[ "$line" = *"field 7:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
@@ -2705,7 +2741,7 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread6_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread6_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread6_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-osx-${MAC_OS_X_BUILD_TYPE}.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-osx-${MAC_OS_X_BUILD_TYPE}.log;'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" > $thread6_in'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-osx32 $thread6_in" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread6_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread6_in'" \
@@ -2880,6 +2916,13 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
                 echo "#> msg field 10:enable 0;";
               } fi
             }
+            elif [[ "$line" = *"openlogs"* ]];then
+            {
+              $TEXT_VIEVER \
+                $BASE_PATH/build/creation-general.log \
+                $BASE_PATH/build/creation-kodi-android-${ANDROID_BUILD_TYPE}.log \
+                $BASE_PATH/build/creation-cef-android-${ANDROID_BUILD_TYPE}.log;
+            }
             elif [[ "$line" = *"field 7:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
@@ -2954,7 +2997,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread7_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread7_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread7_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-android-${ANDROID_BUILD_TYPE}.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-android-${ANDROID_BUILD_TYPE}.log;'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" > $thread7_in'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-android-${ANDROID_BUILD_TYPE} $thread7_in" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread7_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread7_in'" \
@@ -3129,6 +3172,13 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
 
               } fi
             }
+            elif [[ "$line" = *"openlogs"* ]];then
+            {
+              $TEXT_VIEVER \
+                $BASE_PATH/build/creation-general.log \
+                $BASE_PATH/build/creation-kodi-${IOS_ATV2_BUILD_TYPE}.log \
+                $BASE_PATH/build/creation-cef-${IOS_ATV2_BUILD_TYPE}.log;
+            }
             elif [[ "$line" = *"field 7:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
@@ -3203,7 +3253,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread8_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread8_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread8_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c '$TEXT_VIEVER $BASE_PATH/build/creation-kodi-${IOS_ATV2_BUILD_TYPE}.log $BASE_PATH/build/creation-general.log $BASE_PATH/build/creation-cef-${IOS_ATV2_BUILD_TYPE}.log;'" \
+             --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" > $thread8_in'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-ios-atv2 $thread8_in" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread8_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" > $thread8_in'" \

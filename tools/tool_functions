@@ -9,21 +9,44 @@ PATH="$BASE_PATH/tools:$PATH"
 # Override sudo console password request, sudo need called with "sudo -A <cmd>"
 export SUDO_ASKPASS="$BASE_PATH/tools/sudo-askpass"
 
-BLACK=$(tput setaf 0)
-RED=$(tput setaf 1)
-GREEN=$(tput setaf 2)
-YELLOW=$(tput setaf 3)
-LIME_YELLOW=$(tput setaf 190)
-POWDER_BLUE=$(tput setaf 153)
-BLUE=$(tput setaf 4)
-MAGENTA=$(tput setaf 5)
-CYAN=$(tput setaf 6)
-WHITE=$(tput setaf 7)
-BRIGHT=$(tput bold)
-NORMAL=$(tput sgr0)
-BLINK=$(tput blink)
-REVERSE=$(tput smso)
-UNDERLINE=$(tput smul)
+if [ `uname -s` = Darwin ];then
+  BLACK="\\033[0;30m"
+  RED="\\033[0;31m"
+  GREEN="\\033[0;32m"
+  YELLOW="\\033[0;33m"
+  LIME_YELLOW="\\033[0;3190m"
+  POWDER_BLUE="\\033[0;3153m"
+  BLUE="\\033[0;34m"
+  MAGENTA="\\033[0;35m"
+  CYAN="\\033[0;36m"
+  WHITE="\\033[0;37m"
+  BRIGHT="\\033[0;1m"
+  NORMAL="\\033[0;39m"
+  BLINK="\\033[0;5m"
+  REVERSE="\\033[0;7m"
+  UNDERLINE="\\033[0;4m"
+
+  memory=$(expr `sysctl hw.memsize | awk -F ' ' '{print $2}'` / 1024)
+else
+  BLACK=$(tput setaf 0)
+  RED=$(tput setaf 1)
+  GREEN=$(tput setaf 2)
+  YELLOW=$(tput setaf 3)
+  LIME_YELLOW=$(tput setaf 190)
+  POWDER_BLUE=$(tput setaf 153)
+  BLUE=$(tput setaf 4)
+  MAGENTA=$(tput setaf 5)
+  CYAN=$(tput setaf 6)
+  WHITE=$(tput setaf 7)
+  BRIGHT=$(tput bold)
+  NORMAL=$(tput sgr0)
+  BLINK=$(tput blink)
+  REVERSE=$(tput smso)
+  UNDERLINE=$(tput smul)
+
+  memory=`grep MemTotal /proc/meminfo | awk '{print $2}'`
+fi
+memory=`expr $memory / 1024`
 
 NORMAL="\\033[0;39m"         # Standard console grey
 SUCCESS="\\033[1;32m"        # Success is green
@@ -72,52 +95,49 @@ WCOL=$((${COL} - 2))
 # Set Cursor Position Commands, used via echo
 SET_COL="\\033[${COL}G"      # at the $COL char
 SET_WCOL="\\033[${WCOL}G"    # at the $WCOL char
-CURS_UP="\\033[1A\\033[0G"   # Up one line, at the 0'th char
+CURS_UP="\033[1A"            # Up one line, at the 0'th char
 CURS_ZERO="\\033[0G"
 
 basic_dialog="yad-mupel-$(uname -m)"
-memory=`grep MemTotal /proc/meminfo | awk '{print $2}'`
-memory=`expr $memory / 1024`
-
 function showdialog() {
   $basic_dialog --center --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" "$@"
 }
 ##
 #####
 
-function log_success_msg() {
-  /bin/echo -e "${CURS_ZERO}${SET_COL}${SUCCESS_SUFFIX}"
-  return 0
+function log_success_msg()
+{
+  printf "${CURS_ZERO}${SET_COL}${SUCCESS_SUFFIX}\n"
 }
 
-function log_no_msg() {
-  /bin/echo -e "${CURS_ZERO}${SET_COL}${NO_SUFFIX}"
-  return 0
+function log_no_msg()
+{
+  printf "${CURS_ZERO}${SET_COL}${NO_SUFFIX}\n"
 }
 
-function log_failure_msg() {
-  /bin/echo -e "${CURS_ZERO}${SET_COL}${FAILURE_SUFFIX}"
-  return 0
+function log_failure_msg()
+{
+  printf "${CURS_ZERO}${SET_COL}${FAILURE_SUFFIX}\n"
 }
 
-function log_warning_msg() {
-  /bin/echo -e "${CURS_ZERO}${SET_COL}${WARNING_SUFFIX}"
-  return 0
+function log_warning_msg()
+{
+  printf "${CURS_ZERO}${SET_COL}${WARNING_SUFFIX}\n"
 }
 
-function log_skip_msg() {
-  /bin/echo -e "${CURS_ZERO}${SET_COL}${SKIP_SUFFIX}"
-  return 0
+function log_skip_msg()
+{
+  printf "${CURS_ZERO}${SET_COL}${SKIP_SUFFIX}\n"
 }
 
-function log_done_msg() {
-  /bin/echo -e "${CURS_ZERO}${SET_COL}${DONE_SUFFIX}"
-  return 0
+function log_done_msg()
+{
+  printf "${CURS_ZERO}${SET_COL}${DONE_SUFFIX}\n"
 }
 
-function log_ingnore_msg() {
-  /bin/echo -e "${CURS_ZERO}${SET_COL}${IGNORE_SUFFIX}"
-  return 0
+function log_ingnore_msg()
+{
+  printf "${CURS_ZERO}${SET_COL}${IGNORE_SUFFIX}\n"
 }
 
 ##
