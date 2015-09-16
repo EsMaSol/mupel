@@ -54,8 +54,8 @@ KODI_SEL_ADDON=""
 KODI_RUN_TESTS="FALSE"
 KODI_CONF_IN_DIRECT_BUILD="FALSE"
 
-CEF_SOURCE_URL="https://bitbucket.org/kodi-web/cef"
-CEF_SOURCE_BRANCH="2357"
+CEF_SOURCE_URL="https://github.com/kodi-web/cef"
+CEF_SOURCE_BRANCH="2357-kodi"
 
 DEPOT_TOOLS_URL="https://chromium.googlesource.com/chromium/tools/depot_tools.git"
 DEPOT_SOURCE_BRANCH="master"
