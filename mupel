@@ -527,9 +527,8 @@ function buildThreadForOS()
   } fi
 
   (
-    trap '[[ rm -f "$TEMP_DIR/build_thread-cef_active";rm -f "$TEMP_DIR/build_thread-cef_active-$system";rm -f "$TEMP_DIR/build_thread-$system.pid";' EXIT;
+    trap 'rm -f "$TEMP_DIR/build_thread-cef_active";rm -f "$TEMP_DIR/build_thread-cef_active-$system";rm -f "$TEMP_DIR/build_thread-$system.pid";' EXIT;
     sleep 3
-
     loadConfigFile
 
     step_cef=0
@@ -704,6 +703,7 @@ function buildThreadKodiAddonForOS()
 
   touch "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log"
   (
+    trap 'rm -f "$TEMP_DIR/build_thread-$system.pid";' EXIT;
     sleep 3
     loadConfigFile
 
@@ -714,8 +714,6 @@ function buildThreadKodiAddonForOS()
     else
       $caller bash "$BASE_PATH/tools/kodi-$system.build" --temp-dir "$TEMP_DIR" --addon "$addon_name" >> "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" 2>&1
     fi
-
-    rm -f "$TEMP_DIR/build_thread-$system.pid";
 
     if [ -f $TEMP_DIR/kodi-$system.failed ];then
     {
