@@ -1401,14 +1401,14 @@ ${BRIGHT}${WHITE}Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'${NORMAL}
             elif [[ "$line" = *"delete_old_logs"* ]];then
             {
               unset IFS;
-              if [ ! -z  `ls $BASE_PATH/build/*.old.log 2> /dev/null` ];then
+              if [[ ! -z  `ls $BASE_PATH/build/*.old.log 2> /dev/null` ]];then
               {
                 showWarningDialog_YesNo "<b>\
 All old log files with '*.old.log' becomes deleted!
 
 Are you sure?</b>"
                 if [ $? = 0 ];then
-                  rm -f $BASE_PATH/build/*.old.log;fi
+                  rm -vf $BASE_PATH/build/*.old.log;fi
               }
               else
                 echo "No old log files present, skipped.";fi
