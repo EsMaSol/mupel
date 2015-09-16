@@ -528,6 +528,7 @@ function buildThreadForOS()
   } fi
 
   (
+    trap '[[ rm -f "$TEMP_DIR/build_thread-cef_active";rm -f "$TEMP_DIR/build_thread-cef_active-$system";rm -f "$TEMP_DIR/build_thread-$system.pid";' EXIT;
     sleep $sleep_time
 
     loadConfigFile
@@ -569,16 +570,12 @@ function buildThreadForOS()
             tail -f --pid=$! "$BASE_PATH/build/creation-cef-$system.log"
 
             step_cef=1;
-            rm -f "$TEMP_DIR/build_thread-cef_active";
-            rm -f "$TEMP_DIR/build_thread-cef_active-$system";
             if [ -f $TEMP_DIR/cef-$system.failed ];then
             {
               rm $TEMP_DIR/cef-$system.failed
               showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
                          --image-on-top --form --text="CEF $system creation failed! \nRelated build stopped." \
                          --button=gtk-ok:1 2> /dev/null &
-              touch "$TEMP_DIR/build_thread-cef-$system-failed.txt"
-              rm -f "$TEMP_DIR/build_thread-$system.pid";
               exit 1
             } fi
           }
@@ -632,7 +629,6 @@ function buildThreadForOS()
             showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
                        --image-on-top --form --text="Kodi $system creation failed! \nRelated build stopped." \
                        --button=gtk-ok:1 2> /dev/null &
-            rm -f "$TEMP_DIR/build_thread-$system.pid";
             exit 1
           } fi
 
@@ -676,7 +672,6 @@ function buildThreadForOS()
             showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
                        --image-on-top --form --text="User script $system creation failed! \nRelated build stopped." \
                        --button=gtk-ok:1 2> /dev/null &
-            rm -f "$TEMP_DIR/build_thread-$system.pid";
             exit 1
           } fi
         } fi
@@ -686,9 +681,7 @@ function buildThreadForOS()
 
       if [[ $step_cef = 1 ]] && [[ $step_kodi = 1 ]] && [[ $step_user = 1 ]];then
       {
-        printf "${BRIGHT}${GREEN}All build steps successfully performed${NORMAL}\n";
-
-        rm -f "$TEMP_DIR/build_thread-$system.pid";
+        printf "${BRIGHT}${WHITE}All build steps ${GREEN}successfully${WHITE} performed${NORMAL}\n";
         exit 0;
       } fi
 
