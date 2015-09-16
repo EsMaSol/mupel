@@ -455,9 +455,8 @@ function buildThreadForOS()
 {
   local system="$1"
   local caller="$2"
-  local sleep_time="$3"
-  local direct_build_cef=$4
-  local direct_build_kodi=$5
+  local direct_build_cef=$3
+  local direct_build_kodi=$4
 
   loadConfigFile
 
@@ -529,7 +528,7 @@ function buildThreadForOS()
 
   (
     trap '[[ rm -f "$TEMP_DIR/build_thread-cef_active";rm -f "$TEMP_DIR/build_thread-cef_active-$system";rm -f "$TEMP_DIR/build_thread-$system.pid";' EXIT;
-    sleep $sleep_time
+    sleep 3
 
     loadConfigFile
 
@@ -1585,7 +1584,7 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
               pulse_on=1
               echo "#> msg field 12:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "linux-x86_32" "${USE_LINUX_X86_DISTR}32" 5 $is_direct_cef $is_direct_kodi;
+                buildThreadForOS "linux-x86_32" "${USE_LINUX_X86_DISTR}32" $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
                 buildThreadKodiAddonForOS "linux-x86_32" "${USE_LINUX_X86_DISTR}32" 1 "$KODI_SEL_ADDON";
               elif [[ "$line" = *"kodi_force_build_step"* ]];then
@@ -1839,7 +1838,7 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
               pulse_on=1
               echo "#> msg field 12:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "linux-x86_64" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi;
+                buildThreadForOS "linux-x86_64" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
                 buildThreadKodiAddonForOS "linux-x86_64" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";
               elif [[ "$line" = *"kodi_force_build_step"* ]];then
@@ -2093,7 +2092,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
               pulse_on=1
               echo "#> msg field 12:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}32" 5 $is_direct_cef $is_direct_kodi;
+                buildThreadForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}32" $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
                 buildThreadKodiAddonForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}32" 1 "$KODI_SEL_ADDON";
               elif [[ "$line" = *"kodi_force_build_step"* ]];then
@@ -2349,7 +2348,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
               pulse_on=1
               echo "#> msg field 12:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "win-${WINDOWS_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi;
+                buildThreadForOS "win-${WINDOWS_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
                 buildThreadKodiAddonForOS "win-${WINDOWS_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";
               elif [[ "$line" = *"kodi_force_build_step"* ]];then
@@ -2606,7 +2605,7 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
               pulse_on=1
               echo "#> msg field 12:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "osx-${MAC_OS_X_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi;
+                buildThreadForOS "osx-${MAC_OS_X_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
                 buildThreadKodiAddonForOS "osx-${MAC_OS_X_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";
               elif [[ "$line" = *"kodi_force_build_step"* ]];then
@@ -2862,7 +2861,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
               pulse_on=1
               echo "#> msg field 12:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "android-${ANDROID_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi
+                buildThreadForOS "android-${ANDROID_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi
               elif [[ "$line" = *"start_addon_build"* ]];then
                 buildThreadKodiAddonForOS "android-${ANDROID_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";
               elif [[ "$line" = *"kodi_force_build_step"* ]];then
@@ -3118,7 +3117,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
               pulse_on=1
               echo "#> msg field 12:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "${IOS_ATV2_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 5 $is_direct_cef $is_direct_kodi;
+                buildThreadForOS "${IOS_ATV2_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
                 buildThreadKodiAddonForOS "${IOS_ATV2_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" 1 "$KODI_SEL_ADDON";
               elif [[ "$line" = *"kodi_force_build_step"* ]];then
