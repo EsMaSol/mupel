@@ -1409,6 +1409,21 @@ ${BRIGHT}${WHITE}Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'${NORMAL}
               } done
               echo "#> msg field 5:enable 1;";
             }
+            elif [[ "$line" = *"delete_old_logs"* ]];then
+            {
+              unset IFS;
+              if [ ! -z  `ls $BASE_PATH/build/*.old.log 2> /dev/null` ];then
+              {
+                showWarningDialog_YesNo "<b>\
+All old log files with '*.old.log' becomes deleted!
+
+Are you sure?</b>"
+                if [ $? = 0 ];then
+                  rm -f $BASE_PATH/build/*.old.log;fi
+              }
+              else
+                echo "No old log files present, skipped.";fi
+            }
             elif [[ "$line" = *"field"* ]];then
             {
               IFS=$'\n'; for p in ${line}; do
@@ -1465,7 +1480,8 @@ ${BRIGHT}${WHITE}Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'${NORMAL}
             --field="Download/Update only:FBTN@0,0,12,14" "bash -c 'echo \"#< msg download_only;\" > $thread1_in'" \
             --field="Create new branch:FBTN@1,1,12,14" "bash -c 'echo \"#< msg kodi_new_branch;\" > $thread1_in'" \
             --field="Prepare patches:FBTN@2,2,12,14" "bash -c 'echo \"#< msg kodi_prepare_patches;\" > $thread1_in'" \
-            --field="Clear log:FBTN@8,8,12,14" "bash -c 'echo \"#> msg field 14:clear;\" >> $thread1_in'" \
+            --field="Delete old log files:FBTN@7,7,12,14" "bash -c 'echo \"#< msg delete_old_logs;\" >> $thread1_in'" \
+            --field="Clear log:FBTN@8,8,12,14" "bash -c 'echo \"#> msg field 15:clear;\" >> $thread1_in'" \
             --field=":lbl@0,8,16,18" \
             --field="Include Kodi:chk@0,0,20,22" $INCLUDE_KODI \
             --field="Include Kodi add-ons:chk@1,1,20,22" $INCLUDE_KODI_ADDONS \
