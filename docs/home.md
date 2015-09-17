@@ -1,6 +1,6 @@
 # *<p align="center">Mupel </p>*
 #### *<p align="center">Kodi's multiplatform build environment system on Linux</p>*
-*<p align="center">![alt tag](https://raw.githubusercontent.com/EsMaSol/mupel/master/icons/icon-mupel-128x128.png)</p>*
+*<p align="center">![alt tag](../icons/icon-mupel-128x128.png)</p>*
 
 ###### *<p align="center">Now you can do "<i>Èngem e' Mupel mâchen</i>" (Luxembourgish) and means "Someone squeezing the cheeks" in respect to Jenkins the best multi platform background system on world.</p>*
 
