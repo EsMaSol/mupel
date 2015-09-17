@@ -693,7 +693,7 @@ mutexLock_ConfigFile()
       break;                                            # continue with script
     }
     else
-      sleep 0.1;fi                                      # sleep for 0.1 seconds and try again
+      sleep 0.05;fi                                     # sleep for 0.05 seconds and try again
   } done
 }
 
