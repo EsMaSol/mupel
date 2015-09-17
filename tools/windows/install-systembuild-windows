@@ -551,8 +551,6 @@ WINDOWS_SINGLE_LAUNCH_ICON="$(echo $install_values | awk -F '|' '{print $13}')"
 WINDOWS_LAST_USED_UUID="$(echo $install_values | awk -F '|' '{print $14}')"
 WINDOWS_SSH_USERNAME="$(echo $install_values | awk -F '|' '{print $17}')"
 WINDOWS_SSH_PASSWORD="$(echo $install_values | awk -F '|' '{print $18}')"
-echo $WINDOWS_SSH_USERNAME
-
 
 if [ -d "$INSTALL_PREFIX/emulate/$app_name" ];then
 {
