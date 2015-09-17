@@ -15,7 +15,7 @@ The scripts here are used to create the binary libraries for the add-ons in a au
 systems.
 
 -------------
-Inside is a small reworked version of CEF becomes used from https://bitbucket.org/kodi-web/cef which use the Kodi.
+Inside is a small reworked version of CEF becomes used from https://github.com/kodi-web/cef which use the Kodi.
 related changes in the source code of CEF. Also contains this a needed patch for Google Chromium.
 
 General description of CEF can be found here on [wikipedia](http://en.wikipedia.org/wiki/Chromium_Embedded_Framework).
@@ -23,15 +23,18 @@ General description of CEF can be found here on [wikipedia](http://en.wikipedia.
 #### *<p align="center" style="color:red">WARNING: This app need a ubuntu or debian 64bit system as base!<p>*
 
 -------------
+[Documentation](docs/home.md) - Gives you information for installation and usage of Mupel
+
+-------------
 ### License of Muple
-- [GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007](https://github.com/kodi-web/chromium-cef-bin-creator/blob/master/LICENSE.md)
+- [GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007](LICENSE)
 
 -------------
 ### License of kodi
-- [GNU GENERAL PUBLIC LICENSE Version 2, June 1991](https://github.com/xbmc/xbmc/blob/master/LICENSE.GPL)
+- [GNU GENERAL PUBLIC LICENSE Version 2, June 1991](https://github.com/xbmc/xbmc/raw/master/LICENSE.GPL)
 
 -------------
 ### License of CEF
 - Copyright (c) 2008-2014 Marshall A. Greenblatt. Portions Copyright (c)
 - 2006-2009 Google Inc. All rights reserved.
-- [New BSD License](https://github.com/kodi-web/chromium-cef-bin-creator/blob/master/LICENSE-CEF.txt)
+- [New BSD License](https://bitbucket.org/chromiumembedded/cef/raw/master/LICENSE.txt)
