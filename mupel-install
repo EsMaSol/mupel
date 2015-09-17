@@ -309,7 +309,6 @@ Do you want to select script?";
         sudo -A -- ${distname}${target} \
         apt-get -y -q build-dep kodi
         sudo -A -- ${distname}${target} \
-        if [ ]
         apt-get -y -q install bison build-essential ccache cmake curl \
             cvs default-jre fp-compiler gawk gdc gettext git-core gperf libasound2-dev libass-dev \
             libavcodec-dev libavfilter-dev libavformat-dev libavutil-dev libbluetooth-dev \
