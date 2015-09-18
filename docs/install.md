@@ -1,7 +1,8 @@
 # *<p align="center">Installation of Mupel on your system</p>*
-*<p align="center">![Work in progress](http://img.shields.io/badge/work_in-progress-lightgray.svg)</p>*
+[<img src="../icons/back-button.png" alt="Back" width="100" height="40">](readme.md) 
 
 -------------
+
 For installation of Mupel is a Debian or Ubuntu 64 bit x86 system required. This is to have the needed dependencies for
 them on known distributions. 64bit is needed to have full functionality there and also for a 32bit build.
 
@@ -10,10 +11,16 @@ Hierarchy Standard", but prevent access problems where normally a super user is 
 
 Also must be the source of them somewhere on the home folder!
 
+### Table of Contents
+ - [General](#general)
+ - [Start of installation](#start-of-installation)
+ - [Remove installed Mupel](#remove-installed-Mupel)
+
 -------------
+### General
 <table>
     <dt><b>Used parts on file system as example of installed Mupel: </b></dt>
-    <dd><sub><i>(changed from installed dependencies are not below)</i></sub></dd>
+    <dd><sub><i>(changes from installed dependencies are not below)</i></sub></dd>
     <thead>
         <tr>
           <th><sub>Own Installed places:</sub></th>
@@ -51,4 +58,12 @@ Also must be the source of them somewhere on the home folder!
         <td>For emulation systems are there bind mount point added</td>
     </tr>
 </table>
+
 -------------
+### Start of installation
+
+-------------
+### Remove installed Mupel
+
+-------------
+*<p align="center">![Work in progress](http://img.shields.io/badge/work_in-progress-lightgray.svg)</p>*
