@@ -14,13 +14,13 @@ Also must be the source of them somewhere on the home folder!
 ### Table of Contents
  - [General](#general)
  - [Start of installation](#install)
- - [Remove installated Mupel](#remove-install)
+ - [Remove installed Mupel](#remove-install)
 
 -------------
 ### General
 <table>
     <dt><b>Used parts on file system as example of installed Mupel: </b></dt>
-    <dd><sub><i>(changed from installed dependencies are not below)</i></sub></dd>
+    <dd><sub><i>(changes from installed dependencies are not below)</i></sub></dd>
     <thead>
         <tr>
           <th><sub>Own Installed places:</sub></th>
@@ -63,7 +63,7 @@ Also must be the source of them somewhere on the home folder!
 ### Start of installation
 
 -------------
-### Remove installated Mupel
+### Remove installed Mupel
 
 -------------
 *<p align="center">![Work in progress](http://img.shields.io/badge/work_in-progress-lightgray.svg)</p>*
