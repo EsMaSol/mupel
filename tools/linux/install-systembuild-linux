@@ -1119,6 +1119,20 @@ if [[ $install_way = "Update selected distribution" ]];then
     system_update       "${udpate_dist}" "32bit";
   } fi
   system_update       "${udpate_dist}" "64bit";
+
+  # Let the user know what we did
+  showdialog --title="Automatic build environment" \
+             --image="$BASE_PATH/icons/icon-info-128x128.png" \
+             --image-on-top --form \
+             --button=gtk-ok:0 \
+             --width=830 --show-uri --editable \
+             --text-info \
+             --text="<tt>
+     <i><span size=\"large\">Successfully updated ${udpate_dist}</span></i>
+_________________________________________________________________________________________
+
+     The distribubtion $udpate_dist is updated which stored on
+     <b>$([[ $include_32bit = TRUE ]] && echo "/usr/local/bin/${udpate_dist}32</b> and <b>")/usr/local/bin/${udpate_dist}64\"</b>.</tt>" 2> /dev/null
 }
 elif [[ $install_way = "Overwrite selected distribution" ]];then
 {
@@ -1136,6 +1150,20 @@ Distribution becomes reseted to new.
     system_overwrite    "${udpate_dist}" "32bit";
   } fi
   system_overwrite    "${udpate_dist}" "64bit";
+
+  # Let the user know what we did
+  showdialog --title="Automatic build environment" \
+             --image="$BASE_PATH/icons/icon-info-128x128.png" \
+             --image-on-top --form \
+             --button=gtk-ok:0 \
+             --width=830 --show-uri --editable \
+             --text-info \
+             --text="<tt>
+     <i><span size=\"large\">Successfully overwrited ${udpate_dist}</span></i>
+_________________________________________________________________________________________
+
+     The distribubtion $udpate_dist overwrite is done which stored on
+     <b>$([[ $include_32bit = TRUE ]] && echo "/usr/local/bin/${udpate_dist}32</b> and <b>")/usr/local/bin/${udpate_dist}64\"</b>.</tt>" 2> /dev/null
 }
 elif [[ $install_way = "Install new distribution" ]];then
 {
