@@ -290,7 +290,7 @@ function system_update()
           {
             present_repo=$(grep -F xbmc "/var/lib/chroot/${distname}${target}bit/etc/apt/sources.list");
             if [[ ! -z $present_repo ]] &&  [[ -z `echo $present_repo | grep -F "${used_distname}"` ]];then
-              sudo sed --in-place '/team-xbmc/d' /var/lib/chroot/utopic64bit/etc/apt/sources.list;fi
+              sudo sed --in-place '/team-xbmc/d' /var/lib/chroot/${distname}${target}bit/etc/apt/sources.list;fi
 
             if [[ -z `echo $present_repo | grep -F "${used_distname}"` ]];then
             {
@@ -386,7 +386,7 @@ function system_update()
           rm -f "${TEMP_DIR}/build_active";
           sleep 5;
           exit 0;
-        ) | sed -u "s/.*/# &/ w" >> ${main_msg_tmp} &
+        ) | sed -u "s/.*/# &/" >> ${main_msg_tmp} &
         pid=$!;
       }
       {
@@ -429,7 +429,7 @@ function system_overwrite()
 
   sudo -A -- rm -rfv /var/lib/chroot/${target} |
     showdialog --title="Install" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress --width=600 \
-               --text="Removing old distribution- ${distname} ..." \
+               --text="Removing old distribution ${distname} ..." \
                --pulsate --log-height=300 --button=gtk-cancel:1 \
                --auto-close > /dev/null;
 
@@ -555,8 +555,12 @@ EOF
         sudo -A -- sh -c 'cat >>'"${fstab}"
     } fi
 
-    grep -qs '^/run/user/1000' "${fstab}" ||
-      echo '/run/user/1000  /run/user/1000  none    rw,bind         0       0' | sudo -A -- sh -c 'cat >>'"${fstab}";
+    # if /run/user/1000 is already present and enabled disable it to prevent umount
+    # problems on install
+    if grep -qs '^/run/user/1000' "${fstab}";then
+      sudo -A perl -pi -e 's/^\/run\/user\/1000/#\/run\/user\/1000/g' "${fstab}"
+    else
+      echo '/run/user/1000  /run/user/1000  none    rw,bind         0       0' | sudo -A -- sh -c 'cat >>'"${fstab}";fi
 
     # Install a helper script to launch commands in the chroot
     sudo -A -- sh -c 'cat > /usr/local/bin/'"${target%bit}" << EOF
@@ -842,6 +846,10 @@ EOF
 
     if [ -d /var/lib/chroot/${target}/usr/lib/i386-linux-gnu ];then
       ln -sf i386-linux-gnu /var/lib/chroot/${target}/usr/lib/i686-linux-gnu;fi
+
+    # enable /run/user/1000 again
+    if grep -qs '^#/run/user/1000' "${fstab}";then
+      sudo -A perl -pi -e 's/^#\/run\/user\/1000/\/run\/user\/1000/g' "${fstab}";fi
 
     # Clean up package files
     sudo -A -- schroot -c "${target%bit}" -p -- apt-get clean
