@@ -13,8 +13,8 @@ Also must be the source of them somewhere on the home folder!
 
 ### Table of Contents
  - [General](#general)
- - [Start of installation](#install)
- - [Remove installed Mupel](#remove-install)
+ - [Start of installation](#start-of-installation)
+ - [Remove installed Mupel](#remove-installed-Mupel)
 
 -------------
 ### General
