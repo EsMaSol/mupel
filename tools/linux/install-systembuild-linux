@@ -892,7 +892,7 @@ EOF
 function system_uninstall()
 {
   local target=$1
-  sudo -A -- rm -rf /var/lib/chroot/${target}      \
+  sudo -A -- rm -rvf /var/lib/chroot/${target}      \
                     /usr/local/bin/${target%bit}   \
                     /etc/schroot/mount-${target}   \
                     /etc/schroot/script-${target}  \
@@ -1044,6 +1044,12 @@ for i in $(ls -r /var/lib/chroot/ | grep 64bit | sed 's/64bit//g'); do
 dist_available=$(echo $dist_available | tr ' '  '!');
 dist_available=${dist_available::-1};
 
+if [[ -z $dist_installed ]];then
+  way_selection="Install new distribution"
+else
+  way_selection="Update selected distribution\!Overwrite selected distribution\!Install new distribution\!Uninstall selected distribution"
+fi
+
 while :; do
 {
   install_values=$(showdialog --form --title="Linux system installer" \
@@ -1058,13 +1064,7 @@ while :; do
    You will have to provide your \"sudo\" password when
    requested.:LBL" "" \
                               --field=":LBL" "" \
-                              --field="\
-Select what you want to do:\
-CB" "\
-Update selected distribution\!\
-Overwrite selected distribution\!\
-Install new distribution\!\
-Uninstall selected distribution" \
+                              --field="Select what you want to do:CB" "$way_selection" \
                               --field=":LBL" "" \
                               --field="<b>Reconfigure existing:</b>:LBL" "" \
                               --field="Distribution:CB" "$dist_installed" \
@@ -1165,39 +1165,59 @@ elif [[ $install_way = "Install new distribution" ]];then
 _________________________________________________________________________________________
 
      You can run programs inside of the chroot by invoking the
-     <b>$([ $include_32bit = TRUE ] && echo "/usr/local/bin/${install_dist}32</b> or <b>")/usr/local/bin/${install_dist}64\"</b> command.
+     <b>$([[ $include_32bit = TRUE ]] && echo "/usr/local/bin/${install_dist}32</b> or <b>")/usr/local/bin/${install_dist}64\"</b> command.
 
-      This command can be used with arguments, in order to just run a single
-      program inside of the chroot environment (e.g. \"${install_dist}64 make chrome\")
-      or without arguments, in order to run an interactive shell session inside
-      of the chroot environment.
+     This command can be used with arguments, in order to just run a single
+     program inside of the chroot environment (e.g. \"${install_dist}64 make chrome\")
+     or without arguments, in order to run an interactive shell session inside
+     of the chroot environment.
 
-      If you need to run things as \"root\", you can use \"sudo\" (e.g. try
-      \"sudo ${install_dist}64 apt-get update\").
+     If you need to run things as \"root\", you can use \"sudo\" (e.g. try
+     \"sudo ${install_dist}64 apt-get update\").
 
-      Your home directory is shared between the host and the chroot. But I
-      configured \"${HOME}/chroot\" to be private to the chroot environment.
-      You can use it for files that need to differ between environments. This
-      would be a good place to store binaries that you have built from your
-      source files.
+     Your home directory is shared between the host and the chroot. But I
+     configured \"${HOME}/chroot\" to be private to the chroot environment.
+     You can use it for files that need to differ between environments. This
+     would be a good place to store binaries that you have built from your
+     source files.
 
-      For Chrome, this probably means you want to make your \"out\" directory a
-      symbolic link that points somewhere inside of \"${HOME}/chroot\".
+     For Chrome, this probably means you want to make your \"out\" directory a
+     symbolic link that points somewhere inside of \"${HOME}/chroot\".
 
-      You still need to run \"gclient runhooks\" whenever you switch from building
-      outside of the chroot to inside of the chroot. But you will find that you
-      don\'t have to repeatedly erase and then completely rebuild all your object
-      and binary files.</tt>" 2> /dev/null
+     You still need to run \"gclient runhooks\" whenever you switch from building
+     outside of the chroot to inside of the chroot. But you will find that you
+     don\'t have to repeatedly erase and then completely rebuild all your object
+     and binary files.</tt>" 2> /dev/null
 }
 elif [[ $install_way = "Uninstall selected distribution" ]];then
 {
-  showQuestionDialog "<b>Are you sure to uninstall \"<i>${udpate_dist}64bit(32bit)</i>\"?</b>"
+  showQuestionDialog "<b>Are you sure to uninstall <i>$([[ $include_32bit = TRUE ]] && echo "${udpate_dist}32</i> and <i>")${udpate_dist}64</i>?</b>"
   [ $? != 0 ] && exit_build 1;
 
-  check_system_active "${udpate_dist}64bit"
-  check_system_active "${udpate_dist}32bit"
-  system_uninstall "${udpate_dist}32bit"
-  system_uninstall "${udpate_dist}64bit"
+  (
+    check_system_active "${udpate_dist}64bit"
+    check_system_active "${udpate_dist}32bit"
+    system_uninstall "${udpate_dist}32bit"
+    system_uninstall "${udpate_dist}64bit"
+  ) |
+    showdialog --title="Install" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress --width=600 \
+               --text="Removing old distribution ${udpate_dist} ..." \
+               --pulsate --log-height=300 --button=gtk-cancel:1 \
+               --auto-close > /dev/null;
+
+  # Let the user know what we did
+  showdialog --title="Automatic build environment" \
+             --image="$BASE_PATH/icons/icon-info-128x128.png" \
+             --image-on-top --form \
+             --button=gtk-ok:0 \
+             --width=830 --show-uri --editable \
+             --text-info \
+             --text="<tt>
+     <i><span size=\"large\">Successfully uninstalled ${udpate_dist}</span></i>
+_________________________________________________________________________________________
+
+     The distribubtion $udpate_dist is removed which was stored on
+     <b>$([[ $include_32bit = TRUE ]] && echo "/usr/local/bin/${udpate_dist}32</b> and <b>")/usr/local/bin/${udpate_dist}64\"</b>.</tt>" 2> /dev/null
 }
 else
 {
