@@ -23,7 +23,7 @@ General description of CEF can be found here on [wikipedia](http://en.wikipedia.
 #### *<p align="center" style="color:red">WARNING: This app need a ubuntu or debian 64bit system as base!<p>*
 
 -------------
-[Documentation](docs/home.md) - Gives you information for installation and usage of Mupel
+[Documentation](docs/readme.md) - Gives you information for installation and usage of Mupel
 
 -------------
 ### License of Muple
