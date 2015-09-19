@@ -721,8 +721,9 @@ EOF
     sudo -A -- chmod 755 /usr/local/bin/${target%bit};
 
     # Add the standard Ubuntu update repositories if requested.
-    [ "${include_update}" = "TRUE" -a \
-      -r "/var/lib/chroot/${target}/etc/apt/sources.list" ] &&
+    if [ "${include_update}" = "TRUE" -a \
+        -r "/var/lib/chroot/${target}/etc/apt/sources.list" ];then
+    {
       sudo -A -- sed -i '/^deb .* [^ -]\+ main$/p
                s/^\(deb .* [^ -]\+\) main/\1-security main/
                p
@@ -731,13 +732,15 @@ EOF
                :1;s/-security main/-updates main/
                t
                d' "/var/lib/chroot/${target}/etc/apt/sources.list"
-    err=$?; [ $err != 0 ] && showErrorDialog "Error on or near line ${LINENO}, Error code: $err" && exit_build 1
+      err=$?; [ $err != 0 ] && showErrorDialog "Error on or near line ${LINENO}, Error code: $err" && exit_build 1
+    } fi
 
     # Add a few more repositories to the chroot
-    [ -r "/var/lib/chroot/${target}/etc/apt/sources.list" ] &&
-    sudo -A -- sed -i 's/ main$/ main restricted universe multiverse/' \
-             "/var/lib/chroot/${target}/etc/apt/sources.list"
-    err=$?; [ $err != 0 ] && showErrorDialog "Error on or near line ${LINENO}, Error code: $err" && exit_build 1
+    if [ -r "/var/lib/chroot/${target}/etc/apt/sources.list" ];then
+    {
+      sudo -A -- sed -i 's/ main$/ main restricted universe multiverse/' "/var/lib/chroot/${target}/etc/apt/sources.list"
+      err=$?; [ $err != 0 ] && showErrorDialog "Error on or near line ${LINENO}, Error code: $err" && exit_build 1
+    } fi
 
     # Add the Ubuntu \"partner\" repository, if available
     if [ -r "/var/lib/chroot/${target}/etc/apt/sources.list" ] &&
@@ -878,10 +881,12 @@ EOF
     ps -p $pid
     [[ $? = 0 ]] && killtree $pid KILL
     rm -f "${TEMP_DIR}/build_active"
+    touch ${TEMP_DIR}/linux-install.failed
     exit 1
   elif [ -f "${TEMP_DIR}/build_active" ];then
     showErrorDialog "\"${target%bit}\" installation failed.\nExiting"
     rm -f "${TEMP_DIR}/build_active"
+    touch ${TEMP_DIR}/linux-install.failed
     exit 1
   fi
   unset pid;
@@ -1106,6 +1111,9 @@ include_kodi_dep="$(echo $install_values | awk -F '|' '{print $16}')"
 include_kodi_devel="$(echo $install_values | awk -F '|' '{print $17}')"
 include_cef_dep="$(echo $install_values | awk -F '|' '{print $18}')"
 
+if [ -f ${TEMP_DIR}/linux-install.failed ];then
+ rm ${TEMP_DIR}/linux-install.failed;fi
+
 # Error handler
 trap '[ ! -z $pid ] && killtree $pid; killall -9 tail; evaluate_ret_error 1;' INT TERM QUIT HUP
 trap 'sudo -A -- apt-get clean; tput bel; echo; echo Failed' EXIT
@@ -1182,7 +1190,9 @@ elif [[ $install_way = "Install new distribution" ]];then
   } fi
 
   # Let the user know what we did
-  showdialog --title="Automatic build environment" \
+  if [ ! -f ${TEMP_DIR}/linux-install.failed ];then
+  {
+    showdialog --title="Automatic build environment" \
              --image="$BASE_PATH/icons/icon-info-128x128.png" \
              --image-on-top --form \
              --button=gtk-ok:0 \
@@ -1216,6 +1226,7 @@ ________________________________________________________________________________
      outside of the chroot to inside of the chroot. But you will find that you
      don\'t have to repeatedly erase and then completely rebuild all your object
      and binary files.</tt>" 2> /dev/null
+  } fi
 }
 elif [[ $install_way = "Uninstall selected distribution" ]];then
 {
