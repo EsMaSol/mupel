@@ -140,49 +140,50 @@ BUILD__CB______________ADD_ON=10
 BUILD__TERMPROC_____BUILD_LOG=11
 
 # Setting control id's
-SET_KODI________________SEP__=0
-SET_KODI______________LABEL__=1
-SET_KODI________SOURCE_REPOSI=2
-SET_KODI__________SOURCE_BASE=3
-SET_KODI________SOURCE_BRANCH=4
-SET_KODI____________RUN_TESTS=5
-SET_KODI_CONF_IN_DIRECT_BUILD=6
-SET_KODI____________DEP_CLEAN=7
-SET_CEF_________________SEP__=8
-SET_CEF_______________LABEL__=9
-SET_CEF_________SOURCE_REPOSI=10
-SET_CEF___________SOURCE_BASE=11
-SET_CEF_________SOURCE_BRANCH=12
-SET_CEF_________VERBOSE_BUILD=13
-SET_LINUX_______________SEP__=14
-SET_LINUX_____________LABEL__=15
-SET_LINUX__________BUILD_TYPE=16
-SET_LINUX_____USED_LINUX_DIST=17
-SET_LINUX_____OPEN_DIST_CONTR=18
-SET_WINDOWS_____________SEP__=19
-SET_WINDOWS___________LABEL__=20
-SET_WINDOWS________BUILD_TYPE=21
-SET_WINDOWS____________TARGET=22
-SET_WINDOWS______SSH_USERNAME=23
-SET_WINDOWS______SSH_PASSWORD=24
-SET_MAC_________________SEP__=25
-SET_MAC_______________LABEL__=26
-SET_MAC____________BUILD_TYPE=27
-SET_MAC____IOS_ATV_BUILD_TYPE=28
-SET_MAC________________TARGET=29
-SET_MAC__________SSH_USERNAME=30
-SET_MAC__________SSH_PASSWORD=31
-SET_MAC________________SSH_IP=32
-SET_MAC______________SSH_PORT=33
-SET_ANDROID_____________SEP__=34
-SET_ANDROID___________LABEL__=35
-SET_ANDROID_______AVD_MANAGER=36
-SET_ANDROID________BUILD_TYPE=37
-SET_ANDROID____ARM_EMU_SOURCE=38
-SET_ANDROID__BUILD_SYS_TARGET=39
-SET_ANDROID____x86_EMU_SOURCE=40
-SET_VARIOUS_____________SEP__=41
-SET_VARIOUS_____CPU_PROC_JOBS=42
+SET_KODI______________LABEL__=0
+SET_KODI________SOURCE_REPOSI=1
+SET_KODI__________SOURCE_BASE=2
+SET_KODI________SOURCE_BRANCH=3
+SET_KODI____________RUN_TESTS=4
+SET_KODI_CONF_IN_DIRECT_BUILD=5
+SET_KODI____________DEP_CLEAN=6
+SET_CEF_________________SEP__=7
+SET_CEF_______________LABEL__=8
+SET_CEF_________SOURCE_REPOSI=9
+SET_CEF___________SOURCE_BASE=10
+SET_CEF_________SOURCE_BRANCH=11
+SET_CEF_________VERBOSE_BUILD=12
+SET_LINUX_______________SEP__=13
+SET_LINUX_____________LABEL__=14
+SET_LINUX_____USED_LINUX_DIST=15
+SET_LINUX_____OPEN_DIST_CONTR=16
+SET_LINUX__________BUILD_TYPE=17
+SET_WINDOWS_____________SEP__=18
+SET_WINDOWS___________LABEL__=19
+SET_WINDOWS________BUILD_TYPE=20
+SET_WINDOWS____________TARGET=21
+SET_WINDOWS______SSH_USERNAME=22
+SET_WINDOWS______SSH_PASSWORD=23
+SET_WINDOWS____________SSH_IP=24
+SET_WINDOWS__________SSH_PORT=25
+SET_MAC_________________SEP__=26
+SET_MAC_______________LABEL__=27
+SET_MAC____________BUILD_TYPE=28
+SET_MAC____IOS_ATV_BUILD_TYPE=29
+SET_MAC________________TARGET=30
+SET_MAC__________SSH_USERNAME=31
+SET_MAC__________SSH_PASSWORD=32
+SET_MAC________________SSH_IP=33
+SET_MAC______________SSH_PORT=34
+SET_ANDROID_____________SEP__=35
+SET_ANDROID___________LABEL__=36
+SET_ANDROID_______AVD_MANAGER=37
+SET_ANDROID________BUILD_TYPE=38
+SET_ANDROID____ARM_EMU_SOURCE=39
+SET_ANDROID__BUILD_SYS_TARGET=40
+SET_ANDROID____x86_EMU_SOURCE=41
+SET_VARIOUS_____________SEP__=42
+SET_VARIOUS_____CPU_PROC_JOBS=43
 
 ###############################################################################
 # Functions
@@ -421,6 +422,20 @@ function parse_values()
       WINDOWS_SSH_PASSWORD=${value%|}
       saveWindowsConfigFile
       export WINDOWS_SSH_PASSWORD
+    }
+    elif [[ $id = $SET_WINDOWS____________SSH_IP ]];then
+    {
+      . $HOME/.mupel/windows.conf;
+      WINDOWS_SSH_IP=${value%|}
+      saveWindowsConfigFile
+      export WINDOWS_SSH_IP
+    }
+    elif [[ $id = $SET_WINDOWS__________SSH_PORT ]];then
+    {
+      . $HOME/.mupel/windows.conf;
+      WINDOWS_SSH_PORT=${value%|}
+      saveWindowsConfigFile
+      export WINDOWS_SSH_PORT
     }
     elif [[ $id = $SET_WINDOWS________BUILD_TYPE ]];then
     {
@@ -3216,11 +3231,16 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
 
       [[ $USE_LINUX_X86_32 = "TRUE" ]] && [[ $USE_LINUX_X86_64 = "TRUE" ]] && use_it=1 || use_it=0
       echo "#> msg field $SET_LINUX__________BUILD_TYPE:enable $use_it;"
+      targets="x86_32!x86_64"
+      targets=$(echo ${targets//$LINUX_BUILD_TYPE/\^${LINUX_BUILD_TYPE}});
+      echo "#> msg field $SET_LINUX__________BUILD_TYPE:set $targets;"
 
       [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]] && use_it=1 || use_it=0
       echo "#> msg field $SET_WINDOWS____________TARGET:visible $use_it;"
       echo "#> msg field $SET_WINDOWS______SSH_USERNAME:visible $use_it;"
       echo "#> msg field $SET_WINDOWS______SSH_PASSWORD:visible $use_it;"
+      echo "#> msg field $SET_WINDOWS____________SSH_IP:visible $use_it;"
+      echo "#> msg field $SET_WINDOWS__________SSH_PORT:visible $use_it;"
       [[ $USE_MS_WINDOWS_32 = "TRUE" ]] && [[ $USE_MS_WINDOWS_64 = "TRUE" ]] && use_it=1 || use_it=0
       echo "#> msg field $SET_WINDOWS________BUILD_TYPE:enable $use_it;"
       targets="x86_32!x86_64"
@@ -3343,10 +3363,8 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
     } done
   ) | \
   yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
-             --text="Settings" \
              --pulsate \
              --xcom-log=$thread9_in \
-             --field=":LBL@0,8,0,2" '' \
              --field="<b>Kodi:</b>:LBL@0,8,2,4" '' \
              --field="Repository:@0,4,4,6" "$KODI_SOURCE_URL" \
              --field="Use base:CHK@5,6,4,6" "$KODI_SOURCE_USE_BASE" \
@@ -3362,15 +3380,17 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field="Verbose build:CHK@0,1,13,14" "$CEF_VERBOSE_BUILD" \
              --field=":LBL@0,8,15,16" '' \
              --field="<b>Linux settings:</b>:LBL@0,8,16,17" '' \
-             --field="Build type:CB@6,7,16,17" 'x86_32!x86_64' \
              --field="Used 32/64bit Distribution:CB@0,1,17,18" "$(getLinuxTargetDist)" \
-             --field="Open distribution control:FBTN@7,8,17,18" "bash -c 'echo \"#< msg open_dist_control\" >> $thread9_in'" \
+             --field="Open distribution control:FBTN@2,3,17,18" "bash -c 'echo \"#< msg open_dist_control\" >> $thread9_in'" \
+             --field="Build type:CB@6,8,17,18" 'x86_32!x86_64' \
              --field=":LBL@0,8,21,22" '' \
              --field="<b>Windows settings:</b>:LBL@0,8,22,23" '' \
              --field="Build type:CB@6,8,22,23" 'x86_32!x86_64' \
              --field="Build system target:CB@0,5,23,24" "$(getWindowsTargets)" \
              --field="Username / Password (ssh):@6,7,23,24" "$WINDOWS_SSH_USERNAME" \
              --field=":H@7,8,23,24" "$WINDOWS_SSH_PASSWORD" \
+             --field="URL or IP / Port (ssh):@6,7,24,25" "$WINDOWS_SSH_IP" \
+             --field=":@7,8,24,25" "$WINDOWS_SSH_PORT" \
              --field=":LBL@0,8,28,29" '' \
              --field="<b>Mac OS X settings:</b>:LBL@0,8,29,30" '' \
              --field="Build type:CB@6,7,29,30" 'x86_32!x86_64' \
@@ -3388,7 +3408,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field="x86 AVD emulation system:CB@0,3,40,41" "$(getAndroidAVDS x86)" \
              --field="Build system target:CB@7,8,40,41" "$(getAndroidTargets)" \
              --field=":LBL@0,8,41,42" '' \
-             --field="CPU process jobs:NUM@0,8,43,44" "${CPU_PROC_JOBS}!1..32" \
+             --field="CPU process jobs:NUM@0,1,43,44" "${CPU_PROC_JOBS}!1..32" \
              --field=":XTALK" '' > /dev/null &
   pid_thread9=$!
   ((TAB_NUM++))
