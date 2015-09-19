@@ -19,11 +19,32 @@ Steps to do:
     - [ ] Rework Mac OS X install
     - [ ] Rework Android install
     - [ ] Rework iOS install
-  - [ ] Install and usage  on all debian based OS systems OK (Dabian, ubuntu, Kubuntu, Lubuntu, ...)
-- [ ] Add help documentation (wrk in progress)
+  - [ ] Install and usage on all debian based OS systems OK (Debian, ubuntu, Kubuntu, Lubuntu, ...)
+- [ ] Add help documentation (work in progress)
 - [ ] Add more git support parts
-    [ ] View of present pull requests and direct build of them
-    [ ] Add base system repositories always in which can be then selected by a check button
+    - [ ] View of present pull requests and direct build of them
+    - [ ] Add base system repositories always in which can be then selected by a check button
+    - [x] Switch to source base repositories on CEF and Kodi by check button
+- [ ] Rework/Add CEF build (build, not related to system install)
+  - [ ] All CEF build systems ready
+    - [x] Creation Linux static package OK
+    - [ ] Creation Raspberry static package OK
+    - [ ] Creation Windows static package OK
+    - [ ] Creation Mac OS X static package OK
+    - [ ] Creation Android static package OK
+    - [ ] Creation iOS static package OK
+  - [ ] Include complete build for all systems (currently missing)
+- [x] Rework/Add Kodi build (build, not related to system install)
+  - [ ] All Kodi build systems ready
+    - [x] Creation Linux static package OK
+    - [x] Creation Raspberry static package OK
+    - [x] Creation Windows static package OK
+      - [ ] Improve Windows to allow selected step build
+    - [x] Creation Mac OS X static package OK
+    - [x] Creation Android static package OK
+    - [x] Creation iOS static package OK
+  - [ ] Include complete build for all systems (currently missing)
+- [ ] Add user selectable build script support
 
 -------------
 ### Description
