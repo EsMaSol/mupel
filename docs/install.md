@@ -14,7 +14,7 @@ Also must be the source of them somewhere on the home folder!
 ### Table of Contents
  - [General](#general)
  - [Start of installation](#start-of-installation)
-  - [Linux x86 system](#linux_x86_system)
+  - [Linux x86 system](#linux-x86-system)
  - [Remove installed Mupel](#remove-installed-mupel)
 
 -------------
