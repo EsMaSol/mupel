@@ -5,6 +5,27 @@
 ###### *<p align="center">Now you can do "<i>Èngem e' Mupel mâchen</i>" (Luxembourgish) and means "Someone squeezing the cheeks" in respect to Jenkins the best multi platform background system on world.</p>*
 
 -------------
+*<p align="center">![Work in progress](http://img.shields.io/badge/work_in-progress-lightgray.svg)</p>*
+
+Below is a list of parts on Mupel which becomes improved, checked, added or fixed. It is a currently usable but far away from them what I want.
+
+Steps to do:
+- [ ] Rework installation
+  - [ ] All build systems ready
+    - [x] Rework Linux distribution install
+      - [ ] Check install for all active distributions
+    - [ ] Rework Raspberry build amd emulation system install
+    - [ ] Rework Windows install
+    - [ ] Rework Mac OS X install
+    - [ ] Rework Android install
+    - [ ] Rework iOS install
+  - [ ] Install and usage  on all debian based OS systems OK (Dabian, ubuntu, Kubuntu, Lubuntu, ...)
+- [ ] Add help documentation (wrk in progress)
+- [ ] Add more git support parts
+    [ ] View of present pull requests and direct build of them
+    [ ] Add base system repositories always in which can be then selected by a check button
+
+-------------
 ### Description
 This repository contains a application system to allow build of kodi on all supported system by hand and to do quik
 checks and updates during development on other OS systems.
