@@ -102,6 +102,79 @@ else
 
 PATH="$ADD_PATHS:$PATH";
 
+# General control is's
+GEN__BTN______START_BUILD_ALL=0
+GEN__BTN_______STOP_BUILD_ALL=1
+GEN__BTN____CREATE_INST_MUPEL=2
+GEN__BTN______________DUMMY_1=3
+GEN__BTN______DOWNLOAD_UPDATE=4
+GEN__BTN____CREATE_NEW_BRANCH=5
+GEN__BTN______PREPARE_PATCHES=6
+GEN__BTN____DEL_OLD_LOG_FILES=7
+GEN__BTN____________CLEAR_LOG=8
+GEN_____________________SEP__=9
+GEN__CHK_________INCLUDE_KODI=10
+GEN__CHK__INCLUDE_KODI_ADDONS=11
+GEN__CHK__________INCLUDE_CEF=12
+GEN__BTN______________DUMMY_2=13
+GEN__TERMPROC_______BUILD_LOG=14
+
+# Build control id's
+BUILD__BTN_____BUILD_COMPLETE=0
+BUILD__BTN__BUILD_KODI_DIRECT=1
+BUILD__BTN___BUILD_CEF_DIRECT=2
+BUILD__BTN____BUILD_SEL_ADDON=3
+BUILD__BTN_________STOP_BUILD=4
+BUILD__BTN__________CLEAR_LOG=5
+BUILD__BTN_____OPEN_LAST_LOGS=6
+BUILD__BTN________LAUNCH_KODI=7
+BUILD__BTN___FORCE_BUILD_STEP=8
+BUILD__BTN_PERF_CODE_DEPCLEAN=9
+BUILD__CB______________ADD_ON=10
+BUILD__TERMPROC_____BUILD_LOG=11
+
+# Setting control id's
+SET_KODI________________SEP__=0
+SET_KODI______________LABEL__=1
+SET_KODI________SOURCE_REPOSI=2
+SET_KODI________SOURCE_BRANCH=3
+SET_KODI____________RUN_TESTS=4
+SET_KODI_CONF_IN_DIRECT_BUILD=5
+SET_KODI____________DEP_CLEAN=6
+SET_CEF_________________SEP__=7
+SET_CEF_______________LABEL__=8
+SET_CEF_________SOURCE_REPOSI=9
+SET_CEF_________SOURCE_BRANCH=10
+SET_CEF_________VERBOSE_BUILD=11
+SET_LINUX_______________SEP__=12
+SET_LINUX_____________LABEL__=13
+SET_LINUX_____USED_LINUX_DIST=14
+SET_LINUX_____OPEN_DIST_CONTR=15
+SET_WINDOWS_____________SEP__=16
+SET_WINDOWS___________LABEL__=17
+SET_WINDOWS________BUILD_TYPE=18
+SET_WINDOWS____________TARGET=19
+SET_WINDOWS______SSH_USERNAME=20
+SET_WINDOWS______SSH_PASSWORD=21
+SET_MAC_________________SEP__=22
+SET_MAC_______________LABEL__=23
+SET_MAC____________BUILD_TYPE=24
+SET_MAC____IOS_ATV_BUILD_TYPE=25
+SET_MAC________________TARGET=26
+SET_MAC__________SSH_USERNAME=27
+SET_MAC__________SSH_PASSWORD=28
+SET_MAC________________SSH_IP=29
+SET_MAC______________SSH_PORT=30
+SET_ANDROID_____________SEP__=31
+SET_ANDROID___________LABEL__=32
+SET_ANDROID_______AVD_MANAGER=33
+SET_ANDROID________BUILD_TYPE=34
+SET_ANDROID____ARM_EMU_SOURCE=35
+SET_ANDROID__BUILD_SYS_TARGET=36
+SET_ANDROID____x86_EMU_SOURCE=37
+SET_VARIOUS_____________SEP__=38
+SET_VARIOUS_____CPU_PROC_JOBS=39
+
 ###############################################################################
 # Functions
 {
@@ -118,11 +191,11 @@ function parse_values()
 
   if [ "$field" = "general" ];then
   {
-    if [[ $id = 9 ]];then # handle 'Include Kodi' change
+    if [[ $id = $GEN__CHK_________INCLUDE_KODI ]];then # handle 'Include Kodi' change
       INCLUDE_KODI=${value%|};
-    elif [[ $id = 10 ]];then # handle 'Include Kodi add-ons' change
+    elif [[ $id = $GEN__CHK__INCLUDE_KODI_ADDONS ]];then # handle 'Include Kodi add-ons' change
       INCLUDE_KODI_ADDONS=${value%|};
-    elif [[ $id = 11 ]];then # handle 'Include CEF' change
+    elif [[ $id = $GEN__CHK__________INCLUDE_CEF ]];then # handle 'Include CEF' change
       INCLUDE_CEF=${value%|};fi
   }
   elif [ "$field" = "add-ons" ];then
@@ -152,7 +225,7 @@ function parse_values()
     } done
     targets+="!"
 
-    echo "#> msg field 10:set ${targets};"
+    echo "#> msg field $BUILD__CB______________ADD_ON:set ${targets};"
   }
   elif [ "$field" = "settings" ];then
   {
@@ -161,9 +234,9 @@ function parse_values()
 
     #####
     # Kodi
-    if [[ $id = 1 ]] || [[ $id = 2 ]];then
+    if [[ $id = 1 ]] || [[ $id = $SET_KODI________SOURCE_REPOSI ]];then
     { # handle 'kodi git url' change
-      echo "#> msg field 3:enable 0;"
+      echo "#> msg field $SET_KODI________SOURCE_BRANCH:enable 0;"
       local kodi_url=${value%|}
       git_entries=$(git ls-remote "$kodi_url")
       ret=$?
@@ -184,37 +257,37 @@ function parse_values()
         } done
         targets+="!"
 
-        [[ $id != 2 ]] && echo "#> msg field 2:set ${KODI_SOURCE_URL};"
-        echo "#> msg field 3:set ${targets};"
-        echo "#> msg field 3:enable 1;"
+        [[ $id != $SET_KODI________SOURCE_REPOSI ]] && echo "#> msg field $SET_KODI________SOURCE_REPOSI:set ${KODI_SOURCE_URL};"
+        echo "#> msg field $SET_KODI________SOURCE_BRANCH:set ${targets};"
+        echo "#> msg field $SET_KODI________SOURCE_BRANCH:enable 1;"
       }
       else
         handleErrorsCodes $ret "git" "$kodi_url";fi
     }
-    elif [[ $id = 3 ]];then
+    elif [[ $id = $SET_KODI________SOURCE_BRANCH ]];then
     {
       # Trigger for update
       KODI_SOURCE_BRANCH=${value%|}
     }
-    elif [[ $id = 4 ]];then
+    elif [[ $id = $SET_KODI____________RUN_TESTS ]];then
     {
       KODI_RUN_TESTS=${value%|}
     }
-    elif [[ $id = 5 ]];then
+    elif [[ $id = $SET_KODI_CONF_IN_DIRECT_BUILD ]];then
     {
       KODI_CONF_IN_DIRECT_BUILD=${value%|}
     }
-    elif [[ $id = 6 ]];then
+    elif [[ $id = $SET_KODI____________DEP_CLEAN ]];then
     {
       KODI_DEP_CLEAN=${value%|}
     }
     #####
     # CEF
-    elif [[ $id = 8 ]] || [[ $id = 9 ]];then
+    elif [[ $id = 8 ]] || [[ $id = $SET_CEF_________SOURCE_REPOSI ]];then
     {  # handle 'cef git url' change
       if [[ $SUPPORT_CEF = "TRUE" ]];then
       {
-        echo "#> msg field 10:enable 0;"
+        echo "#> msg field $SET_CEF_________SOURCE_BRANCH:enable 0;"
         local cef_url=${value%|}
         git_entries=$(git ls-remote "$cef_url")
         ret=$?
@@ -233,48 +306,58 @@ function parse_values()
               targets+="^";fi
             targets+="$i"
           } done
-          [[ $id != 9 ]] &&
-            echo "#> msg field 9:set ${CEF_SOURCE_URL};"
-          echo "#> msg field 10:set ${targets};"
-          echo "#> msg field 10:enable 1;"
+          [[ $id != $SET_CEF_________SOURCE_REPOSI ]] &&
+            echo "#> msg field $SET_CEF_________SOURCE_REPOSI:set ${CEF_SOURCE_URL};"
+          echo "#> msg field $SET_CEF_________SOURCE_BRANCH:set ${targets};"
+          echo "#> msg field $SET_CEF_________SOURCE_BRANCH:enable 1;"
         }
         else
           handleErrorsCodes $ret "git" "$cef_url";fi
       } fi
     }
-    elif [[ $id = 10 ]];then
+    elif [[ $id = $SET_CEF_________SOURCE_BRANCH ]];then
     {
       # Trigger for update
       CEF_SOURCE_BRANCH=${value%|}
     }
-    elif [[ $id = 11 ]];then
+    elif [[ $id = $SET_CEF_________VERBOSE_BUILD ]];then
     {
       CEF_VERBOSE_BUILD=${value%|}
     }
     #####
+    # Linux
+    elif [[ $id = $SET_LINUX_____USED_LINUX_DIST ]];then
+    {
+      echo 123fds
+    }
+    elif [[ $id = $SET_LINUX_____OPEN_DIST_CONTR ]];then
+    {
+      echo 123fdsklökl
+    }
+    #####
     # MS Windows
-    elif [[ $id = 14 ]];then
+    elif [[ $id = $SET_WINDOWS____________TARGET ]];then
     {
       . $HOME/.mupel/windows.conf;
       WINDOWS_DEFAULT_RUN=${value%|}
       saveWindowsConfigFile
       export WINDOWS_DEFAULT_RUN
     }
-    elif [[ $id = 15 ]];then
+    elif [[ $id = $SET_WINDOWS______SSH_USERNAME ]];then
     {
       . $HOME/.mupel/windows.conf;
       WINDOWS_SSH_USERNAME=${value%|}
       saveWindowsConfigFile
       export WINDOWS_SSH_USERNAME
     }
-    elif [[ $id = 16 ]];then
+    elif [[ $id = $SET_WINDOWS______SSH_PASSWORD ]];then
     {
       . $HOME/.mupel/windows.conf;
       WINDOWS_SSH_PASSWORD=${value%|}
       saveWindowsConfigFile
       export WINDOWS_SSH_PASSWORD
     }
-    elif [[ $id = 17 ]];then
+    elif [[ $id = $SET_WINDOWS________BUILD_TYPE ]];then
     {
       . $HOME/.mupel/windows.conf;
       WINDOWS_BUILD_TYPE=${value%|}
@@ -283,35 +366,49 @@ function parse_values()
     }
     #####
     # Max OS-X
-    elif [[ $id = 20 ]];then
+    elif [[ $id = $SET_MAC________________TARGET ]];then
     {
       . $HOME/.mupel/mac-osx.conf;
       MAC_OS_X_DEFAULT_RUN=${value%|}
       saveMacOSXConfigFile
       export MAC_OS_X_DEFAULT_RUN
     }
-    elif [[ $id = 21 ]];then
+    elif [[ $id = $SET_MAC__________SSH_USERNAME ]];then
     {
       . $HOME/.mupel/mac-osx.conf;
       MAC_OS_X_SSH_USERNAME=${value%|}
       saveMacOSXConfigFile
       export MAC_OS_X_SSH_USERNAME
     }
-    elif [[ $id = 22 ]];then
+    elif [[ $id = $SET_MAC__________SSH_PASSWORD ]];then
     {
       . $HOME/.mupel/mac-osx.conf;
       MAC_OS_X_SSH_PASSWORD=${value%|}
       saveMacOSXConfigFile
       export MAC_OS_X_SSH_PASSWORD
     }
-    elif [[ $id = 23 ]];then
+    elif [[ $id = $SET_MAC________________SSH_IP ]];then
+    {
+      . $HOME/.mupel/mac-osx.conf;
+      MAC_OS_X_SSH_IP=${value%|}
+      saveMacOSXConfigFile
+      export MAC_OS_X_SSH_IP
+    }
+    elif [[ $id = $SET_MAC______________SSH_PORT ]];then
+    {
+      . $HOME/.mupel/mac-osx.conf;
+      MAC_OS_X_SSH_PORT=${value%|}
+      saveMacOSXConfigFile
+      export MAC_OS_X_SSH_PORT
+    }
+    elif [[ $id = $SET_MAC____________BUILD_TYPE ]];then
     {
       . $HOME/.mupel/mac-osx.conf;
       MAC_OS_X_BUILD_TYPE=${value%|}
       saveMacOSXConfigFile
       export MAC_OS_X_BUILD_TYPE
     }
-    elif [[ $id = 24 ]];then
+    elif [[ $id = $SET_MAC____IOS_ATV_BUILD_TYPE ]];then
     {
       . $HOME/.mupel/mac-osx.conf;
       IOS_ATV2_BUILD_TYPE=$(echo ${value%|} | tr '[:upper:]' '[:lower:]');
@@ -320,29 +417,29 @@ function parse_values()
     }
     #####
     # Android
-    elif [[ $id = 27 ]];then
+    elif [[ $id = $SET_ANDROID________BUILD_TYPE ]];then
     {
       . $HOME/.mupel/android.conf;
       ANDROID_BUILD_TYPE=${value%|}
       saveAndroidConfigFile
       export ANDROID_BUILD_TYPE
     }
-    elif [[ $id = 28 ]];then
+    elif [[ $id = $SET_ANDROID____ARM_EMU_SOURCE ]];then
     {
       . $HOME/.mupel/android.conf;
       ANDROID_SEL_AVD_ARM=$(echo ${value%|} | awk -F 'Name: ' '{print $2}' | awk -F ' - ' '{print $1}');
       saveAndroidConfigFile
     }
-    elif [[ $id = 29 ]];then
+    elif [[ $id = $SET_ANDROID__BUILD_SYS_TARGET ]];then
     {
       . $HOME/.mupel/android.conf;
       ANDROID_SEL_TARGET=${value%|}
       saveAndroidConfigFile
 
-      echo "#> msg field 28:set $(getAndroidAVDS arm);"
-      echo "#> msg field 30:set $(getAndroidAVDS x86);"
+      echo "#> msg field $SET_ANDROID____ARM_EMU_SOURCE:set $(getAndroidAVDS arm);"
+      echo "#> msg field $SET_ANDROID____ARM_EMU_SOURCE:set $(getAndroidAVDS x86);"
     }
-    elif [[ $id = 30 ]];then
+    elif [[ $id = $SET_ANDROID____ARM_EMU_SOURCE ]];then
     {
       . $HOME/.mupel/android.conf;
       ANDROID_SEL_AVD_X86=$(echo ${value%|} | awk -F 'Name: ' '{print $2}' | awk -F ' - ' '{print $1}');
@@ -350,7 +447,7 @@ function parse_values()
     }
     #####
     # General
-    elif [[ $id = 33 ]];then
+    elif [[ $id = $SET_VARIOUS_____CPU_PROC_JOBS ]];then
     {
       value=${value%|}
       [ -z $value ] && value=8;
@@ -527,7 +624,8 @@ function buildThreadForOS()
   } fi
 
   (
-    trap 'rm -f "$TEMP_DIR/build_thread-cef_active";rm -f "$TEMP_DIR/build_thread-cef_active-$system";rm -f "$TEMP_DIR/build_thread-$system.pid";' EXIT;
+    unset IFS;
+    trap 'rm -f $TEMP_DIR/build_thread-cef_active; rm -f $TEMP_DIR/build_thread-cef_active-$system; rm -f $TEMP_DIR/build_thread-$system.pid;' EXIT SIGHUP SIGINT SIGTERM;
     sleep 3
     loadConfigFile
 
@@ -566,6 +664,10 @@ function buildThreadForOS()
               $caller bash "$BASE_PATH/tools/cef-$system.build" --temp-dir "$TEMP_DIR" $direct >> "$BASE_PATH/build/creation-cef-$system.log" 2>&1 &
             fi
             tail -f --pid=$! "$BASE_PATH/build/creation-cef-$system.log"
+
+            rm -f $TEMP_DIR/build_thread-cef_active;
+            rm -f $TEMP_DIR/build_thread-cef_active-$system;
+            rm -f $TEMP_DIR/build_thread-$system.pid;
 
             step_cef=1;
             if [ -f $TEMP_DIR/cef-$system.failed ];then
@@ -621,6 +723,7 @@ function buildThreadForOS()
           fi
           tail -f --pid=$! "$BASE_PATH/build/creation-kodi-$system.log";
 
+          rm -f $TEMP_DIR/build_thread-$system.pid;
           if [ -f $TEMP_DIR/kodi-$system.failed ];then
           {
             rm $TEMP_DIR/kodi-$system.failed
@@ -635,14 +738,14 @@ function buildThreadForOS()
           if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-$system/kodi.bin" ] ||
              [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-$system/kodiapp-x86-debug.apk" ];then
           {
-            echo "#> msg field 1:enable 1";
-            echo "#> msg field 2:enable 1";
+            echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable 1";
+            echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable 1";
             parse_values "add-ons" "$system";
           }
           else
           {
-            echo "#> msg field 1:enable 0";
-            echo "#> msg field 2:enable 0";
+            echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable 0";
+            echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable 0";
           } fi
           continue;
         } fi
@@ -664,6 +767,7 @@ function buildThreadForOS()
           tail -f --pid=$! "$BASE_PATH/build/creation-user-script-$system.log"
 
           step_user=1
+          rm -f $TEMP_DIR/build_thread-$system.pid;
           if [ -f $TEMP_DIR/user_script-$system.failed ];then
           {
             rm $TEMP_DIR/user_script-$system.failed;
@@ -703,7 +807,8 @@ function buildThreadKodiAddonForOS()
 
   touch "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log"
   (
-    trap 'rm -f "$TEMP_DIR/build_thread-$system.pid";' EXIT;
+    unset IFS;
+    trap 'rm -f $TEMP_DIR/build_thread-$system.pid;' EXIT SIGHUP SIGINT SIGTERM;
     sleep 3
     loadConfigFile
 
@@ -715,6 +820,7 @@ function buildThreadKodiAddonForOS()
       $caller bash "$BASE_PATH/tools/kodi-$system.build" --temp-dir "$TEMP_DIR" --addon "$addon_name" >> "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" 2>&1
     fi
 
+    rm -f $TEMP_DIR/build_thread-$system.pid;
     if [ -f $TEMP_DIR/kodi-$system.failed ];then
     {
       rm $TEMP_DIR/kodi-$system.failed
@@ -731,6 +837,14 @@ function buildThreadKodiAddonForOS()
 
   echo $pid > "$TEMP_DIR/build_thread-$system.pid"
   echo "Build of kodi add-on $system for ${addon_name} started ...";
+}
+
+function getLinuxTargetDist()
+{
+  dist_targets=$(ls /var/lib/chroot/ | grep 64bit | sed 's/64bit//g' | tr '\n'  '!');
+  dist_targets=${dist_targets::-1};
+  dist_targets=$(echo ${dist_targets//$USE_LINUX_X86_DISTR/\^${USE_LINUX_X86_DISTR}});
+  echo $dist_targets
 }
 
 function getAndroidAVDS()
@@ -881,7 +995,7 @@ function getWindowsTargets()
     . "$HOME/.mupel/windows.conf";
 
     windows_targets=$(ls -d $HOME/.mupel/emulate/emu-windows* | awk -F"/" '{print $NF}' | tr '\n'  '!');
-    windows_targets=${windows_targets::-2};
+    windows_targets=${windows_targets::-1};
     windows_targets=$(echo ${windows_targets//$WINDOWS_DEFAULT_RUN/\^${WINDOWS_DEFAULT_RUN}});
   } fi
   echo $windows_targets;
@@ -897,7 +1011,7 @@ function getMacOSXTargets()
     . "$HOME/.mupel/mac-osx.conf";
 
     macosx_targets=$(ls -d $HOME/.mupel/emulate/emu-mac-osx* | awk -F"/" '{print $NF}' | tr '\n'  '!');
-    macosx_targets=${macosx_targets::-2};
+    macosx_targets=${macosx_targets::-1};
     macosx_targets=$(echo ${macosx_targets//$MAC_OS_X_DEFAULT_RUN/\^${MAC_OS_X_DEFAULT_RUN}});
   } fi
   echo $macosx_targets;
@@ -1049,6 +1163,9 @@ function forceKodiSelectedBuild()
   local caller="$2"
   local kodi_buildstep="$3"
 
+  # Force process active to have right stop from here
+  process_active=1
+
   if [ ! -d $BASE_PATH/build/kodi-$GIT_USER/kodi-$system ];then
     loadKodiBuildDir $system $system;fi
 
@@ -1094,8 +1211,7 @@ function forceKodiSelectedBuild()
       $caller bash "$BASE_PATH/tools/kodi-$system.build" --temp-dir "$TEMP_DIR" --selected $selection >> "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log" 2>&1
     fi
 
-    rm -f "$TEMP_DIR/build_thread-$system.pid";
-
+    rm -f $TEMP_DIR/build_thread-$system.pid;
     if [ -f $TEMP_DIR/kodi-$system.failed ];then
     {
       rm $TEMP_DIR/kodi-$system.failed
@@ -1211,10 +1327,10 @@ touch ${TEMP_DIR}/thread9_in
       loadConfigFile
 
       # Set buttons to initial state
-      echo "#> msg field 0:visible 1;";
-      echo "#> msg field 1:visible 0;";
-      echo "#> msg field 3:visible 0;"; # Dummy
-      echo "#> msg field 12:visible 0;"; # Dummy
+      echo "#> msg field $GEN__BTN______START_BUILD_ALL:visible 1;";
+      echo "#> msg field $GEN__BTN_______STOP_BUILD_ALL:visible 0;";
+      echo "#> msg field $GEN__BTN______________DUMMY_1:visible 0;"; # Dummy
+      echo "#> msg field $GEN__BTN______________DUMMY_2:visible 0;"; # Dummy
       if [[ $USE_LINUX_X86_32 = "FALSE" ]] &&
          [[ $USE_LINUX_X86_64 = "FALSE" ]] &&
          [[ $USE_LINUX_RPBI = "FALSE" ]] &&
@@ -1226,21 +1342,21 @@ touch ${TEMP_DIR}/thread9_in
          [[ $USE_ANDROID_X86 = "FALSE" ]] &&
          [[ $USE_IOS_ATV2 = "FALSE" ]];then
       {
-        echo "#> msg field 0:enable 0;";
-        echo "#> msg field 2:visible 1;";
-        echo "#> msg field 2:enable 1;";
+        echo "#> msg field $GEN__BTN______START_BUILD_ALL:enable 0;";
+        echo "#> msg field $GEN__BTN____CREATE_INST_MUPEL:visible 1;";
+        echo "#> msg field $GEN__BTN____CREATE_INST_MUPEL:enable 1;";
         enabled=0;
       }
       else
       {
-        echo "#> msg field 0:enable 1;";
-        echo "#> msg field 2:visible 0;";
+        echo "#> msg field $GEN__BTN______START_BUILD_ALL:enable 1;";
+        echo "#> msg field $GEN__BTN____CREATE_INST_MUPEL:visible 0;";
       } fi
 
-      echo "#> msg field 9:set $INCLUDE_KODI;";
-      echo "#> msg field 10:set $INCLUDE_KODI_ADDONS;";
-      echo "#> msg field 11:set $INCLUDE_CEF;";
-      [[ $SUPPORT_CEF = "TRUE" ]] && echo "#> msg field 11:enable 1;" || echo "#> msg field 11:enable 0;";
+      echo "#> msg field $GEN__CHK_________INCLUDE_KODI:set $INCLUDE_KODI;";
+      echo "#> msg field $GEN__CHK__INCLUDE_KODI_ADDONS:set $INCLUDE_KODI_ADDONS;";
+      echo "#> msg field $GEN__CHK__________INCLUDE_CEF:set $INCLUDE_CEF;";
+      [[ $SUPPORT_CEF = "TRUE" ]] && echo "#> msg field $GEN__CHK__________INCLUDE_CEF:enable 1;" || echo "#> msg field $GEN__CHK__________INCLUDE_CEF:enable 0;";
 
       sleep 2
       kill $start_dialog_pid
@@ -1253,7 +1369,7 @@ touch ${TEMP_DIR}/thread9_in
 
         if [ -f ./build/global_mupel_install ];then
         {
-          echo "#> msg field 2:enable 0;";
+          echo "#> msg field $GEN__BTN____CREATE_INST_MUPEL:enable 0;";
           break;
         } fi
 
@@ -1276,13 +1392,13 @@ touch ${TEMP_DIR}/thread9_in
             if [[ "$line" = *"start_build"* ]];then
             {
               echo "#> msg pulse on;";
-              echo "#> msg field 0:visible 0;";
-              echo "#> msg field 1:visible 1;";
-              echo "#> msg field 7:enable 0;";
-              echo "#> msg field 8:enable 0;";
-              echo "#> msg field 9:enable 0;";
-              echo "#> msg field 10:enable 0;";
-              echo "#> msg field 11:enable 0;";
+              echo "#> msg field $GEN__BTN______START_BUILD_ALL:visible 0;";
+              echo "#> msg field $GEN__BTN_______STOP_BUILD_ALL:visible 1;";
+              echo "#> msg field $GEN__BTN______DOWNLOAD_UPDATE:enable 0;";
+              echo "#> msg field $GEN__BTN____CREATE_NEW_BRANCH:enable 0;";
+              echo "#> msg field $GEN__CHK_________INCLUDE_KODI:enable 0;";
+              echo "#> msg field $GEN__CHK__INCLUDE_KODI_ADDONS:enable 0;";
+              echo "#> msg field $GEN__CHK__________INCLUDE_CEF:enable 0;";
               PULSE_ON=1
 
               buildThreadBaseGeneral
@@ -1321,21 +1437,21 @@ touch ${TEMP_DIR}/thread9_in
                 PULSE_ON=0;
               } fi
               echo "#> msg percent 0;";
-              echo "#> msg field 0:visible 1;";
-              echo "#> msg field 1:visible 0;";
-              echo "#> msg field 7:enable 1;";
-              echo "#> msg field 8:enable 1;";
-              echo "#> msg field 9:enable 1;";
-              echo "#> msg field 10:enable 1;";
-              echo "#> msg field 11:enable 1;";
+              echo "#> msg field $GEN__BTN______START_BUILD_ALL:visible 1;";
+              echo "#> msg field $GEN__BTN_______STOP_BUILD_ALL:visible 0;";
+              echo "#> msg field $GEN__CHK_________INCLUDE_KODI:enable 1;";
+              echo "#> msg field $GEN__CHK__INCLUDE_KODI_ADDONS:enable 1;";
+              echo "#> msg field $GEN__CHK__________INCLUDE_CEF:enable 1;";
+              echo "#> msg field $GEN__CHK_________INCLUDE_KODI:enable 1;";
+              echo "#> msg field $GEN__CHK__INCLUDE_KODI_ADDONS:enable 1;";
             }
             elif [[ "$line" = *"download_only"* ]];then
             {
               mutexLock_BaseBuild
-              echo "#> msg field 4:enable 0;";
+              echo "#> msg field $GEN__BTN______DOWNLOAD_UPDATE:enable 0;";
               if [ $? = 0 ];then
                 buildThreadBaseGeneralProcess 0;fi
-              echo "#> msg field 4:enable 1;";
+              echo "#> msg field $GEN__BTN______DOWNLOAD_UPDATE:enable 1;";
               mutexUnlock_BaseBuild
             }
             elif [[ "$line" = *"kodi_prepare_patches"* ]];then
@@ -1355,7 +1471,7 @@ ${BRIGHT}${WHITE}Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'${NORMAL}
             elif [[ "$line" = *"kodi_new_branch"* ]];then
             {
               unset IFS;
-              echo "#> msg field 5:enable 0;";
+              echo "#> msg field $GEN__BTN____CREATE_NEW_BRANCH:enable 0;";
               while :;do
               {
                 new_kodi_branch=$(showdialog --entry \
@@ -1396,11 +1512,13 @@ ${BRIGHT}${WHITE}Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'${NORMAL}
                 } fi
                 break;
               } done
-              echo "#> msg field 5:enable 1;";
+              echo "#> msg field $GEN__BTN____CREATE_NEW_BRANCH:enable 1;";
             }
             elif [[ "$line" = *"delete_old_logs"* ]];then
             {
               unset IFS;
+              echo "#> msg field $GEN__BTN____DEL_OLD_LOG_FILES:enable 0;";
+
               if [[ ! -z  `ls $BASE_PATH/build/*.old.log 2> /dev/null` ]];then
               {
                 showWarningDialog_YesNo "<b>\
@@ -1412,6 +1530,8 @@ Are you sure?</b>"
               }
               else
                 echo "No old log files present, skipped.";fi
+
+              echo "#> msg field $GEN__BTN____DEL_OLD_LOG_FILES:enable 1;";
             }
             elif [[ "$line" = *"field"* ]];then
             {
@@ -1507,11 +1627,11 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
       loadConfigFile
 
       # Set buttons to initial state
-      echo "#> msg field 0:visible 1;";
-      echo "#> msg field 1:visible 1;";
-      echo "#> msg field 2:visible 1;";
-      echo "#> msg field 3:visible 1;";
-      echo "#> msg field 4:visible 0;";
+      echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
+      echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 1;";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
+      echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
+      echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/kodi.bin" ];then
       {
         kodi_direct=1
@@ -1519,19 +1639,14 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
       }
       else
         kodi_direct=0;fi
-      echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/Makefile" ] && echo 1 || echo 0);";
-      echo "#> msg field 3:enable $kodi_direct;";
-      echo "#> msg field 7:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/Makefile" ] && echo 1 || echo 0);";
+      echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
 
-      echo "#> msg field 8:enable 1;";
-      echo "#> msg field 9:enable 1;";
-      echo "#> msg field 10:enable $kodi_direct;";
-
-      if [ -f "$BASE_PATH/build/.cef-linux-x86_32.active" ];then
-        cef_direct=1
-      else
-        cef_direct=0;fi
-      echo "#> msg field 2:enable $cef_direct;";
+      echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
+      echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
+      echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-linux-x86_32.active" ] && echo 1 || echo 0);";
 
       # Main loop
       while :;do
@@ -1568,18 +1683,18 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
                [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
             {
               echo "#> msg pulse on;";
-              echo "#> msg field 0:visible 0;";
-              echo "#> msg field 1:visible 0;";
-              echo "#> msg field 2:visible 0;";
-              echo "#> msg field 3:visible 0;";
-              echo "#> msg field 4:visible 1;";
-              echo "#> msg field 7:enable 0;";
-              echo "#> msg field 8:enable 0;";
-              echo "#> msg field 9:enable 0;";
-              echo "#> msg field 10:enable 0;";
+              echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 0;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 0;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 0;";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 0;";
+              echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 1;";
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable 0;";
+              echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 0;";
+              echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 0;";
+              echo "#> msg field $BUILD__CB______________ADD_ON:enable 0;";
 
               pulse_on=1
-              echo "#> msg field 12:clear;"
+              echo "#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
                 buildThreadForOS "linux-x86_32" "${USE_LINUX_X86_DISTR}32" $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
@@ -1608,40 +1723,36 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
                 pulse_on=0;
               } fi
               echo "#> msg percent 0;";
-              echo "#> msg field 0:visible 1;";
-              echo "#> msg field 1:visible 1;";
-              echo "#> msg field 2:visible 1;";
-              echo "#> msg field 3:visible 1;";
-              echo "#> msg field 4:visible 0;";
+              echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 1;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
+              echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/kodi.bin" ];then
                 kodi_direct=1
               else
                 kodi_direct=0;fi
-              echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/Makefile" ] && echo 1 || echo 0);";
-              echo "#> msg field 3:enable $kodi_direct;";
-              echo "#> msg field 7:enable $kodi_direct;";
-              echo "#> msg field 8:enable 1;";
-              echo "#> msg field 9:enable 1;";
-              echo "#> msg field 10:enable $kodi_direct;";
-              if [ -f "$BASE_PATH/build/.cef-linux-x86_32.active" ];then
-                cef_direct=1
-              else
-                cef_direct=0;fi
-              echo "#> msg field 2:enable $cef_direct;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/Makefile" ] && echo 1 || echo 0);";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
+              echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
+              echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-linux-x86_32.active" ] && echo 1 || echo 0);";
             }
             elif [[ "$line" = *"depclean"* ]];then
             {
               showWarningDialog_YesNo "<b>All extra files on kodi not included in GIT becomes removed! \n\nAre you sure?</b>"
               if [ $? = 0 ];then
               {
-                echo "#> msg field 8:enable 0;";
+                echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 0;";
                 git -C "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32" clean -dffx;
                 echo "Cleanup done"
-                echo "#> msg field 8:enable 1;";
-                echo "#> msg field 1:enable 0;";
-                echo "#> msg field 3:enable 0;";
-                echo "#> msg field 9:enable 0;";
-                echo "#> msg field 10:enable 0;";
+                echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
+                echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable 0;";
+                echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable 0;";
+                echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 0;";
+                echo "#> msg field $BUILD__CB______________ADD_ON:enable 0;";
               } fi
             }
             elif [[ "$line" = *"openlogs"* ]];then
@@ -1651,12 +1762,12 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
                 $BASE_PATH/build/creation-kodi-linux-x86_32.log \
                 $BASE_PATH/build/creation-cef-linux-x86_32.log;
             }
-            elif [[ "$line" = *"field 7:"* ]];then
+            elif [[ "$line" = *"field $BUILD__BTN________LAUNCH_KODI:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
-              echo "#> msg field 7:enable $enable;"
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $enable;"
             }
-            elif [[ "$line" = *"field 10:"* ]];then
+            elif [[ "$line" = *"field $BUILD__CB______________ADD_ON:"* ]];then
             {
               KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
               if [[ $KODI_SEL_ADDON != "(null)" ]];then
@@ -1704,12 +1815,6 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
           process_active=0;
         } fi
 
-        if [[ $cef_direct = 1 ]] && [ ! -f "$BASE_PATH/build/.cef-linux-x86_32.active" ];then
-        {
-          cef_direct=0
-          echo "#> msg field 2:enable $cef_direct;";
-        } fi
-
         sleep 0.75;
       } done
     }
@@ -1724,7 +1829,7 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]];then
              --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" > $thread2_in'" \
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread2_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread2_in'" \
-             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread2_in'" \
+             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread2_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" > $thread2_in'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-linux-x86_32 $thread2_in" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread2_in'" \
@@ -1761,11 +1866,11 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
       loadConfigFile
 
       # Set buttons to initial state
-      echo "#> msg field 0:visible 1;";
-      echo "#> msg field 1:visible 1;";
-      echo "#> msg field 2:visible 1;";
-      echo "#> msg field 3:visible 1;";
-      echo "#> msg field 4:visible 0;";
+      echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
+      echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 1;";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
+      echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
+      echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/kodi.bin" ];then
       {
         kodi_direct=1
@@ -1773,19 +1878,14 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
       }
       else
         kodi_direct=0;fi
-      echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/Makefile" ] && echo 1 || echo 0);";
-      echo "#> msg field 3:enable $kodi_direct;";
-      echo "#> msg field 7:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/Makefile" ] && echo 1 || echo 0);";
+      echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
 
-      echo "#> msg field 8:enable 1;";
-      echo "#> msg field 9:enable 1;";
-      echo "#> msg field 10:enable $kodi_direct;";
-
-      if [ -f "$BASE_PATH/build/.cef-linux-x86_64.active" ];then
-        cef_direct=1
-      else
-        cef_direct=0;fi
-      echo "#> msg field 2:enable $cef_direct;";
+      echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
+      echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
+      echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-linux-x86_64.active" ] && echo 1 || echo 0);";
 
       # Main loop
       while :;do
@@ -1822,18 +1922,18 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
                [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
             {
               echo "#> msg pulse on;";
-              echo "#> msg field 0:visible 0;";
-              echo "#> msg field 1:visible 0;";
-              echo "#> msg field 2:visible 0;";
-              echo "#> msg field 3:visible 0;";
-              echo "#> msg field 4:visible 1;";
-              echo "#> msg field 7:enable 0;";
-              echo "#> msg field 8:enable 0;";
-              echo "#> msg field 9:enable 0;";
-              echo "#> msg field 10:enable 0;";
+              echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 0;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 0;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 0;";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 0;";
+              echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 1;";
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable 0;";
+              echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 0;";
+              echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 0;";
+              echo "#> msg field $BUILD__CB______________ADD_ON:enable 0;";
 
               pulse_on=1
-              echo "#> msg field 12:clear;"
+              echo "#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
                 buildThreadForOS "linux-x86_64" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
@@ -1862,40 +1962,36 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
                 pulse_on=0;
               } fi
               echo "#> msg percent 0;";
-              echo "#> msg field 0:visible 1;";
-              echo "#> msg field 1:visible 1;";
-              echo "#> msg field 2:visible 1;";
-              echo "#> msg field 3:visible 1;";
-              echo "#> msg field 4:visible 0;";
+              echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 1;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
+              echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/kodi.bin" ];then
                 kodi_direct=1
               else
                 kodi_direct=0;fi
-              echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/Makefile" ] && echo 1 || echo 0);";
-              echo "#> msg field 3:enable $kodi_direct;";
-              echo "#> msg field 7:enable $kodi_direct;";
-              echo "#> msg field 8:enable 1;";
-              echo "#> msg field 9:enable 1;";
-              echo "#> msg field 10:enable $kodi_direct;";
-              if [ -f "$BASE_PATH/build/.cef-linux-x86_64.active" ];then
-                cef_direct=1
-              else
-                cef_direct=0;fi
-              echo "#> msg field 2:enable $cef_direct;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/Makefile" ] && echo 1 || echo 0);";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
+              echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
+              echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-linux-x86_64.active" ] && echo 1 || echo 0);";
             }
             elif [[ "$line" = *"depclean"* ]];then
             {
               showWarningDialog_YesNo "<b>All extra files on kodi not included in GIT becomes removed! \n\nAre you sure?</b>"
               if [ $? = 0 ];then
               {
-                echo "#> msg field 8:enable 0;";
+                echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 0;";
                 git -C "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64" clean -dffx;
                 echo "Cleanup done"
-                echo "#> msg field 8:enable 1;";
-                echo "#> msg field 1:enable 0;";
-                echo "#> msg field 3:enable 0;";
-                echo "#> msg field 9:enable 0;";
-                echo "#> msg field 10:enable 0;";
+                echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
+                echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable 0;";
+                echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable 0;";
+                echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 0;";
+                echo "#> msg field $BUILD__CB______________ADD_ON:enable 0;";
               } fi
             }
             elif [[ "$line" = *"openlogs"* ]];then
@@ -1905,12 +2001,12 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
                 $BASE_PATH/build/creation-kodi-linux-x86_64.log \
                 $BASE_PATH/build/creation-cef-linux-x86_64.log;
             }
-            elif [[ "$line" = *"field 7:"* ]];then
+            elif [[ "$line" = *"field $BUILD__BTN________LAUNCH_KODI:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
-              echo "#> msg field 7:enable $enable;"
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $enable;"
             }
-            elif [[ "$line" = *"field 10:"* ]];then
+            elif [[ "$line" = *"field $BUILD__CB______________ADD_ON:"* ]];then
             {
               KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
               if [[ $KODI_SEL_ADDON != "(null)" ]];then
@@ -1956,12 +2052,6 @@ if [[ $USE_LINUX_X86_64 = "TRUE" ]];then
         {
           echo "#< msg stop_build;" >> "$thread3_in";
           process_active=0;
-        } fi
-
-        if [[ $cef_direct = 1 ]] && [ ! -f "$BASE_PATH/build/.cef-linux-x86_64.active" ];then
-        {
-          cef_direct=0
-          echo "#> msg field 2:enable $cef_direct;";
         } fi
 
         sleep 0.75;
@@ -2015,11 +2105,11 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
       loadConfigFile
 
       # Set buttons to initial state
-      echo "#> msg field 0:visible 1;";
-      echo "#> msg field 1:visible 1;";
-      echo "#> msg field 2:visible 1;";
-      echo "#> msg field 3:visible 1;";
-      echo "#> msg field 4:visible 0;";
+      echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
+      echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 1;";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
+      echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
+      echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/kodi.bin" ];then
       {
         kodi_direct=1
@@ -2027,19 +2117,14 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
       }
       else
         kodi_direct=0;fi
-      echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/Makefile" ] && echo 1 || echo 0);";
-      echo "#> msg field 3:enable $kodi_direct;";
-      echo "#> msg field 7:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/Makefile" ] && echo 1 || echo 0);";
+      echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
 
-      echo "#> msg field 8:enable 1;";
-      echo "#> msg field 9:enable 1;";
-      echo "#> msg field 10:enable $kodi_direct;";
-
-      if [ -f "$BASE_PATH/build/.cef-linux-rpbi.active" ];then
-        cef_direct=1
-      else
-        cef_direct=0;fi
-      echo "#> msg field 2:enable $cef_direct;";
+      echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
+      echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
+      echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-linux-rpbi.active" ] && echo 1 || echo 0);";
 
       # Main loop
       while :;do
@@ -2076,18 +2161,18 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
                [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
             {
               echo "#> msg pulse on;";
-              echo "#> msg field 0:visible 0;";
-              echo "#> msg field 1:visible 0;";
-              echo "#> msg field 2:visible 0;";
-              echo "#> msg field 3:visible 0;";
-              echo "#> msg field 4:visible 1;";
-              echo "#> msg field 7:enable 0;";
-              echo "#> msg field 8:enable 0;";
-              echo "#> msg field 9:enable 0;";
-              echo "#> msg field 10:enable 0;";
+              echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 0;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 0;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 0;";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 0;";
+              echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 1;";
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable 0;";
+              echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 0;";
+              echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 0;";
+              echo "#> msg field $BUILD__CB______________ADD_ON:enable 0;";
 
               pulse_on=1
-              echo "#> msg field 12:clear;"
+              echo "#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
                 buildThreadForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}32" $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
@@ -2116,40 +2201,36 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
                 pulse_on=0;
               } fi
               echo "#> msg percent 0;";
-              echo "#> msg field 0:visible 1;";
-              echo "#> msg field 1:visible 1;";
-              echo "#> msg field 2:visible 1;";
-              echo "#> msg field 3:visible 1;";
-              echo "#> msg field 4:visible 0;";
+              echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 1;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
+              echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/kodi.bin" ];then
                 kodi_direct=1
               else
                 kodi_direct=0;fi
-              echo "#> msg field 1:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/Makefile" ] && echo 1 || echo 0);";
-              echo "#> msg field 3:enable $kodi_direct;";
-              echo "#> msg field 7:enable $kodi_direct;";
-              echo "#> msg field 8:enable 1;";
-              echo "#> msg field 9:enable 1;";
-              echo "#> msg field 10:enable $kodi_direct;";
-              if [ -f "$BASE_PATH/build/.cef-linux-rpbi.active" ];then
-                cef_direct=1
-              else
-                cef_direct=0;fi
-              echo "#> msg field 2:enable $cef_direct;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/Makefile" ] && echo 1 || echo 0);";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
+              echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
+              echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-linux-rpbi.active" ] && echo 1 || echo 0);";
             }
             elif [[ "$line" = *"depclean"* ]];then
             {
               showWarningDialog_YesNo "<b>All extra files on kodi not included in GIT becomes removed! \n\nAre you sure?</b>"
               if [ $? = 0 ];then
               {
-                echo "#> msg field 8:enable 0;";
+                echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 0;";
                 git -C "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi" clean -dffx;
                 echo "Cleanup done"
-                echo "#> msg field 8:enable 1;";
-                echo "#> msg field 1:enable 0;";
-                echo "#> msg field 3:enable 0;";
-                echo "#> msg field 9:enable 0;";
-                echo "#> msg field 10:enable 0;";
+                echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
+                echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable 0;";
+                echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable 0;";
+                echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 0;";
+                echo "#> msg field $BUILD__CB______________ADD_ON:enable 0;";
               } fi
             }
             elif [[ "$line" = *"openlogs"* ]];then
@@ -2159,12 +2240,12 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
                 $BASE_PATH/build/creation-kodi-linux-rpbi.log \
                 $BASE_PATH/build/creation-cef-linux-rpbi.log;
             }
-            elif [[ "$line" = *"field 7:"* ]];then
+            elif [[ "$line" = *"field $BUILD__BTN________LAUNCH_KODI:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
-              echo "#> msg field 7:enable $enable;"
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $enable;"
             }
-            elif [[ "$line" = *"field 10:"* ]];then
+            elif [[ "$line" = *"field $BUILD__CB______________ADD_ON:"* ]];then
             {
               KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
               if [[ $KODI_SEL_ADDON != "(null)" ]];then
@@ -2212,12 +2293,6 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
           process_active=0;
         } fi
 
-        if [[ $cef_direct = 1 ]] && [ ! -f "$BASE_PATH/build/.cef-linux-rpbi.active" ];then
-        {
-          cef_direct=0
-          echo "#> msg field 2:enable $cef_direct;";
-        } fi
-
         sleep 0.75;
       } done
     }
@@ -2232,7 +2307,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
              --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" > $thread4_in'" \
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread4_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread4_in'" \
-             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread4_in'" \
+             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread4_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" > $thread4_in'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-linux-rpbi $thread4_in" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread4_in'" \
@@ -2271,11 +2346,11 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
       . "$HOME/.mupel/windows.conf";
 
       # Set buttons to initial state
-      echo "#> msg field 0:visible 1;";
-      echo "#> msg field 1:visible 1;";
-      echo "#> msg field 2:visible 1;";
-      echo "#> msg field 3:visible 1;";
-      echo "#> msg field 4:visible 0;";
+      echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
+      echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 1;";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
+      echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
+      echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-win-${WINDOWS_BUILD_TYPE}/kodi.bin" ];then
       {
         kodi_direct=1
@@ -2283,19 +2358,14 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
       }
       else
         kodi_direct=0;fi
-      echo "#> msg field 1:enable $kodi_direct;";
-      echo "#> msg field 3:enable $kodi_direct;";
-      echo "#> msg field 7:enable $kodi_direct;";
-      echo "#> msg field 7:visible 0;"; # Hide "Launch Kodi" until a good way is found to start on windows
-      echo "#> msg field 8:enable 1;";
-      echo "#> msg field 9:visible 0;";
-      echo "#> msg field 10:enable $kodi_direct;";
-
-      if [ -f "$BASE_PATH/build/.cef-win-${WINDOWS_BUILD_TYPE}.active" ];then
-        cef_direct=1
-      else
-        cef_direct=0;fi
-      echo "#> msg field 2:enable $cef_direct;";
+      echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN________LAUNCH_KODI:visible 0;"; # Hide "Launch Kodi" until a good way is found to start on windows
+      echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
+      echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:visible 0;";
+      echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-win-${WINDOWS_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
 
       # Main loop
       while :;do
@@ -2332,18 +2402,18 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
                [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
             {
               echo "#> msg pulse on;";
-              echo "#> msg field 0:visible 0;";
-              echo "#> msg field 1:visible 0;";
-              echo "#> msg field 2:visible 0;";
-              echo "#> msg field 3:visible 0;";
-              echo "#> msg field 4:visible 1;";
-              echo "#> msg field 7:enable 0;";
-              echo "#> msg field 8:enable 0;";
-              echo "#> msg field 9:enable 0;";
-              echo "#> msg field 10:enable 0;";
+              echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 0;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 0;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 0;";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 0;";
+              echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 1;";
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable 0;";
+              echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 0;";
+              echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 0;";
+              echo "#> msg field $BUILD__CB______________ADD_ON:enable 0;";
 
               pulse_on=1
-              echo "#> msg field 12:clear;"
+              echo "#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
                 buildThreadForOS "win-${WINDOWS_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
@@ -2372,26 +2442,22 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
                 pulse_on=0;
               } fi
               echo "#> msg percent 0;";
-              echo "#> msg field 0:visible 1;";
-              echo "#> msg field 1:visible 1;";
-              echo "#> msg field 2:visible 1;";
-              echo "#> msg field 3:visible 1;";
-              echo "#> msg field 4:visible 0;";
+              echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 1;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
+              echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-win-${WINDOWS_BUILD_TYPE}/kodi.bin" ];then
                 kodi_direct=1
               else
                 kodi_direct=0;fi
-              echo "#> msg field 1:enable $kodi_direct;";
-              echo "#> msg field 3:enable $kodi_direct;";
-              echo "#> msg field 7:enable $kodi_direct;";
-              echo "#> msg field 8:enable 1;";
-              echo "#> msg field 9:enable 1;";
-              echo "#> msg field 10:enable $kodi_direct;";
-              if [ -f "$BASE_PATH/build/.cef-win-${WINDOWS_BUILD_TYPE}.active" ];then
-                cef_direct=1
-              else
-                cef_direct=0;fi
-              echo "#> msg field 2:enable $cef_direct;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
+              echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
+              echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-win-${WINDOWS_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
             }
             elif [[ "$line" = *"depclean"* ]];then
             {
@@ -2415,12 +2481,12 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
                 $BASE_PATH/build/creation-kodi-win-$WINDOWS_BUILD_TYPE.log \
                 $BASE_PATH/build/creation-cef-win-$WINDOWS_BUILD_TYPE.log;
             }
-            elif [[ "$line" = *"field 7:"* ]];then
+            elif [[ "$line" = *"field $BUILD__BTN________LAUNCH_KODI:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
-              echo "#> msg field 7:enable $enable;"
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $enable;"
             }
-            elif [[ "$line" = *"field 10:"* ]];then
+            elif [[ "$line" = *"field $BUILD__CB______________ADD_ON:"* ]];then
             {
               KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
               if [[ $KODI_SEL_ADDON != "(null)" ]];then
@@ -2468,12 +2534,6 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
           process_active=0;
         } fi
 
-        if [[ $cef_direct = 1 ]] && [ ! -f "$BASE_PATH/build/.cef-win-${WINDOWS_BUILD_TYPE}.active" ];then
-        {
-          cef_direct=0
-          echo "#> msg field 2:enable $cef_direct;";
-        } fi
-
         sleep 0.75;
       } done
     }
@@ -2488,7 +2548,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
              --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" > $thread5_in'" \
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread5_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread5_in'" \
-             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread5_in'" \
+             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread5_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" > $thread5_in'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-win32 $thread5_in" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread5_in'" \
@@ -2528,11 +2588,11 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
       export MAC_OS_X_BUILD_TYPE=$MAC_OS_X_BUILD_TYPE;
 
       # Set buttons to initial state
-      echo "#> msg field 0:visible 1;";
-      echo "#> msg field 1:visible 1;";
-      echo "#> msg field 2:visible 1;";
-      echo "#> msg field 3:visible 1;";
-      echo "#> msg field 4:visible 0;";
+      echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
+      echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 1;";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
+      echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
+      echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-osx-${MAC_OS_X_BUILD_TYPE}/kodi.bin" ];then
       {
         kodi_direct=1
@@ -2540,19 +2600,14 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
       }
       else
         kodi_direct=0;fi
-      echo "#> msg field 1:enable $kodi_direct;";
-      echo "#> msg field 3:enable $kodi_direct;";
-      echo "#> msg field 7:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
 
-      echo "#> msg field 8:enable 1;";
-      echo "#> msg field 9:enable 1;";
-      echo "#> msg field 10:enable $kodi_direct;";
-
-      if [ -f "$BASE_PATH/build/.cef-osx-${MAC_OS_X_BUILD_TYPE}.active" ];then
-        cef_direct=1
-      else
-        cef_direct=0;fi
-      echo "#> msg field 2:enable $cef_direct;";
+      echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
+      echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
+      echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-osx-${MAC_OS_X_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
 
       # Main loop
       while :;do
@@ -2589,18 +2644,18 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
                [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
             {
               echo "#> msg pulse on;";
-              echo "#> msg field 0:visible 0;";
-              echo "#> msg field 1:visible 0;";
-              echo "#> msg field 2:visible 0;";
-              echo "#> msg field 3:visible 0;";
-              echo "#> msg field 4:visible 1;";
-              echo "#> msg field 7:enable 0;";
-              echo "#> msg field 8:enable 0;";
-              echo "#> msg field 9:enable 0;";
-              echo "#> msg field 10:enable 0;";
+              echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 0;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 0;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 0;";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 0;";
+              echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 1;";
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable 0;";
+              echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 0;";
+              echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 0;";
+              echo "#> msg field $BUILD__CB______________ADD_ON:enable 0;";
 
               pulse_on=1
-              echo "#> msg field 12:clear;"
+              echo "#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
                 buildThreadForOS "osx-${MAC_OS_X_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
@@ -2629,26 +2684,22 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
                 pulse_on=0;
               } fi
               echo "#> msg percent 0;";
-              echo "#> msg field 0:visible 1;";
-              echo "#> msg field 1:visible 1;";
-              echo "#> msg field 2:visible 1;";
-              echo "#> msg field 3:visible 1;";
-              echo "#> msg field 4:visible 0;";
+              echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 1;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
+              echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-osx-${MAC_OS_X_BUILD_TYPE}/kodi.bin" ];then
                 kodi_direct=1
               else
                 kodi_direct=0;fi
-              echo "#> msg field 1:enable $kodi_direct;";
-              echo "#> msg field 3:enable $kodi_direct;";
-              echo "#> msg field 7:enable $kodi_direct;";
-              echo "#> msg field 8:enable 1;";
-              echo "#> msg field 9:enable 1;";
-              echo "#> msg field 10:enable $kodi_direct;";
-              if [ -f "$BASE_PATH/build/.cef-osx-${MAC_OS_X_BUILD_TYPE}.active" ];then
-                cef_direct=1
-              else
-                cef_direct=0;fi
-              echo "#> msg field 2:enable $cef_direct;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
+              echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
+              echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-osx-${MAC_OS_X_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
             }
             elif [[ "$line" = *"depclean"* ]];then
             {
@@ -2672,12 +2723,12 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
                 $BASE_PATH/build/creation-kodi-osx-${MAC_OS_X_BUILD_TYPE}.log \
                 $BASE_PATH/build/creation-cef-osx-${MAC_OS_X_BUILD_TYPE}.log;
             }
-            elif [[ "$line" = *"field 7:"* ]];then
+            elif [[ "$line" = *"field $BUILD__BTN________LAUNCH_KODI:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
-              echo "#> msg field 7:enable $enable;"
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $enable;"
             }
-            elif [[ "$line" = *"field 10:"* ]];then
+            elif [[ "$line" = *"field $BUILD__CB______________ADD_ON:"* ]];then
             {
               KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
               if [[ $KODI_SEL_ADDON != "(null)" ]];then
@@ -2725,12 +2776,6 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
           process_active=0;
         } fi
 
-        if [[ $cef_direct = 1 ]] && [ ! -f "$BASE_PATH/build/.cef-osx-${MAC_OS_X_BUILD_TYPE}.active" ];then
-        {
-          cef_direct=0
-          echo "#> msg field 2:enable $cef_direct;";
-        } fi
-
         sleep 0.75;
       } done
     }
@@ -2745,7 +2790,7 @@ if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
              --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" > $thread6_in'" \
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread6_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread6_in'" \
-             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread6_in'" \
+             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread6_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" > $thread6_in'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-osx32 $thread6_in" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread6_in'" \
@@ -2784,11 +2829,11 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
       . "$HOME/.mupel/android.conf";
 
       # Set buttons to initial state
-      echo "#> msg field 0:visible 1;";
-      echo "#> msg field 1:visible 1;";
-      echo "#> msg field 2:visible 1;";
-      echo "#> msg field 3:visible 1;";
-      echo "#> msg field 4:visible 0;";
+      echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
+      echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 1;";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
+      echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
+      echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
       if [ -f $BASE_PATH/build/kodi-$GIT_USER/kodi-android-x86/*.apk ];then
       {
         kodi_direct=1
@@ -2796,19 +2841,14 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
       }
       else
         kodi_direct=0;fi
-      echo "#> msg field 1:enable $kodi_direct;";
-      echo "#> msg field 3:enable $kodi_direct;";
-      echo "#> msg field 7:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
 
-      echo "#> msg field 8:enable 1;";
-      echo "#> msg field 9:enable 1;";
-      echo "#> msg field 10:enable $kodi_direct;";
-
-      if [ -f "$BASE_PATH/build/.cef-android-${ANDROID_BUILD_TYPE}.active" ];then
-        cef_direct=1
-      else
-        cef_direct=0;fi
-      echo "#> msg field 2:enable $cef_direct;";
+      echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
+      echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
+      echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-android-${ANDROID_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
 
       # Main loop
       while :;do
@@ -2845,18 +2885,18 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
                [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
             {
               echo "#> msg pulse on;";
-              echo "#> msg field 0:visible 0;";
-              echo "#> msg field 1:visible 0;";
-              echo "#> msg field 2:visible 0;";
-              echo "#> msg field 3:visible 0;";
-              echo "#> msg field 4:visible 1;";
-              echo "#> msg field 7:enable 0;";
-              echo "#> msg field 8:enable 0;";
-              echo "#> msg field 9:enable 0;";
-              echo "#> msg field 10:enable 0;";
+              echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 0;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 0;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 0;";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 0;";
+              echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 1;";
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable 0;";
+              echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 0;";
+              echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 0;";
+              echo "#> msg field $BUILD__CB______________ADD_ON:enable 0;";
 
               pulse_on=1
-              echo "#> msg field 12:clear;"
+              echo "#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
                 buildThreadForOS "android-${ANDROID_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi
               elif [[ "$line" = *"start_addon_build"* ]];then
@@ -2885,40 +2925,36 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
                 pulse_on=0;
               } fi
               echo "#> msg percent 0;";
-              echo "#> msg field 0:visible 1;";
-              echo "#> msg field 1:visible 1;";
-              echo "#> msg field 2:visible 1;";
-              echo "#> msg field 3:visible 1;";
-              echo "#> msg field 4:visible 0;";
+              echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 1;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
+              echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
               if [ -f $BASE_PATH/build/kodi-$GIT_USER/kodi-android-${ANDROID_BUILD_TYPE}/*.apk ];then
                 kodi_direct=1
               else
                 kodi_direct=0;fi
-              echo "#> msg field 1:enable $kodi_direct;";
-              echo "#> msg field 3:enable $kodi_direct;";
-              echo "#> msg field 7:enable $kodi_direct;";
-              echo "#> msg field 8:enable 1;";
-              echo "#> msg field 9:enable 1;";
-              echo "#> msg field 10:enable $kodi_direct;";
-              if [ -f "$BASE_PATH/build/.cef-android-${ANDROID_BUILD_TYPE}.active" ];then
-                cef_direct=1
-              else
-                cef_direct=0;fi
-              echo "#> msg field 2:enable $cef_direct;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
+              echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
+              echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-android-${ANDROID_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
             }
             elif [[ "$line" = *"depclean"* ]];then
             {
               showWarningDialog_YesNo "<b>All extra files on kodi not included in GIT becomes removed! \n\nAre you sure?</b>"
               if [ $? = 0 ];then
               {
-                echo "#> msg field 8:enable 0;";
+                echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 0;";
                 git -C "$BASE_PATH/build/kodi-$GIT_USER/kodi-android-${ANDROID_BUILD_TYPE}" clean -dffx;
                 echo "Cleanup done"
-                echo "#> msg field 8:enable 1;";
-                echo "#> msg field 1:enable 0;";
-                echo "#> msg field 3:enable 0;";
-                echo "#> msg field 9:enable 0;";
-                echo "#> msg field 10:enable 0;";
+                echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
+                echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable 0;";
+                echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable 0;";
+                echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 0;";
+                echo "#> msg field $BUILD__CB______________ADD_ON:enable 0;";
               } fi
             }
             elif [[ "$line" = *"openlogs"* ]];then
@@ -2928,12 +2964,12 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
                 $BASE_PATH/build/creation-kodi-android-${ANDROID_BUILD_TYPE}.log \
                 $BASE_PATH/build/creation-cef-android-${ANDROID_BUILD_TYPE}.log;
             }
-            elif [[ "$line" = *"field 7:"* ]];then
+            elif [[ "$line" = *"field $BUILD__BTN________LAUNCH_KODI:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
-              echo "#> msg field 7:enable $enable;"
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $enable;"
             }
-            elif [[ "$line" = *"field 10:"* ]];then
+            elif [[ "$line" = *"field $BUILD__CB______________ADD_ON:"* ]];then
             {
               KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
               if [[ $KODI_SEL_ADDON != "(null)" ]];then
@@ -2981,12 +3017,6 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
           process_active=0;
         } fi
 
-        if [[ $cef_direct = 1 ]] && [ ! -f "$BASE_PATH/build/.cef-android-${ANDROID_BUILD_TYPE}.active" ];then
-        {
-          cef_direct=0
-          echo "#> msg field 2:enable $cef_direct;";
-        } fi
-
         sleep 0.75;
       } done
     }
@@ -3001,7 +3031,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
              --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" > $thread7_in'" \
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread7_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread7_in'" \
-             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread7_in'" \
+             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread7_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" > $thread7_in'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-android-${ANDROID_BUILD_TYPE} $thread7_in" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread7_in'" \
@@ -3040,11 +3070,11 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
       . "$HOME/.mupel/mac-osx.conf";
 
       # Set buttons to initial state
-      echo "#> msg field 0:visible 1;";
-      echo "#> msg field 1:visible 1;";
-      echo "#> msg field 2:visible 1;";
-      echo "#> msg field 3:visible 1;";
-      echo "#> msg field 4:visible 0;";
+      echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
+      echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 1;";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
+      echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
+      echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-${IOS_ATV2_BUILD_TYPE}/kodi.bin" ];then
       {
         kodi_direct=1
@@ -3052,19 +3082,14 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
       }
       else
         kodi_direct=0;fi
-      echo "#> msg field 1:enable $kodi_direct;";
-      echo "#> msg field 3:enable $kodi_direct;";
-      echo "#> msg field 7:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
 
-      echo "#> msg field 8:enable 1;";
-      echo "#> msg field 9:enable 1;";
-      echo "#> msg field 10:enable $kodi_direct;";
-
-      if [ -f "$BASE_PATH/build/.cef-${IOS_ATV2_BUILD_TYPE}.active" ];then
-        cef_direct=1
-      else
-        cef_direct=0;fi
-      echo "#> msg field 2:enable $cef_direct;";
+      echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
+      echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
+      echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-${IOS_ATV2_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
 
       # Main loop
       while :;do
@@ -3101,18 +3126,18 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
                [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
             {
               echo "#> msg pulse on;";
-              echo "#> msg field 0:visible 0;";
-              echo "#> msg field 1:visible 0;";
-              echo "#> msg field 2:visible 0;";
-              echo "#> msg field 3:visible 0;";
-              echo "#> msg field 4:visible 1;";
-              echo "#> msg field 7:enable 0;";
-              echo "#> msg field 8:enable 0;";
-              echo "#> msg field 9:enable 0;";
-              echo "#> msg field 10:enable 0;";
+              echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 0;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 0;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 0;";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 0;";
+              echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 1;";
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable 0;";
+              echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 0;";
+              echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 0;";
+              echo "#> msg field $BUILD__CB______________ADD_ON:enable 0;";
 
               pulse_on=1
-              echo "#> msg field 12:clear;"
+              echo "#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
                 buildThreadForOS "${IOS_ATV2_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
@@ -3141,26 +3166,22 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
                 pulse_on=0;
               } fi
               echo "#> msg percent 0;";
-              echo "#> msg field 0:visible 1;";
-              echo "#> msg field 1:visible 1;";
-              echo "#> msg field 2:visible 1;";
-              echo "#> msg field 3:visible 1;";
-              echo "#> msg field 4:visible 0;";
+              echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 1;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
+              echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-${IOS_ATV2_BUILD_TYPE}/kodi.bin" ];then
                 kodi_direct=1
               else
                 kodi_direct=0;fi
-              echo "#> msg field 1:enable $kodi_direct;";
-              echo "#> msg field 3:enable $kodi_direct;";
-              echo "#> msg field 7:enable $kodi_direct;";
-              echo "#> msg field 8:enable 1;";
-              echo "#> msg field 9:enable 1;";
-              echo "#> msg field 10:enable $kodi_direct;";
-              if [ -f "$BASE_PATH/build/.cef-${IOS_ATV2_BUILD_TYPE}.active" ];then
-                cef_direct=1
-              else
-                cef_direct=0;fi
-              echo "#> msg field 2:enable $cef_direct;";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
+              echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
+              echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-${IOS_ATV2_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
             }
             elif [[ "$line" = *"depclean"* ]];then
             {
@@ -3184,12 +3205,12 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
                 $BASE_PATH/build/creation-kodi-${IOS_ATV2_BUILD_TYPE}.log \
                 $BASE_PATH/build/creation-cef-${IOS_ATV2_BUILD_TYPE}.log;
             }
-            elif [[ "$line" = *"field 7:"* ]];then
+            elif [[ "$line" = *"field $BUILD__BTN________LAUNCH_KODI:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
-              echo "#> msg field 7:enable $enable;"
+              echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $enable;"
             }
-            elif [[ "$line" = *"field 10:"* ]];then
+            elif [[ "$line" = *"field $BUILD__CB______________ADD_ON:"* ]];then
             {
               KODI_SEL_ADDON=$(echo ${line} | awk -F\| '{ print $1 }' | awk -F\: '{ print $2 }')
               if [[ $KODI_SEL_ADDON != "(null)" ]];then
@@ -3237,12 +3258,6 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
           process_active=0;
         } fi
 
-        if [[ $cef_direct = 1 ]] && [ ! -f "$BASE_PATH/build/.cef-${IOS_ATV2_BUILD_TYPE}.active" ];then
-        {
-          cef_direct=0
-          echo "#> msg field 2:enable $cef_direct;";
-        } fi
-
         sleep 0.75;
       } done
     }
@@ -3257,7 +3272,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
              --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" > $thread8_in'" \
              --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" > $thread8_in'" \
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" > $thread8_in'" \
-             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 11:clear;\" >> $thread8_in'" \
+             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread8_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" > $thread8_in'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-ios-atv2 $thread8_in" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" > $thread8_in'" \
@@ -3296,47 +3311,49 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       loadConfigFile
 
       [[ $SUPPORT_CEF = "TRUE" ]] && use_it=1 || use_it=0
-      echo "#> msg field 10:visible $use_it;"
-      echo "#> msg field 11:visible $use_it;"
+      echo "#> msg field $SET_CEF_________SOURCE_BRANCH:visible $use_it;"
+      echo "#> msg field $SET_CEF_________VERBOSE_BUILD:visible $use_it;"
 
       [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]] && use_it=1 || use_it=0
-      echo "#> msg field 14:visible $use_it;"
-      echo "#> msg field 15:visible $use_it;"
-      echo "#> msg field 16:visible $use_it;"
+      echo "#> msg field $SET_WINDOWS____________TARGET:visible $use_it;"
+      echo "#> msg field $SET_WINDOWS______SSH_USERNAME:visible $use_it;"
+      echo "#> msg field $SET_WINDOWS______SSH_PASSWORD:visible $use_it;"
       [[ $USE_MS_WINDOWS_32 = "TRUE" ]] && [[ $USE_MS_WINDOWS_64 = "TRUE" ]] && use_it=1 || use_it=0
-      echo "#> msg field 17:enable $use_it;"
+      echo "#> msg field $SET_WINDOWS________BUILD_TYPE:enable $use_it;"
       targets="x86_32!x86_64"
       targets=$(echo ${targets//$WINDOWS_BUILD_TYPE/\^${WINDOWS_BUILD_TYPE}});
-      echo "#> msg field 17:set $targets;"
+      echo "#> msg field $SET_WINDOWS________BUILD_TYPE:set $targets;"
 
       [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]] && use_it=1 || use_it=0
-      echo "#> msg field 20:visible $use_it;"
-      echo "#> msg field 21:visible $use_it;"
-      echo "#> msg field 22:visible $use_it;"
+      echo "#> msg field $SET_MAC________________TARGET:visible $use_it;"
+      echo "#> msg field $SET_MAC__________SSH_USERNAME:visible $use_it;"
+      echo "#> msg field $SET_MAC__________SSH_PASSWORD:visible $use_it;"
+      echo "#> msg field $SET_MAC________________SSH_IP:visible $use_it;"
+      echo "#> msg field $SET_MAC______________SSH_PORT:visible $use_it;"
       [[ $USE_MAC_OS_X_32 = "TRUE" ]] && [[ $USE_MAC_OS_X_64 = "TRUE" ]] && use_it=1 || use_it=0
-      echo "#> msg field 23:enable $use_it;"
+      echo "#> msg field $SET_MAC____________BUILD_TYPE:enable $use_it;"
       targets="x86_32!x86_64"
       targets=$(echo ${targets//$MAC_OS_X_BUILD_TYPE/\^${MAC_OS_X_BUILD_TYPE}});
-      echo "#> msg field 23:set $targets;"
+      echo "#> msg field $SET_MAC____________BUILD_TYPE:set $targets;"
       selected=$(echo $IOS_ATV2_BUILD_TYPE | tr '[:lower:]' '[:upper:]');
       targets="IOS!ATV2";
       targets=$(echo ${targets//$selected/\^${selected}});
-      echo "#> msg field 24:set $targets;";
+      echo "#> msg field $SET_MAC____IOS_ATV_BUILD_TYPE:set $targets;";
 
       [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]] && use_it=1 || use_it=0
-      echo "#> msg field 27:visible $use_it;"
-      echo "#> msg field 29:visible $use_it;"
-      echo "#> msg field 31:visible $use_it;"
+      echo "#> msg field $SET_ANDROID________BUILD_TYPE:visible $use_it;"
+      echo "#> msg field $SET_ANDROID__BUILD_SYS_TARGET:visible $use_it;"
+      echo "#> msg field $SET_ANDROID_______AVD_MANAGER:visible $use_it;"
       [[ $USE_ANDROID_ARM = "TRUE" ]] && use_it=1 || use_it=0
-      echo "#> msg field 28:visible $use_it;"
+      echo "#> msg field $SET_ANDROID____ARM_EMU_SOURCE:visible $use_it;"
       [[ $USE_ANDROID_X86 = "TRUE" ]] && use_it=1 || use_it=0
-      echo "#> msg field 30:visible $use_it;"
+      echo "#> msg field $SET_ANDROID____ARM_EMU_SOURCE:visible $use_it;"
 
-      echo "#> msg field 2:enable 1;"
+      echo "#> msg field $SET_KODI________SOURCE_REPOSI:enable 1;"
       parse_values "settings" 1 "$KODI_SOURCE_URL";
       parse_values "settings" 8 "$CEF_SOURCE_URL";
-      echo "#> msg field 11:set $CEF_VERBOSE_BUILD;";
-      echo "#> msg field 33:set $CPU_PROC_JOBS;"
+      echo "#> msg field $SET_CEF_________VERBOSE_BUILD:set $CEF_VERBOSE_BUILD;";
+      echo "#> msg field $SET_VARIOUS_____CPU_PROC_JOBS:set $CPU_PROC_JOBS;"
 
       # Main loop
       while :;do
@@ -3406,8 +3423,12 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
               . $HOME/.mupel/android.conf;
               $ANDROID_DEV_ROOT/android-sdk-linux/tools/android avd
 
-              echo "#> msg field 28:set $(getAndroidAVDS arm);"
-              echo "#> msg field 30:set $(getAndroidAVDS x86);"
+              echo "#> msg field $SET_ANDROID____ARM_EMU_SOURCE:set $(getAndroidAVDS arm);"
+              echo "#> msg field $SET_ANDROID____ARM_EMU_SOURCE:set $(getAndroidAVDS x86);"
+            }
+            elif [[ "$line" = *"open_dist_control"* ]];then
+            {
+              $BASE_PATH/tools/linux/install-systembuild-linux &
             }
             else
               echo "Wrong command! $line" > /dev/stderr;fi
@@ -3415,7 +3436,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
         } done;
         unset IFS
 
-        sleep 1
+        sleep 0.5
       } done
     } done
   ) | \
@@ -3430,33 +3451,39 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field="Run tests:CHK@0,0,6,8" "$KODI_RUN_TESTS" \
              --field="Include configure in direct build:CHK@1,1,6,8" "$KODI_CONF_IN_DIRECT_BUILD" \
              --field="Perform depclean on branch change:CHK@2,2,6,8" "$KODI_DEP_CLEAN" \
-             --field=":LBL@0,8,10,12" '' \
-             --field="<b>CEF (Chromium embedded framwork):</b>:LBL@0,8,12,14" '' \
-             --field="Repository:@0,5,14,16" "$CEF_SOURCE_URL" \
-             --field="Branch:CB@7,8,14,16" '' \
-             --field="Verbose build:CHK@0,1,16,18" "$CEF_VERBOSE_BUILD" \
-             --field=":LBL@0,8,18,20" '' \
-             --field="<b>Windows settings:</b>:LBL@0,8,20,22" '' \
-             --field="Build and emulation system target:CB@0,1,22,24" "$(getWindowsTargets)" \
-             --field="Username/Password (ssh):@2,3,22,24" "$WINDOWS_SSH_USERNAME" \
-             --field=":H@3,4,22,24" "$WINDOWS_SSH_PASSWORD" \
-             --field="Build type:CB@7,8,22,24" 'x86_32!x86_64' \
-             --field=":LBL@0,8,24,26" '' \
-             --field="<b>Mac OS X settings:</b>:LBL@0,8,26,28" '' \
-             --field="Build and emulation system target:CB@0,1,28,30" "$(getMacOSXTargets)" \
-             --field="Username/Password (ssh):@2,3,28,30" "$MAC_OS_X_SSH_USERNAME" \
-             --field=":H@3,4,28,30" "$MAC_OS_X_SSH_PASSWORD" \
-             --field="Build type:CB@7,8,28,30" 'x86_32!x86_64' \
-             --field="iOS/ATV2 builds:CB@0,1,30,32" 'IOS!ATV2' \
-             --field=":LBL@0,8,32,34" '' \
-             --field="<b>Android settings:</b>:LBL@0,8,34,36" '' \
-             --field="Build type:CB@7,8,34,36" 'arm!x86' \
-             --field="ARM AVD emulation system:CB@0,3,36,38" "$(getAndroidAVDS arm)" \
-             --field="Build system target:CB@7,8,36,38" "$(getAndroidTargets)" \
-             --field="x86 AVD emulation system:CB@0,3,38,40" "$(getAndroidAVDS x86)" \
-             --field="Android Virtual Device (AVD) Manager:FBTN@7,8,38,40" "bash -c 'echo \"#< msg open_avd_control\" >> $thread9_in'" \
-             --field=":LBL@0,8,40,42" '' \
-             --field="CPU process jobs:NUM@0,8,42,44" "${CPU_PROC_JOBS}!1..32" \
+             --field=":LBL@0,8,10,11" '' \
+             --field="<b>CEF (Chromium embedded framwork):</b>:LBL@0,8,11,12" '' \
+             --field="Repository:@0,5,12,13" "$CEF_SOURCE_URL" \
+             --field="Branch:CB@7,8,12,13" '' \
+             --field="Verbose build:CHK@0,1,13,14" "$CEF_VERBOSE_BUILD" \
+             --field=":LBL@0,8,15,16" '' \
+             --field="<b>Linux settings:</b>:LBL@0,8,16,17" '' \
+             --field="Used 32/64bit Distribution:CB@0,1,17,18" "$(getLinuxTargetDist)" \
+             --field="Open distribution control:FBTN@7,8,17,18" "bash -c 'echo \"#< msg open_dist_control\" >> $thread9_in'" \
+             --field=":LBL@0,8,21,22" '' \
+             --field="<b>Windows settings:</b>:LBL@0,8,22,23" '' \
+             --field="Build type:CB@6,8,22,23" 'x86_32!x86_64' \
+             --field="Build system target:CB@0,5,23,24" "$(getWindowsTargets)" \
+             --field="Username / Password (ssh):@6,7,23,24" "$WINDOWS_SSH_USERNAME" \
+             --field=":H@7,8,23,24" "$WINDOWS_SSH_PASSWORD" \
+             --field=":LBL@0,8,28,29" '' \
+             --field="<b>Mac OS X settings:</b>:LBL@0,8,29,30" '' \
+             --field="Build type:CB@6,7,29,30" 'x86_32!x86_64' \
+             --field=":CB@7,8,29,30" 'IOS!ATV2' \
+             --field="Build system target:CB@0,5,30,31" "$(getMacOSXTargets)" \
+             --field="Username / Password (ssh):@6,7,30,31" "$MAC_OS_X_SSH_USERNAME" \
+             --field=":H@7,8,30,31" "$MAC_OS_X_SSH_PASSWORD" \
+             --field="URL or IP / Port (ssh):@6,7,31,32" "$MAC_OS_X_SSH_IP" \
+             --field=":@7,8,31,32" "$MAC_OS_X_SSH_PORT" \
+             --field=":LBL@0,8,37,38" '' \
+             --field="<b>Android settings:</b>:LBL@0,8,38,39" '' \
+             --field="Android Virtual Device (AVD) Manager:FBTN@7,8,38,39" "bash -c 'echo \"#< msg open_avd_control\" >> $thread9_in'" \
+             --field="ARM AVD emulation system:CB@0,3,39,40" "$(getAndroidAVDS arm)" \
+             --field="Build type:CB@7,8,39,40" 'arm!x86' \
+             --field="x86 AVD emulation system:CB@0,3,40,41" "$(getAndroidAVDS x86)" \
+             --field="Build system target:CB@7,8,40,41" "$(getAndroidTargets)" \
+             --field=":LBL@0,8,41,42" '' \
+             --field="CPU process jobs:NUM@0,8,43,44" "${CPU_PROC_JOBS}!1..32" \
              --field=":XTALK" '' > /dev/null &
   pid_thread9=$!
   ((TAB_NUM++))
