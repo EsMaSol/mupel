@@ -14,7 +14,8 @@ Also must be the source of them somewhere on the home folder!
 ### Table of Contents
  - [General](#general)
  - [Start of installation](#start-of-installation)
- - [Remove installed Mupel](#remove-installed-Mupel)
+  - [Linux x86 system](#linux_x86_system)
+ - [Remove installed Mupel](#remove-installed-mupel)
 
 -------------
 ### General
@@ -61,6 +62,13 @@ Also must be the source of them somewhere on the home folder!
 
 -------------
 ### Start of installation
+
+#### Linux x86 system
+Linux x86 system with 64 bit is the minimum required system for the use Mupel. It is based upon a [Debian](https://en.wikipedia.org/wiki/Debian) Linux operating system and distribution and can be easily used on [Ubuntu](https://en.wikipedia.org/wiki/Ubuntu_(operating_system)).
+
+If related parts are installed also the use of 32 bit of them is possible, which allow build tests on Kodi and to create binary packages from CEF.
+
+Open [Linux x86 installation guide](install/install-linux.md) for detailed instructions for installation of them.
 
 -------------
 ### Remove installed Mupel
