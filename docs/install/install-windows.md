@@ -16,7 +16,3 @@
 -------------
 
 #### Installation of CEF related dependencies
-For CEF are the needed [Windows Python](https://www.python.org/), [tasm](https://en.wikipedia.org/wiki/Turbo_Assembler) ...
-
-- [Windows Python installation](windows-itself/windows-itself-python.md)
-- Cygwin (tasm, ...)
