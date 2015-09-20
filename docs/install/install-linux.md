@@ -1,5 +1,5 @@
 # *<p align="center">Installation of Linux x86 build systems</p>*
-[<img src="../../icons/back-button.png" alt="Back" width="100" height="40">](../readme.md) 
+[<img src="../../icons/back-button.png" alt="Back" width="100" height="40">](../install.md)
 
 -------------
 
@@ -40,12 +40,12 @@ not related to the command name "utopic32" itself.
 
 The help of the command gives you this:
 ```
-Usage utopic32 [-h|--help] [-c|--clean] [-C|--clean-all] [-l|--list] [--] args                                                                                                               
-  help:      print this message                                                                                                                                                              
-  list:      list all known chroot environments                                                                                                                                              
-  clean:     remove all old chroot sessions for "utopic32"                                                                                                                                   
+Usage utopic32 [-h|--help] [-c|--clean] [-C|--clean-all] [-l|--list] [--] args
+  help:      print this message
+  list:      list all known chroot environments
+  clean:     remove all old chroot sessions for "utopic32"
   clean-all: remove all old chroot sessions for all environments
-  
+
 ```
 
 <b><i>Note:</i></b> If you call ```utopic32``` alone is the console complete changed to them, also a single call of
