@@ -517,9 +517,9 @@ function parse_values()
       saveAndroidConfigFile
 
       echo "#> msg field $SET_ANDROID____ARM_EMU_SOURCE:set $(getAndroidAVDS arm);"
-      echo "#> msg field $SET_ANDROID____ARM_EMU_SOURCE:set $(getAndroidAVDS x86);"
+      echo "#> msg field $SET_ANDROID____x86_EMU_SOURCE:set $(getAndroidAVDS x86);"
     }
-    elif [[ $id = $SET_ANDROID____ARM_EMU_SOURCE ]];then
+    elif [[ $id = $SET_ANDROID____x86_EMU_SOURCE ]];then
     {
       . $HOME/.mupel/android.conf;
       ANDROID_SEL_AVD_X86=$(echo ${value%|} | awk -F 'Name: ' '{print $2}' | awk -F ' - ' '{print $1}');
@@ -3270,7 +3270,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       [[ $USE_ANDROID_ARM = "TRUE" ]] && use_it=1 || use_it=0
       echo "#> msg field $SET_ANDROID____ARM_EMU_SOURCE:visible $use_it;"
       [[ $USE_ANDROID_X86 = "TRUE" ]] && use_it=1 || use_it=0
-      echo "#> msg field $SET_ANDROID____ARM_EMU_SOURCE:visible $use_it;"
+      echo "#> msg field $SET_ANDROID____x86_EMU_SOURCE:visible $use_it;"
 
       parse_values "settings" 1 "$KODI_SOURCE_URL";
       parse_values "settings" 8 "$CEF_SOURCE_URL";
@@ -3346,7 +3346,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
               $ANDROID_DEV_ROOT/android-sdk-linux/tools/android avd
 
               echo "#> msg field $SET_ANDROID____ARM_EMU_SOURCE:set $(getAndroidAVDS arm);"
-              echo "#> msg field $SET_ANDROID____ARM_EMU_SOURCE:set $(getAndroidAVDS x86);"
+              echo "#> msg field $SET_ANDROID____x86_EMU_SOURCE:set $(getAndroidAVDS x86);"
             }
             elif [[ "$line" = *"open_dist_control"* ]];then
             {
