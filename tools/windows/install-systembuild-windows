@@ -979,7 +979,7 @@ done
 active_qemu=\$(ps aux | grep qemu-system-x86_64 | grep emu-windows-);
 if [[ ! -z \$active_qemu ]];then
 {
-  app_name=\$(echo \$active_qemu | awk -F '$INSTALL_PREFIX/systems/' '{print $2}' | awk -F '/root_disk.qcow2' '{print $1}');
+  app_name=\$(echo \$active_qemu | awk -F '$INSTALL_PREFIX/systems/' '{print \$2}' | awk -F '/root_disk.qcow2' '{print \$1}');
   showdialog --form --title="Windows emulation commands" \\
              --window-icon="$INSTALL_PREFIX/icons/icon-mupel-128x128.png" \\
              --image="$INSTALL_PREFIX/icons/icon-kodi-mbe.png" \\
