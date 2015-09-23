@@ -115,15 +115,16 @@ function create_data_share()
   # Remove old entries
   sudo -A -- bash -c "grep -v '$INSTALL_PREFIX/systems/data_share/base' /etc/fstab > /etc/fstab.temp && mv -f /etc/fstab.temp /etc/fstab";
 
-  # Create home folder bind mount
+  # Create home folder for bind mount, used for all emulation system on same
+  # place, created again to make sure is present
   mkdir -p $INSTALL_PREFIX/systems/data_share/link;
   chmod 777 $INSTALL_PREFIX/systems/data_share/link;
-  mkdir -p $INSTALL_PREFIX/systems/data_share/base/home;
-  mkdir -p $INSTALL_PREFIX/systems/data_share/base/build;
-  sudo -A -- bash -c "echo \"\
-$INSTALL_PREFIX/systems/data_share/link/home $INSTALL_PREFIX/systems/data_share/base/home none rw,bind,user,umask=000,utf8,noauto 0 0
-$BASE_PATH $INSTALL_PREFIX/systems/data_share/base/build none rw,bind,user,umask=000,utf8,noauto 0 0
-\" >> /etc/fstab";
+
+  mkdir -p $INSTALL_PREFIX/systems/data_share/base/home
+  sudo -A -- bash -c "echo \"$INSTALL_PREFIX/systems/data_share/link/home $INSTALL_PREFIX/systems/data_share/base/home none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab"
+
+  mkdir -p $INSTALL_PREFIX/systems/data_share/base/build
+  sudo -A -- bash -c "echo \"$BASE_PATH $INSTALL_PREFIX/systems/data_share/base/build none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab"
 
   showQuestionDialog "The home directory '$HOME' becomes passed to ${real_name}.\n\nDo you want also another one to pass there?";
   local ret=$?;
@@ -147,9 +148,7 @@ $BASE_PATH $INSTALL_PREFIX/systems/data_share/base/build none rw,bind,user,umask
         continue;
       } fi
 
-      sudo -A -- bash -c "echo \"\
-$path $INSTALL_PREFIX/systems/data_share/base/${name} none rw,bind,user,umask=000,utf8,noauto 0 0
-\" >> /etc/fstab";
+      sudo -A -- bash -c "echo \"$path $INSTALL_PREFIX/systems/data_share/base/${name} none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab";
       [ "$mount_points" != "" ] && mount_points="$mount_points ";
       mount_points="${mount_points}$INSTALL_PREFIX/systems/data_share/base/${name}";
 

@@ -101,7 +101,7 @@ function handle_virtual_machine_install()
   while :; do
   {
     FILE=$(showdialog --file \
-                      --title="Select cdrom source from /dev/* or a *.iso file" \
+                      --title="Select cdrom source from /dev/* or a *.iso file for Install" \
                       --width=640 --height=480 \
                       --center --filename=/dev/ 2> /dev/null)
     ret=$?;
@@ -756,73 +756,73 @@ if [ -z $ignore_install ];then
     # Ask for additional disk and include
     #
     additional_file_hd=
-    showQuestionDialog "You want to include additional disk to Mac OS X"
-    if [ $? == 0 ];then
+    while :; do
+    {
+      include_way=$(showdialog --list \
+                               --width=400 --height=390 \
+                               --title="Addition source selection" \
+                               --text="Select source of addition disk" \
+                               --radiolist \
+                               --column Use \
+                               --column Id \
+                               --column Type \
+                               --print-column=2 \
+                               --hide-column=2 \
+                               TRUE  create   "Create new image" \
+                               FALSE existing "Use existing" \
+                                  2> /dev/null)
+
+      if [ -z "$include_way" ];then
+      {
+        showWarningDialog_YesNo "You must select something! \n\nTry again?"
+        [ $? != 0 ] && exit_build 1
+      }
+      else
+        break;fi
+    } done
+
+    if [[ $include_way == "create|" ]];then
     {
       while :; do
       {
-        include_way=$(showdialog --list \
-                                 --width=400 --height=390 \
-                                 --title="Addition source selection" \
-                                 --text="Select source of addition disk" \
-                                 --radiolist \
-                                 --column Use \
-                                 --column Id \
-                                 --column Type \
-                                 --print-column=2 \
-                                 --hide-column=2 \
-                                 TRUE  create   "Create new image" \
-                                 FALSE existing "Use existing" \
-                                    2> /dev/null)
-
-        if [ -z "$include_way" ];then
+        size_hd=$(showdialog --title="Virtual disk size" \
+                             --entry --text="Set used virtual Mac OS X disk\nsize in GByte (minimum 1)" \
+                             --entry-text="30" --width=260 2> /dev/null);
+        if [ -z "$size_hd" ];then
         {
-          showWarningDialog_YesNo "You must select something! \n\nTry again?"
-          [ $? != 0 ] && exit_build 1
+          showWarningDialog_YesNo "You must set something! \n\nTry again?";
+          [ $? != 0 ] && exit_build 1;
+        }
+        else
+        {
+          [[ ${size_hd} -lt 1 ]] && size_hd=1;
+          break;
+        } fi
+      } done
+      while :; do
+      {
+        additional_file_hd=`showdialog --file --save --filename="$HOME/" --file-filter="*.qcow2" --width=640 --height=480 2> /dev/null`;
+        if [ -z "$additional_file_hd" ];then
+        {
+          showWarningDialog_YesNo "You must write something! \n\nTry again?";
+          [ $? != 0 ] && exit_build 1;
         }
         else
           break;fi
       } done
 
-      if [[ $include_way == "create|" ]];then
-      {
-        while :; do
-        {
-          size_hd=$(showdialog --title="Virtual disk size" \
-                               --entry --text="Set used virtual Mac OS X disk\nsize in GByte (minimum 1)" \
-                               --entry-text="30" --width=260 2> /dev/null);
-          if [ -z "$size_hd" ];then
-          {
-            showWarningDialog_YesNo "You must set something! \n\nTry again?";
-            [ $? != 0 ] && exit_build 1;
-          }
-          else
-          {
-            [[ ${size_hd} -lt 1 ]] && size_hd=1;
-            break;
-          } fi
-        } done
-        while :; do
-        {
-          additional_file_hd=`showdialog --file --save --filename="$HOME/" --file-filter="*.qcow2" --width=640 --height=480 2> /dev/null`;
-          if [ -z "$additional_file_hd" ];then
-          {
-            showWarningDialog_YesNo "You must write something! \n\nTry again?";
-            [ $? != 0 ] && exit_build 1;
-          }
-          else
-            break;fi
-        } done
-
-        additional_file_hd="${additional_file_hd%.qcow2}.qcow2"
-        qemu-img create -f qcow2 "$additional_file_hd" ${size_hd}G
-        evaluate_ret_error $? "Creation of qemu image failed"
-      }
-      elif [[ $include_way == "existing|" ]];then
-        additional_file_hd=`showdialog --file --filename="$HOME/*.qcow2" --file-filter="$HOME/*.qcow2" --width=640 --height=480 2> /dev/null`
-      else
-        exit_build 1;fi
-    } fi
+      additional_file_hd="${additional_file_hd%.qcow2}.qcow2"
+      qemu-img create -f qcow2 "$additional_file_hd" ${size_hd}G
+      evaluate_ret_error $? "Creation of qemu image failed"
+    }
+    elif [[ $include_way == "existing|" ]];then
+      additional_file_hd=`showdialog --file \
+                                     --title="Select present *.qcow2 to use as additional disk." \
+                                     --filename="$HOME/*.qcow2" \
+                                     --file-filter="*.qcow2" \
+                                     --width=640 --height=480 2> /dev/null`
+    else
+      exit_build 1;fi
   } fi
 
   mkdir -p $INSTALL_PREFIX/systems/$app_name
@@ -864,7 +864,8 @@ EOF
   create_data_share "Windows" "$app_name"
 
   # Remove old entries
-  sudo -A -- bash -c "grep -v '$INSTALL_PREFIX/systems/data_share/base' /etc/fstab > /etc/fstab.temp && mv -f /etc/fstab.temp /etc/fstab"
+  sudo -A -- bash -c "grep -v '$INSTALL_PREFIX/systems/data_share/base/build' /etc/fstab > /etc/fstab.temp && mv -f /etc/fstab.temp /etc/fstab"
+  sudo -A -- bash -c "grep -v '$INSTALL_PREFIX/systems/data_share/base/home' /etc/fstab > /etc/fstab.temp && mv -f /etc/fstab.temp /etc/fstab"
 
   # Create home folder for bind mount, used for all emulation system on same
   # place, created again to make sure is present
@@ -953,10 +954,16 @@ show_ssh_info_dialog()
   showdialog --on-top --center \\
              --title="SSH access verfication" \\
              --text-align=center \\
-             --text="\n\n\n<b>SSH access to \$app_name not known, starting mount of related emulation disk and readout of needed keys</b>" \\
+             --text="
+<b>SSH access to \$app_name not known, starting mount of related emulation disk and readout of needed keys</b>
+
+Do you want to do this?
+(Say no if SSH access is not present and becomes created later)" \\
              --image="$INSTALL_PREFIX/icons/icon-kodi-mbe.png" \\
              --window-icon="$INSTALL_PREFIX/icons/icon-mupel-128x128.png" \\
-             --button=gtk-ok:0
+             --width=640 \
+             --button=gtk-no:1 --button=gtk-yes:0
+  return \$?
 }
 
 while [ "\$#" -ne 0 ]; do
@@ -1029,54 +1036,56 @@ ssh_name=\`echo \$app_name | tr '(' '_' | tr ')' '_'\`;
 ssh_cmp_name="# Known qemu ssh windows access \$app_name"
 
 if [ ! -f "\$HOME/.ssh/known_hosts" ] || [[ -z \`cat \$HOME/.ssh/known_hosts | grep "\$ssh_cmp_name"\` ]];then
-  if [ -z \$hide_next_dialog ];then
-    show_ssh_info_dialog;fi
+  show_ssh_info_dialog;
+  inhibit_ssh_access=\$?
 
-  TEMP_DIR=\`mktemp -d\`
-  sudo -A -- modprobe nbd max_part=8
-  [ \$? != 0 ] && rm -rf \$TEMP_DIR && exit 1
-  sudo -A -- qemu-nbd --disconnect /dev/nbd0
-  [ $? != 0 ] && rm -rf \$TEMP_DIR && exit 1
-  sudo -A -- qemu-nbd --connect=/dev/nbd0 "\$HOME/.mupel/systems/\$app_name/root_disk.qcow2"
-  [ \$? != 0 ] && rm -rf \$TEMP_DIR && exit 1
-  sudo -A -- mount /dev/nbd0p2 \$TEMP_DIR
-  [ \$? != 0 ] && rm -rf \$TEMP_DIR && exit 1
+  if [ \$inhibit_ssh_access = 0 ];then
+    TEMP_DIR=\`mktemp -d\`
+    sudo -A -- modprobe nbd max_part=8
+    [ \$? != 0 ] && rm -rf \$TEMP_DIR && exit 1
+    sudo -A -- qemu-nbd --disconnect /dev/nbd0
+    [ $? != 0 ] && rm -rf \$TEMP_DIR && exit 1
+    sudo -A -- qemu-nbd --connect=/dev/nbd0 "\$HOME/.mupel/systems/\$app_name/root_disk.qcow2"
+    [ \$? != 0 ] && rm -rf \$TEMP_DIR && exit 1
+    sudo -A -- mount /dev/nbd0p2 \$TEMP_DIR
+    [ \$? != 0 ] && rm -rf \$TEMP_DIR && exit 1
 
-  [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub ]]     && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub\` ]] &&
-    ssh_host_dsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub\`)
-  [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub ]]   && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub\` ]] &&
-    ssh_host_ecdsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub\`)
-  [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub ]] && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub\` ]] &&
-    ssh_host_ed25519_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub\`)
-  [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub ]]     && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub\` ]] &&
-    ssh_host_rsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub\`)
+    [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub ]]     && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub\` ]] &&
+      ssh_host_dsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub\`)
+    [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub ]]   && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub\` ]] &&
+      ssh_host_ecdsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub\`)
+    [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub ]] && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub\` ]] &&
+      ssh_host_ed25519_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub\`)
+    [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub ]]     && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub\` ]] &&
+      ssh_host_rsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub\`)
 
-  if [[ -z \$ssh_host_dsa_key ]] && [[ -z \$ssh_host_ecdsa_key ]] && [[ -z \$ssh_host_ed25519_key ]] && [[ -z \$ssh_host_rsa_key ]];then
-    showErrorDialog_YesNo "<b>\
+    if [[ -z \$ssh_host_dsa_key ]] && [[ -z \$ssh_host_ecdsa_key ]] && [[ -z \$ssh_host_ed25519_key ]] && [[ -z \$ssh_host_rsa_key ]];then
+      showErrorDialog_YesNo "<b>\
 SSH access to Windows '\$app_name' not possible, needed keys not found!
 Remote build with Mupel not available for it.
 
 Anyway start emulation?</b>"
-    if [ \$? != 0 ];then
-      sudo -A -- umount \$TEMP_DIR
-      rm -rf \$TEMP_DIR
-      sudo -A -- qemu-nbd --disconnect /dev/nbd0
-      exit 1
+      if [ \$? != 0 ];then
+        sudo -A -- umount \$TEMP_DIR
+        rm -rf \$TEMP_DIR
+        sudo -A -- qemu-nbd --disconnect /dev/nbd0
+        exit 1
+      fi
+    else
+      if [[ ! -z \`cat \$HOME/.ssh/known_hosts\` ]];then
+        echo "" >> \$HOME/.ssh/known_hosts;fi
+
+      echo "# Known qemu ssh windows access \$app_name"              >> \$HOME/.ssh/known_hosts
+      [[ ! -z \$ssh_host_dsa_key ]]     && echo \$ssh_host_dsa_key     >> \$HOME/.ssh/known_hosts
+      [[ ! -z \$ssh_host_ecdsa_key ]]   && echo \$ssh_host_ecdsa_key   >> \$HOME/.ssh/known_hosts
+      [[ ! -z \$ssh_host_ed25519_key ]] && echo \$ssh_host_ed25519_key >> \$HOME/.ssh/known_hosts
+      [[ ! -z \$ssh_host_rsa_key ]]     && echo \$ssh_host_rsa_key     >> \$HOME/.ssh/known_hosts
     fi
-  else
-    if [[ ! -z \`cat \$HOME/.ssh/known_hosts\` ]];then
-      echo "" >> \$HOME/.ssh/known_hosts;fi
 
-    echo "# Known qemu ssh windows access \$app_name"              >> \$HOME/.ssh/known_hosts
-    [[ ! -z \$ssh_host_dsa_key ]]     && echo \$ssh_host_dsa_key     >> \$HOME/.ssh/known_hosts
-    [[ ! -z \$ssh_host_ecdsa_key ]]   && echo \$ssh_host_ecdsa_key   >> \$HOME/.ssh/known_hosts
-    [[ ! -z \$ssh_host_ed25519_key ]] && echo \$ssh_host_ed25519_key >> \$HOME/.ssh/known_hosts
-    [[ ! -z \$ssh_host_rsa_key ]]     && echo \$ssh_host_rsa_key     >> \$HOME/.ssh/known_hosts
+    sudo -A -- umount \$TEMP_DIR
+    rm -rf \$TEMP_DIR
+    sudo -A -- qemu-nbd --disconnect /dev/nbd0
   fi
-
-  sudo -A -- umount \$TEMP_DIR
-  rm -rf \$TEMP_DIR
-  sudo -A -- qemu-nbd --disconnect /dev/nbd0
 fi
 
 if [ ! -e "\$cdrom_mount" ];then
@@ -1107,8 +1116,9 @@ fi
 
 mount_points="$mount_points";
 for m in \${mount_points}; do
-  [[ -n \`mount | grep \$m\` ]] && umount \$m;
-  mount \$m;
+  if [[ -d \$m ]] && [[ ! -n \`mount | grep \$m\` ]];then
+    mount \$m;
+  fi
 done
 
 ##
@@ -1247,7 +1257,7 @@ System UUID :
 Base system disk :
     - $INSTALL_PREFIX/systems/$app_name/root_disk.qcow2
 Additional disk :
-    - $additional_file_hd
+    - $([[ -z $additional_file_hd ]] && echo "Unused" || echo $additional_file_hd)
 CDRom/DVD/iso :
     - $cdrom_mount
 Memory size :
