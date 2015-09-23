@@ -1038,6 +1038,7 @@ ssh_cmp_name="# Known qemu ssh windows access \$app_name"
 if [ ! -f "\$HOME/.ssh/known_hosts" ] || [[ -z \`cat \$HOME/.ssh/known_hosts | grep "\$ssh_cmp_name"\` ]];then
   show_ssh_info_dialog;
   inhibit_ssh_access=\$?
+  hide_next_dialog=1
 
   if [ \$inhibit_ssh_access = 0 ];then
     TEMP_DIR=\`mktemp -d\`
@@ -1094,7 +1095,7 @@ Anyway start emulation?</b>"
         if [[ ! -z \`cat \$HOME/.ssh/known_hosts\` ]];then
           echo "" >> \$HOME/.ssh/known_hosts;fi
 
-        echo "# Known qemu ssh windows access \$app_name"              >> \$HOME/.ssh/known_hosts
+        echo "\$ssh_cmp_name"                                            >> \$HOME/.ssh/known_hosts
         [[ ! -z \$ssh_host_dsa_key ]]     && echo \$ssh_host_dsa_key     >> \$HOME/.ssh/known_hosts
         [[ ! -z \$ssh_host_ecdsa_key ]]   && echo \$ssh_host_ecdsa_key   >> \$HOME/.ssh/known_hosts
         [[ ! -z \$ssh_host_ed25519_key ]] && echo \$ssh_host_ed25519_key >> \$HOME/.ssh/known_hosts
@@ -1105,6 +1106,25 @@ Anyway start emulation?</b>"
     sudo -A -- umount \$TEMP_DIR
     rm -rf \$TEMP_DIR
     sudo -A -- qemu-nbd --disconnect /dev/nbd0
+  fi
+fi
+
+if [ ! -f "\$HOME/.ssh/config" ] || [[ -z \`cat \$HOME/.ssh/config | grep "\$ssh_cmp_name"\` ]];then
+  if [ -z \$hide_next_dialog ];then
+    show_ssh_info_dialog;
+    inhibit_ssh_access=\$?
+  fi
+
+  if [ \$inhibit_ssh_access = 0 ];then
+    if [[ ! -z \`cat \$HOME/.ssh/config\` ]];then
+      echo "" >> \$HOME/.ssh/config;fi
+
+    echo "\$ssh_cmp_name"             >> \$HOME/.ssh/config
+    echo "Host \$ssh_name"            >> \$HOME/.ssh/config
+    echo "  Hostname 127.0.0.1       >> \$HOME/.ssh/config
+    echo "  HostKeyAlias \$ssh_name"  >> \$HOME/.ssh/config
+    echo "  CheckHostIP no"          >> \$HOME/.ssh/config
+    echo "  Port 2222"               >> \$HOME/.ssh/config
   fi
 fi
 
