@@ -5,6 +5,7 @@
 ###### *<p align="center">Now you can do "<i>Èngem e' Mupel mâchen</i>" (Luxembourgish) and means "Someone squeezing the cheeks" in respect to Jenkins the best multi platform background system on world.</p>*
 
 -------------
+### *<p align="center">[Wiki](https://github.com/EsMaSol/mupel/wiki)</p>*
 *<p align="center">![Work in progress](http://img.shields.io/badge/work_in-progress-lightgray.svg)</p>*
 
 Below is a list of parts on Mupel which becomes improved, checked, added or fixed. It is a currently usable but far away from them what I want.
@@ -65,7 +66,7 @@ General description of CEF can be found here on [wikipedia](http://en.wikipedia.
 #### *<p align="center" style="color:red">WARNING: This app need a ubuntu or debian 64bit system as base!<p>*
 
 -------------
-[Documentation](docs/readme.md) - Gives you information for installation and usage of Mupel
+[Documentation](https://github.com/EsMaSol/mupel/wiki) - Gives you information for installation and usage of Mupel
 
 -------------
 ### License of Muple
