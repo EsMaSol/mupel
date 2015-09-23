@@ -1050,36 +1050,56 @@ if [ ! -f "\$HOME/.ssh/known_hosts" ] || [[ -z \`cat \$HOME/.ssh/known_hosts | g
     sudo -A -- mount /dev/nbd0p2 \$TEMP_DIR
     [ \$? != 0 ] && rm -rf \$TEMP_DIR && exit 1
 
-    [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub ]]     && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub\` ]] &&
-      ssh_host_dsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub\`)
-    [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub ]]   && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub\` ]] &&
-      ssh_host_ecdsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub\`)
-    [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub ]] && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub\` ]] &&
-      ssh_host_ed25519_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub\`)
-    [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub ]]     && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub\` ]] &&
-      ssh_host_rsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub\`)
+    if [ -d \$TEMP_DIR/cygwin ];then
+      CYGWIN=\$TEMP_DIR/cygwin
+    elif [ -d \$TEMP_DIR/cygwin64 ];then
+      CYGWIN=\$TEMP_DIR/cygwin64
+    elif [ -d \$TEMP_DIR/cygwin32 ];then
+      CYGWIN=\$TEMP_DIR/cygwin32
+    else
+      showdialog \\
+        --title="Warning" \\
+        --image="\$HOME/.mupel/icons/icon-warning-128x128.png" \\
+        --image-on-top --form \
+        --text="<b>\\
+Needed Cygwin seems not installed!
+Must be present on C:\\\\cygwin or C:\\\\cygwin64
+</b>" \\
+        --button=gtk-ok:0 2> /dev/null
+    fi
 
-    if [[ -z \$ssh_host_dsa_key ]] && [[ -z \$ssh_host_ecdsa_key ]] && [[ -z \$ssh_host_ed25519_key ]] && [[ -z \$ssh_host_rsa_key ]];then
-      showErrorDialog_YesNo "<b>\
+    if [ -n \$CYGWIN ];then
+      [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub ]]     && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub\` ]] &&
+        ssh_host_dsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub\`)
+      [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub ]]   && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub\` ]] &&
+        ssh_host_ecdsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub\`)
+      [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub ]] && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub\` ]] &&
+        ssh_host_ed25519_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub\`)
+      [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub ]]     && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub\` ]] &&
+        ssh_host_rsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub\`)
+
+      if [[ -z \$ssh_host_dsa_key ]] && [[ -z \$ssh_host_ecdsa_key ]] && [[ -z \$ssh_host_ed25519_key ]] && [[ -z \$ssh_host_rsa_key ]];then
+        showErrorDialog_YesNo "<b>\
 SSH access to Windows '\$app_name' not possible, needed keys not found!
 Remote build with Mupel not available for it.
 
 Anyway start emulation?</b>"
-      if [ \$? != 0 ];then
-        sudo -A -- umount \$TEMP_DIR
-        rm -rf \$TEMP_DIR
-        sudo -A -- qemu-nbd --disconnect /dev/nbd0
-        exit 1
-      fi
-    else
-      if [[ ! -z \`cat \$HOME/.ssh/known_hosts\` ]];then
-        echo "" >> \$HOME/.ssh/known_hosts;fi
+        if [ \$? != 0 ];then
+          sudo -A -- umount \$TEMP_DIR
+          rm -rf \$TEMP_DIR
+          sudo -A -- qemu-nbd --disconnect /dev/nbd0
+          exit 1
+        fi
+      else
+        if [[ ! -z \`cat \$HOME/.ssh/known_hosts\` ]];then
+          echo "" >> \$HOME/.ssh/known_hosts;fi
 
-      echo "# Known qemu ssh windows access \$app_name"              >> \$HOME/.ssh/known_hosts
-      [[ ! -z \$ssh_host_dsa_key ]]     && echo \$ssh_host_dsa_key     >> \$HOME/.ssh/known_hosts
-      [[ ! -z \$ssh_host_ecdsa_key ]]   && echo \$ssh_host_ecdsa_key   >> \$HOME/.ssh/known_hosts
-      [[ ! -z \$ssh_host_ed25519_key ]] && echo \$ssh_host_ed25519_key >> \$HOME/.ssh/known_hosts
-      [[ ! -z \$ssh_host_rsa_key ]]     && echo \$ssh_host_rsa_key     >> \$HOME/.ssh/known_hosts
+        echo "# Known qemu ssh windows access \$app_name"              >> \$HOME/.ssh/known_hosts
+        [[ ! -z \$ssh_host_dsa_key ]]     && echo \$ssh_host_dsa_key     >> \$HOME/.ssh/known_hosts
+        [[ ! -z \$ssh_host_ecdsa_key ]]   && echo \$ssh_host_ecdsa_key   >> \$HOME/.ssh/known_hosts
+        [[ ! -z \$ssh_host_ed25519_key ]] && echo \$ssh_host_ed25519_key >> \$HOME/.ssh/known_hosts
+        [[ ! -z \$ssh_host_rsa_key ]]     && echo \$ssh_host_rsa_key     >> \$HOME/.ssh/known_hosts
+      fi
     fi
 
     sudo -A -- umount \$TEMP_DIR
