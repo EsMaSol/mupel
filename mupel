@@ -164,26 +164,34 @@ SET_WINDOWS________BUILD_TYPE=20
 SET_WINDOWS____________TARGET=21
 SET_WINDOWS______SSH_USERNAME=22
 SET_WINDOWS______SSH_PASSWORD=23
-SET_WINDOWS____________SSH_IP=24
-SET_WINDOWS__________SSH_PORT=25
-SET_MAC_________________SEP__=26
-SET_MAC_______________LABEL__=27
-SET_MAC____________BUILD_TYPE=28
-SET_MAC____IOS_ATV_BUILD_TYPE=29
-SET_MAC________________TARGET=30
-SET_MAC__________SSH_USERNAME=31
-SET_MAC__________SSH_PASSWORD=32
-SET_MAC________________SSH_IP=33
-SET_MAC______________SSH_PORT=34
-SET_ANDROID_____________SEP__=35
-SET_ANDROID___________LABEL__=36
-SET_ANDROID_______AVD_MANAGER=37
-SET_ANDROID________BUILD_TYPE=38
-SET_ANDROID____ARM_EMU_SOURCE=39
-SET_ANDROID__BUILD_SYS_TARGET=40
-SET_ANDROID____x86_EMU_SOURCE=41
-SET_VARIOUS_____________SEP__=42
-SET_VARIOUS_____CPU_PROC_JOBS=43
+SET_WINDOWS______OPEN_CONTROL=24
+SET_WINDOWS_____________START=25
+SET_WINDOWS________SSH_ACCESS=26
+SET_WINDOWS_________INSTALLER=27
+SET_WINDOWS____________SSH_IP=28
+SET_WINDOWS__________SSH_PORT=29
+SET_MAC_________________SEP__=30
+SET_MAC_______________LABEL__=31
+SET_MAC____________BUILD_TYPE=32
+SET_MAC____IOS_ATV_BUILD_TYPE=33
+SET_MAC________________TARGET=34
+SET_MAC__________SSH_USERNAME=35
+SET_MAC__________SSH_PASSWORD=36
+SET_MAC__________OPEN_CONTROL=37
+SET_MAC_________________START=38
+SET_MAC____________SSH_ACCESS=39
+SET_MAC_____________INSTALLER=40
+SET_MAC________________SSH_IP=41
+SET_MAC______________SSH_PORT=42
+SET_ANDROID_____________SEP__=43
+SET_ANDROID___________LABEL__=44
+SET_ANDROID_______AVD_MANAGER=45
+SET_ANDROID________BUILD_TYPE=46
+SET_ANDROID____ARM_EMU_SOURCE=47
+SET_ANDROID__BUILD_SYS_TARGET=48
+SET_ANDROID____x86_EMU_SOURCE=49
+SET_VARIOUS_____________SEP__=50
+SET_VARIOUS_____CPU_PROC_JOBS=51
 
 ###############################################################################
 # Functions
@@ -404,10 +412,19 @@ function parse_values()
     # MS Windows
     elif [[ $id = $SET_WINDOWS____________TARGET ]];then
     {
+      local use_it;
+      local use_it_2;
+
       . $HOME/.mupel/windows.conf;
       WINDOWS_DEFAULT_RUN=${value%|}
       saveWindowsConfigFile
       export WINDOWS_DEFAULT_RUN
+
+      [[ $WINDOWS_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
+      echo "#> msg field $SET_WINDOWS____________SSH_IP:enable $use_it;"
+      echo "#> msg field $SET_WINDOWS__________SSH_PORT:enable $use_it;"
+      [[ $WINDOWS_DEFAULT_RUN = "emu-"* ]] && use_it_2=1 || use_it_2=0;
+      echo "#> msg field $SET_WINDOWS_____________START:enable $use_it_2;"
     }
     elif [[ $id = $SET_WINDOWS______SSH_USERNAME ]];then
     {
@@ -437,6 +454,22 @@ function parse_values()
       saveWindowsConfigFile
       export WINDOWS_SSH_PORT
     }
+    elif [[ $id = $SET_WINDOWS______OPEN_CONTROL ]];then
+    {
+      echo "$id unused here"
+    }
+    elif [[ $id = $SET_WINDOWS_____________START ]];then
+    {
+      echo "$id unused here"
+    }
+    elif [[ $id = $SET_WINDOWS________SSH_ACCESS ]];then
+    {
+      echo "$id unused here"
+    }
+    elif [[ $id = $SET_WINDOWS_________INSTALLER ]];then
+    {
+      echo "$id unused here"
+    }
     elif [[ $id = $SET_WINDOWS________BUILD_TYPE ]];then
     {
       . $HOME/.mupel/windows.conf;
@@ -448,10 +481,35 @@ function parse_values()
     # Max OS-X
     elif [[ $id = $SET_MAC________________TARGET ]];then
     {
+      local use_it;
+      local use_it_2;
+
       . $HOME/.mupel/mac-osx.conf;
       MAC_OS_X_DEFAULT_RUN=${value%|}
       saveMacOSXConfigFile
       export MAC_OS_X_DEFAULT_RUN
+
+      [[ $MAC_OS_X_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
+      echo "#> msg field $SET_MAC________________SSH_IP:enable $use_it;"
+      echo "#> msg field $SET_MAC______________SSH_PORT:enable $use_it;"
+      [[ $MAC_OS_X_DEFAULT_RUN = "emu-"* ]] && use_it_2=1 || use_it_2=0;
+      echo "#> msg field $SET_MAC_________________START:enable $use_it_2;"
+    }
+    elif [[ $id = $SET_MAC__________OPEN_CONTROL ]];then
+    {
+      echo "$id unused here"
+    }
+    elif [[ $id = $SET_MAC_________________START ]];then
+    {
+      echo "$id unused here"
+    }
+    elif [[ $id = $SET_MAC____________SSH_ACCESS ]];then
+    {
+      echo "$id unused here"
+    }
+    elif [[ $id = $SET_MAC_____________INSTALLER ]];then
+    {
+      echo "$id unused here"
     }
     elif [[ $id = $SET_MAC__________SSH_USERNAME ]];then
     {
@@ -1074,7 +1132,8 @@ function getWindowsTargets()
   {
     . "$HOME/.mupel/windows.conf";
 
-    windows_targets=$(ls -d $HOME/.mupel/emulate/emu-windows* | awk -F"/" '{print $NF}' | tr '\n'  '!');
+    windows_targets=$(ls -d $HOME/.mupel/systems/emu-windows* | awk -F"/" '{print $NF}' | tr '\n'  '!');
+    windows_targets+=$(ls -d $HOME/.mupel/systems/ext-windows* | awk -F"/" '{print $NF}' | tr '\n'  '!');
     windows_targets=${windows_targets::-1};
     windows_targets=$(echo ${windows_targets//$WINDOWS_DEFAULT_RUN/\^${WINDOWS_DEFAULT_RUN}});
   } fi
@@ -1090,7 +1149,8 @@ function getMacOSXTargets()
   {
     . "$HOME/.mupel/mac-osx.conf";
 
-    macosx_targets=$(ls -d $HOME/.mupel/emulate/emu-mac-osx* | awk -F"/" '{print $NF}' | tr '\n'  '!');
+    macosx_targets=$(ls -d $HOME/.mupel/systems/emu-mac-osx* | awk -F"/" '{print $NF}' | tr '\n'  '!');
+    macosx_targets+=$(ls -d $HOME/.mupel/systems/ext-mac-osx* | awk -F"/" '{print $NF}' | tr '\n'  '!');
     macosx_targets=${macosx_targets::-1};
     macosx_targets=$(echo ${macosx_targets//$MAC_OS_X_DEFAULT_RUN/\^${MAC_OS_X_DEFAULT_RUN}});
   } fi
@@ -3241,6 +3301,24 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       echo "#> msg field $SET_WINDOWS______SSH_PASSWORD:visible $use_it;"
       echo "#> msg field $SET_WINDOWS____________SSH_IP:visible $use_it;"
       echo "#> msg field $SET_WINDOWS__________SSH_PORT:visible $use_it;"
+      echo "#> msg field $SET_WINDOWS________SSH_ACCESS:visible $use_it;"
+      echo "#> msg field $SET_WINDOWS_________INSTALLER:visible $use_it;"
+      [ $use_it = 1 ] && [[ -f $BASE_PATH/tools/windows/install-systembuild-windows ]] &&
+        use_it_2=1 || use_it_2=0;
+      [ $use_it = 1 ] && [[ -n $(ps aux | grep qemu-system-x86_64 | grep $WINDOWS_DEFAULT_RUN) ]] &&
+        use_it_2=1 || use_it_2=0;
+      echo "#> msg field $SET_WINDOWS______OPEN_CONTROL:visible $use_it_2;"
+      [ $use_it = 1 ] && [[ -z $(ps aux | grep qemu-system-x86_64 | grep $WINDOWS_DEFAULT_RUN) ]] &&
+        use_it_2=1 || use_it_2=0;
+      echo "#> msg field $SET_WINDOWS_____________START:visible $use_it_2;"
+      [ $use_it = 1 ] && [[ $WINDOWS_DEFAULT_RUN = "emu-"* ]] &&
+        use_it_2=1 || use_it_2=0;
+      echo "#> msg field $SET_WINDOWS_____________START:enable $use_it_2;"
+      [[ $WINDOWS_DEFAULT_RUN = "emu-"* ]] && use_it=1 || use_it=0;
+      echo "#> msg field $SET_WINDOWS______OPEN_CONTROL:enable $use_it;"
+      [[ $WINDOWS_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
+      echo "#> msg field $SET_WINDOWS____________SSH_IP:enable $use_it;"
+      echo "#> msg field $SET_WINDOWS__________SSH_PORT:enable $use_it;"
       [[ $USE_MS_WINDOWS_32 = "TRUE" ]] && [[ $USE_MS_WINDOWS_64 = "TRUE" ]] && use_it=1 || use_it=0
       echo "#> msg field $SET_WINDOWS________BUILD_TYPE:enable $use_it;"
       targets="x86_32!x86_64"
@@ -3253,6 +3331,22 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       echo "#> msg field $SET_MAC__________SSH_PASSWORD:visible $use_it;"
       echo "#> msg field $SET_MAC________________SSH_IP:visible $use_it;"
       echo "#> msg field $SET_MAC______________SSH_PORT:visible $use_it;"
+      echo "#> msg field $SET_MAC_________________START:visible $use_it;"
+      echo "#> msg field $SET_MAC____________SSH_ACCESS:visible $use_it;"
+      [ $use_it = 1 ] && [[ -f $BASE_PATH/tools/mac-osx/install-systembuild-mac-osx ]] &&
+        use_it_2=1 || use_it_2=0;
+      echo "#> msg field $SET_MAC_____________INSTALLER:visible $use_it_2;"
+      [ $use_it = 1 ] && [[ -n $(ps aux | grep qemu-system-x86_64 | grep $MAC_OS_X_DEFAULT_RUN) ]] && use_it_2=1 || use_it_2=0;
+      echo "#> msg field $SET_MAC__________OPEN_CONTROL:visible $use_it_2;"
+      [ $use_it = 1 ] && [[ -z $(ps aux | grep qemu-system-x86_64 | grep $MAC_OS_X_DEFAULT_RUN) ]] && use_it_2=1 || use_it_2=0;
+      echo "#> msg field $SET_MAC_________________START:visible $use_it_2;"
+      [ $use_it = 1 ] && [[ $MAC_OS_X_DEFAULT_RUN = "emu-"* ]] && use_it_2=1 || use_it_2=0;
+      echo "#> msg field $SET_MAC_________________START:enable $use_it_2;"
+      [[ $MAC_OS_X_DEFAULT_RUN = "emu-"* ]] && use_it=1 || use_it=0;
+      echo "#> msg field $SET_MAC__________OPEN_CONTROL:enable $use_it;"
+      [[ $MAC_OS_X_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
+      echo "#> msg field $SET_MAC________________SSH_IP:enable $use_it;"
+      echo "#> msg field $SET_MAC______________SSH_PORT:enable $use_it;"
       [[ $USE_MAC_OS_X_32 = "TRUE" ]] && [[ $USE_MAC_OS_X_64 = "TRUE" ]] && use_it=1 || use_it=0
       echo "#> msg field $SET_MAC____________BUILD_TYPE:enable $use_it;"
       targets="x86_32!x86_64"
@@ -3276,6 +3370,8 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       parse_values "settings" 8 "$CEF_SOURCE_URL";
       echo "#> msg field $SET_CEF_________VERBOSE_BUILD:set $CEF_VERBOSE_BUILD;";
       echo "#> msg field $SET_VARIOUS_____CPU_PROC_JOBS:set $CPU_PROC_JOBS;"
+
+      update_counter=10
 
       # Main loop
       while :;do
@@ -3324,9 +3420,41 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
             {
               showGitCommandHelp &
             }
+            elif [[ "$line" = *"open_windows_control"* ]];then
+            {
+              /usr/local/bin/qemu-windows &
+            }
+            elif [[ "$line" = *"start_windows"* ]];then
+            {
+              /usr/local/bin/qemu-windows &
+              update_counter=8
+            }
+            elif [[ "$line" = *"open_windows_installer"* ]];then
+            {
+              (
+                $BASE_PATH/tools/windows/install-systembuild-windows;
+                echo "#> msg field $SET_WINDOWS____________TARGET:set $(getWindowsTargets x86);";
+              ) &
+            }
             elif [[ "$line" = *"ssh_access_windows"* ]];then
             {
               ssh_access_windows &
+            }
+            elif [[ "$line" = *"open_mac_os_x_control"* ]];then
+            {
+              /usr/local/bin/qemu-mac-os-x &
+            }
+            elif [[ "$line" = *"start_mac_os_x"* ]];then
+            {
+              /usr/local/bin/qemu-mac-os-x &
+              update_counter=8
+            }
+            elif [[ "$line" = *"open_mac_os_x_installer"* ]];then
+            {
+              (
+                $BASE_PATH/tools/mac-osx/install-systembuild-mac-osx;
+                echo "#> msg field $SET_MAC________________TARGET:set $(getMacOSXTargets x86);";
+              ) &
             }
             elif [[ "$line" = *"ssh_access_mac_os_x"* ]];then
             {
@@ -3342,11 +3470,13 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
             }
             elif [[ "$line" = *"open_avd_control"* ]];then
             {
-              . $HOME/.mupel/android.conf;
-              $ANDROID_DEV_ROOT/android-sdk-linux/tools/android avd
+              (
+                . $HOME/.mupel/android.conf;
+                $ANDROID_DEV_ROOT/android-sdk-linux/tools/android avd
 
-              echo "#> msg field $SET_ANDROID____ARM_EMU_SOURCE:set $(getAndroidAVDS arm);"
-              echo "#> msg field $SET_ANDROID____x86_EMU_SOURCE:set $(getAndroidAVDS x86);"
+                echo "#> msg field $SET_ANDROID____ARM_EMU_SOURCE:set $(getAndroidAVDS arm);"
+                echo "#> msg field $SET_ANDROID____x86_EMU_SOURCE:set $(getAndroidAVDS x86);"
+              ) &
             }
             elif [[ "$line" = *"open_dist_control"* ]];then
             {
@@ -3357,6 +3487,44 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
           } fi
         } done;
         unset IFS
+
+        if [ $update_counter -lt 20 ];then
+        {
+          let update_counter=update_counter+1;
+        }
+        else
+        {
+          update_counter=0;
+
+          if [[ -n $(ps aux | grep qemu-system-x86_64 | grep $WINDOWS_DEFAULT_RUN) ]];then
+          {
+            echo "#> msg field $SET_WINDOWS______OPEN_CONTROL:visible 1;"
+            echo "#> msg field $SET_WINDOWS_____________START:visible 0;"
+          }
+          else
+          {
+            echo "#> msg field $SET_WINDOWS______OPEN_CONTROL:visible 0;"
+            echo "#> msg field $SET_WINDOWS_____________START:visible 1;"
+          } fi
+          [[ $WINDOWS_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
+          echo "#> msg field $SET_WINDOWS____________SSH_IP:enable $use_it;"
+          echo "#> msg field $SET_WINDOWS__________SSH_PORT:enable $use_it;"
+
+          if [[ -n $(ps aux | grep qemu-system-x86_64 | grep $MAC_OS_X_DEFAULT_RUN) ]];then
+          {
+            echo "#> msg field $SET_MAC__________OPEN_CONTROL:visible 1;"
+            echo "#> msg field $SET_MAC_________________START:visible 0;"
+          }
+          else
+          {
+            echo "#> msg field $SET_MAC__________OPEN_CONTROL:visible 0;"
+            echo "#> msg field $SET_MAC_________________START:visible 1;"
+          } fi
+          [[ $MAC_OS_X_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
+          echo "#> msg field $SET_MAC________________SSH_IP:enable $use_it;"
+          echo "#> msg field $SET_MAC______________SSH_PORT:enable $use_it;"
+
+        } fi
 
         sleep 0.5
       } done
@@ -3389,8 +3557,12 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field="Build system target:CB@0,5,23,24" "$(getWindowsTargets)" \
              --field="Username / Password (ssh):@6,7,23,24" "$WINDOWS_SSH_USERNAME" \
              --field=":H@7,8,23,24" "$WINDOWS_SSH_PASSWORD" \
+             --field="Emulation control:FBTN@0,1,24,25" "bash -c 'echo \"#< msg open_windows_control\" >> $thread9_in'" \
+             --field="Start Windows:FBTN@0,1,24,25" "bash -c 'echo \"#< msg start_windows\" >> $thread9_in'" \
+             --field="SSH access:FBTN@2,2,24,25" "bash -c 'echo \"#< msg ssh_access_windows\" >> $thread9_in'" \
+             --field="Installer:FBTN@3,5,24,25" "bash -c 'echo \"#< msg open_windows_installer\" >> $thread9_in'" \
              --field="URL or IP / Port (ssh):@6,7,24,25" "$WINDOWS_SSH_IP" \
-             --field=":@7,8,24,25" "$WINDOWS_SSH_PORT" \
+             --field=":NUM@7,8,24,25" "$WINDOWS_SSH_PORT" \
              --field=":LBL@0,8,28,29" '' \
              --field="<b>Mac OS X settings:</b>:LBL@0,8,29,30" '' \
              --field="Build type:CB@6,7,29,30" 'x86_32!x86_64' \
@@ -3398,8 +3570,12 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field="Build system target:CB@0,5,30,31" "$(getMacOSXTargets)" \
              --field="Username / Password (ssh):@6,7,30,31" "$MAC_OS_X_SSH_USERNAME" \
              --field=":H@7,8,30,31" "$MAC_OS_X_SSH_PASSWORD" \
+             --field="Emulation control:FBTN@0,1,31,32" "bash -c 'echo \"#< msg open_mac_os_x_control\" >> $thread9_in'" \
+             --field="Start Mac OS X:FBTN@0,1,31,32" "bash -c 'echo \"#< msg start_mac_os_x\" >> $thread9_in'" \
+             --field="SSH access:FBTN@2,2,31,32" "bash -c 'echo \"#< msg ssh_access_mac_os_x\" >> $thread9_in'" \
+             --field="Installer:FBTN@3,5,31,32" "bash -c 'echo \"#< msg open_mac_os_x_installer\" >> $thread9_in'" \
              --field="URL or IP / Port (ssh):@6,7,31,32" "$MAC_OS_X_SSH_IP" \
-             --field=":@7,8,31,32" "$MAC_OS_X_SSH_PORT" \
+             --field=":NUM@7,8,31,32" "$MAC_OS_X_SSH_PORT" \
              --field=":LBL@0,8,37,38" '' \
              --field="<b>Android settings:</b>:LBL@0,8,38,39" '' \
              --field="Android Virtual Device (AVD) Manager:FBTN@7,8,38,39" "bash -c 'echo \"#< msg open_avd_control\" >> $thread9_in'" \

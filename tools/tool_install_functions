@@ -17,8 +17,8 @@ function install_qemu_disk()
   local outname="$2"
 
   (
-    mkdir -p $INSTALL_PREFIX/emulate/${name};
-    cp "$outname" "$INSTALL_PREFIX/emulate/${name}/root_disk.qcow2" 2>&1 &
+    mkdir -p $INSTALL_PREFIX/systems/${name};
+    cp "$outname" "$INSTALL_PREFIX/systems/${name}/root_disk.qcow2" 2>&1 &
     local pid=$!;
     sleep 1;
 
@@ -30,7 +30,7 @@ function install_qemu_disk()
     local size="0";
     while ps -p $pid > /dev/null; do
     {
-      size="$(ls -l $INSTALL_PREFIX/emulate/${name}/root_disk.qcow2 | awk '{print $5}')";
+      size="$(ls -l $INSTALL_PREFIX/systems/${name}/root_disk.qcow2 | awk '{print $5}')";
       percent="$(echo $size $fullsize | awk '{print 100*$1/$2}')";
       percent=`echo ${percent##*\(} | awk -F '/' '{print $1}' | awk -F '.' '{print $1}'`;
       echo "$percent";
@@ -113,16 +113,16 @@ function create_data_share()
   local name="$2";
 
   # Remove old entries
-  sudo -A -- bash -c "grep -v '$INSTALL_PREFIX/emulate/data_share/base' /etc/fstab > /etc/fstab.temp && mv -f /etc/fstab.temp /etc/fstab";
+  sudo -A -- bash -c "grep -v '$INSTALL_PREFIX/systems/data_share/base' /etc/fstab > /etc/fstab.temp && mv -f /etc/fstab.temp /etc/fstab";
 
   # Create home folder bind mount
-  mkdir -p $INSTALL_PREFIX/emulate/data_share/link;
-  chmod 777 $INSTALL_PREFIX/emulate/data_share/link;
-  mkdir -p $INSTALL_PREFIX/emulate/data_share/base/home;
-  mkdir -p $INSTALL_PREFIX/emulate/data_share/base/build;
+  mkdir -p $INSTALL_PREFIX/systems/data_share/link;
+  chmod 777 $INSTALL_PREFIX/systems/data_share/link;
+  mkdir -p $INSTALL_PREFIX/systems/data_share/base/home;
+  mkdir -p $INSTALL_PREFIX/systems/data_share/base/build;
   sudo -A -- bash -c "echo \"\
-$INSTALL_PREFIX/emulate/data_share/link/home $INSTALL_PREFIX/emulate/data_share/base/home none rw,bind,user,umask=000,utf8,noauto 0 0
-$BASE_PATH $INSTALL_PREFIX/emulate/data_share/base/build none rw,bind,user,umask=000,utf8,noauto 0 0
+$INSTALL_PREFIX/systems/data_share/link/home $INSTALL_PREFIX/systems/data_share/base/home none rw,bind,user,umask=000,utf8,noauto 0 0
+$BASE_PATH $INSTALL_PREFIX/systems/data_share/base/build none rw,bind,user,umask=000,utf8,noauto 0 0
 \" >> /etc/fstab";
 
   showQuestionDialog "The home directory '$HOME' becomes passed to ${real_name}.\n\nDo you want also another one to pass there?";
@@ -140,7 +140,7 @@ $BASE_PATH $INSTALL_PREFIX/emulate/data_share/base/build none rw,bind,user,umask
         [ $? == 0 ] && break;
         continue;
       } fi
-      mkdir -p $INSTALL_PREFIX/emulate/data_share/base/${name};
+      mkdir -p $INSTALL_PREFIX/systems/data_share/base/${name};
       if [ ${?} != 0 ]; then
       {
         evaluate_ret_error 1 "Failed to with name '${name}'";
@@ -148,10 +148,10 @@ $BASE_PATH $INSTALL_PREFIX/emulate/data_share/base/build none rw,bind,user,umask
       } fi
 
       sudo -A -- bash -c "echo \"\
-$path $INSTALL_PREFIX/emulate/data_share/base/${name} none rw,bind,user,umask=000,utf8,noauto 0 0
+$path $INSTALL_PREFIX/systems/data_share/base/${name} none rw,bind,user,umask=000,utf8,noauto 0 0
 \" >> /etc/fstab";
       [ "$mount_points" != "" ] && mount_points="$mount_points ";
-      mount_points="${mount_points}$INSTALL_PREFIX/emulate/data_share/base/${name}";
+      mount_points="${mount_points}$INSTALL_PREFIX/systems/data_share/base/${name}";
 
       showQuestionDialog "Do you want to pass another directory to ${real_name}?";
       local ret=$?;

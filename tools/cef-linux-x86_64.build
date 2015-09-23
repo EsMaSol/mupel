@@ -23,81 +23,38 @@ BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
 
 . "$HOME/.mupel/mupel.conf";
 . "$BASE_PATH/tools/tool_functions";
+. "$BASE_PATH/tools/tool_cef_functions";
 
 DEBUG_BUILD="--enable-debug=no"
 BUILD_SYSTEM="linux-x86_64"
 TEMP_DIR=
 INSTALL_DIR_TYPE="Release"
 
-##
-# Usage help function return as string the available values
-function usage()
-{
-  echo "Usage: $0 [--options]"
-  echo "Options:"
-  echo "--debug           build debug version"
-  echo "--build-direct    if inserted kodi becomes direct build without perform of pre"
-  echo "                  steps, becomes possible after one time the complete build"
-  echo "                  was done. Usable during programming to reduce time"
-  echo "--temp-dir        the temporary directory to store parts, if not set becomes new"
-  echo "                  created. This value is used from 'mupel' to have same dir."
-  echo "--help            this help message"
-  exit 1
-}
-##
-
-##
-# Function to process given input variables
-function process_opts()
-{
-  while test "$1" != "" ; do
-    case "$1" in
-      --build-direct)
-        DIRECT_CEF_BUILD=1
-        ;;
-      --debug)
-        DEBUG_BUILD="--enable-debug=yes"
-        INSTALL_DIR_TYPE="Debug"
-        ;;
-      --addon)
-        case "$2" in
-            "")
-              echo "Option '--addon', no argument"
-              shift
-              ;;
-            *)
-              ADDON_BUILD="$2"
-              shift
-              ;;
-        esac ;;
-      --temp-dir)
-        case "$2" in
-            "")
-              echo "Option '--temp-dir', no argument"
-              shift
-              ;;
-            *)
-              TEMP_DIR="$2"
-              shift
-              ;;
-        esac ;;
-      --help)                   usage;;
-      *)
-        echo "invalid command-line option: $OPTARG"
-        usage
-        ;;
-    esac
-    shift
-  done
-}
-##
-
 ###############################################################################
 # Start of main process
 
-process_opts "$@"
+processOptsCEF "$@"
+
+# Options that force the sources to change.
+if [[ -n $FORCECLEAN ]] || [[ -n $FORCEUPDATE ]];then
+  FORCE_CHANGE=1;fi
 
 initBuildScript_CEF;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Set error return
 trap '[[ ! -z $OWN_TEMP ]] && [[ ! -z $TEMP_DIR ]] && rm -rf $TEMP_DIR; trapError ${LINENO};' ERR;

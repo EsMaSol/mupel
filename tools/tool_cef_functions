@@ -1,0 +1,135 @@
+#!/bin/bash
+
+if [ -f "$HOME/.mupel/mupel.conf" ];then
+{
+  . "$HOME/.mupel/mupel.conf";
+} fi
+PATH="$BASE_PATH/tools:$PATH"
+
+##
+# Usage help function return as string the available values
+function usageCEF()
+{
+  echo "Usage: $0 [--options]"
+  echo "Options:"
+  echo "--debug             Build debug version"
+  echo "--force-update      Force a Chromium and CEF update. This will trigger a"
+  echo "                    new build and distribution."
+  echo "--no-update         Do not update Chromium or CEF"
+  echo "--force-config      Force creation of a new gclient config file."
+  echo "--force-clean       Force a clean checkout of Chromium and CEF. This will"
+  echo "                    trigger a new update, build and distribution."
+  echo "--force-clean-deps  Force a clean checkout of Chromium dependencies. Used"
+  echo "                    in combination with --force-clean"
+  echo "--build-direct      If inserted kodi becomes direct build without perform of"
+  echo "                    pre steps, becomes possible after one time the complete"
+  echo "                    buildwas done. Usable during programming to reduce time"
+  echo "--build-tests       Also build the cef_unittests target"
+  echo "--verbose-build     Show all command lines while building"
+  echo "--help              This help message"
+  exit 1
+}
+##
+
+##
+# Function to process given input variables
+function processOptsCEF()
+{
+  while test "$1" != "" ; do
+    case "$1" in
+      --build-direct)
+        DIRECT_CEF_BUILD=1;
+        ;;
+      --debug)
+        DEBUG_BUILD="--enable-debug=yes";
+        INSTALL_DIR_TYPE="Debug";
+        ;;
+      --force-update)
+        FORCEUPDATE=1;
+        ;;
+      --no-update)
+        NOUPDATE=1;
+        ;;
+      --force-config)
+        FORCECONFIG=1;
+        ;;
+      --force-clean)
+        FORCECLEAN=1;
+        ;;
+      --force-clean-deps)
+        FORCECLEANDEPS=1;
+        ;;
+      --build-tests)
+        BUILDTESTS=1;
+        ;;
+      --verbose-build)
+        VERBOSEBUILD=1;
+        ;;
+      --help)                   usageCEF;;
+      *)
+        echo "invalid command-line option: $OPTARG"
+        usageCEF
+        ;;
+    esac
+    shift
+  done
+}
+##
+
+##
+function createCEF_gclient()
+{
+  local dest=$1
+
+  sh -c cat > "$dest" << EOF
+solutions = [
+  {
+    "managed": False,
+    "name": "src",
+    "url": "https://chromium.googlesource.com/chromium/src.git",
+    "custom_deps": {
+      "build": None,
+      "build/scripts/command_wrapper/bin": None,
+      "build/scripts/gsd_generate_index": None,
+      "build/scripts/private/data/reliability": None,
+      "build/scripts/tools/deps2git": None,
+      "build/third_party/lighttpd": None,
+      "build/third_party/webrtc": None,
+      "commit-queue": None,
+      "depot_tools": None,
+      "src/chrome_frame/tools/test/reference_build/chrome": None,
+      "src/chrome/tools/test/reference_build/chrome_linux": None,
+      "src/chrome/tools/test/reference_build/chrome_mac": None,
+      "src/chrome/tools/test/reference_build/chrome_win": None,
+    },
+    "deps_file": ".DEPS.git",
+    "safesync_url": ""
+  }
+]
+EOF
+  handleErrorsCodes $? "cat" "sh -c cat > $dest" console exit;
+}
+##
+
+##
+# Read the CEF branch from the specified path.
+function read_branch_config_file()
+{
+  local path=$1;
+  if [ -f $path/cef.branch ];then
+  {
+    contents=$(cat $path/cef.branch);
+    echo $contents;
+  } fi
+}
+
+##
+# Write the CEF branch to the specified path.
+function write_branch_config_file()
+{
+  local path=$1
+  local branch=$2
+
+  if [ ! -f $path/cef.branch ];then
+    echo $branch > $path/cef.branch;fi
+}

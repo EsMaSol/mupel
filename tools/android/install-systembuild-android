@@ -130,9 +130,9 @@ Select which way you want to include Android-x86 emulation:
   ANDROID_SDK_ADDITIONAL_VERSION=$(echo $install_values | awk -F '|' '{print $5}')
   ANDROID_NDK_ADDITIONAL_VERSION=$(echo $install_values | awk -F '|' '{print $6}')
 
-  if [ -d "$INSTALL_PREFIX/emulate/emu-android-arm" ];then
+  if [ -d "$INSTALL_PREFIX/systems/emu-android-arm" ];then
     label="<b>Android-ARM</b>";fi
-  if [ -d "$INSTALL_PREFIX/emulate/emu-android-x86" ];then
+  if [ -d "$INSTALL_PREFIX/systems/emu-android-x86" ];then
   {
     if [ ! -z $label ];then
       label+=" and ";fi
@@ -153,8 +153,8 @@ If no becomes selected then the system creation becomes continued behind install
     ignore_install=
     if [ $ret == 0 ];then
     {
-      rm -rf $INSTALL_PREFIX/emulate/emu-android-arm
-      rm -rf $INSTALL_PREFIX/emulate/emu-android-x86
+      rm -rf $INSTALL_PREFIX/systems/emu-android-arm
+      rm -rf $INSTALL_PREFIX/systems/emu-android-x86
     }
     elif [ $ret == 1 ];then
     {
@@ -288,13 +288,13 @@ Do you want insert a own URL (otherwise cancel install)?</b>
         virt_harddisk_size=2;
       fi
 
-      mkdir -p $INSTALL_PREFIX/emulate/emu-android-x86
-      qemu-img create -f qcow2 $INSTALL_PREFIX/emulate/emu-android-x86/root_disk.qcow2 ${virt_harddisk_size}G
+      mkdir -p $INSTALL_PREFIX/systems/emu-android-x86
+      qemu-img create -f qcow2 $INSTALL_PREFIX/systems/emu-android-x86/root_disk.qcow2 ${virt_harddisk_size}G
       evaluate_ret_error $? "Creation of qemu image failed"
 
       showInfoDialog "Starting now the installation of virtual Android-x86 system\nDo shutdown on end of installation" 3
 
-      qemu-system-x86_64 -hda $INSTALL_PREFIX/emulate/emu-android-x86/root_disk.qcow2 \
+      qemu-system-x86_64 -hda $INSTALL_PREFIX/systems/emu-android-x86/root_disk.qcow2 \
                          -boot d \
                          -cdrom "$cdrom_mount" \
                          -m ${virt_memory_size} \
@@ -325,16 +325,16 @@ Do you want insert a own URL (otherwise cancel install)?</b>
         cdrom_mount=/dev/dvd;fi
 
       # Remove old entries
-      sudo -A -- bash -c "grep -v '$INSTALL_PREFIX/emulate/data_share/base' /etc/fstab > /etc/fstab.temp && mv -f /etc/fstab.temp /etc/fstab"
+      sudo -A -- bash -c "grep -v '$INSTALL_PREFIX/systems/data_share/base' /etc/fstab > /etc/fstab.temp && mv -f /etc/fstab.temp /etc/fstab"
 
       # Create home folder bind mount
-      mkdir -p $INSTALL_PREFIX/emulate/data_share/link
-      chmod 777 $INSTALL_PREFIX/emulate/data_share/link
-      mkdir -p $INSTALL_PREFIX/emulate/data_share/base/home
-      sudo -A -- bash -c "echo \"$INSTALL_PREFIX/emulate/data_share/link/home $INSTALL_PREFIX/emulate/data_share/base/home none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab"
+      mkdir -p $INSTALL_PREFIX/systems/data_share/link
+      chmod 777 $INSTALL_PREFIX/systems/data_share/link
+      mkdir -p $INSTALL_PREFIX/systems/data_share/base/home
+      sudo -A -- bash -c "echo \"$INSTALL_PREFIX/systems/data_share/link/home $INSTALL_PREFIX/systems/data_share/base/home none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab"
 
-      mkdir -p $INSTALL_PREFIX/emulate/data_share/base/build
-      sudo -A -- bash -c "echo \"$BASE_PATH $INSTALL_PREFIX/emulate/data_share/base/build none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab"
+      mkdir -p $INSTALL_PREFIX/systems/data_share/base/build
+      sudo -A -- bash -c "echo \"$BASE_PATH $INSTALL_PREFIX/systems/data_share/base/build none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab"
 
       showQuestionDialog "The home directory '$HOME' becomes passed to Android-x86.\n\nDo you want also another one to pass there?"
       local ret=$?
@@ -351,7 +351,7 @@ Do you want insert a own URL (otherwise cancel install)?</b>
             [ $? == 0 ] && break
             continue
           } fi
-          mkdir -p $INSTALL_PREFIX/emulate/data_share/base/${name}
+          mkdir -p $INSTALL_PREFIX/systems/data_share/base/${name}
           if [ ${?} != 0 ]; then
           {
             evaluate_ret_error 1 "Failed to with name '${name}'"
@@ -376,27 +376,27 @@ virt_harddisk_size=$virt_harddisk_size
 cdrom_mount=$cdrom_mount
 EOF
 
-      mv ./qemu_config.txt $INSTALL_PREFIX/emulate/emu-android-x86
-      mkdir -p $INSTALL_PREFIX/emulate/data_share/base
-      mkdir -p $INSTALL_PREFIX/emulate/data_share/mount
+      mv ./qemu_config.txt $INSTALL_PREFIX/systems/emu-android-x86
+      mkdir -p $INSTALL_PREFIX/systems/data_share/base
+      mkdir -p $INSTALL_PREFIX/systems/data_share/mount
 
       cat > ./qemu-android-x86 << EOF
 #!/bin/bash
 
-. $INSTALL_PREFIX/emulate/emu-android-x86/qemu_config.txt
+. $INSTALL_PREFIX/systems/emu-android-x86/qemu_config.txt
 
 mount_points="$mount_points"
 
 ##
 # Mount virtual filesystem for android x86
 #
-if [[ ! -n \`mount | grep $INSTALL_PREFIX/emulate/data_share/base/home\` ]];fi
-  ln -sf ~ $INSTALL_PREFIX/emulate/data_share/link/home;
-  mount $INSTALL_PREFIX/emulate/data_share/base/home;
+if [[ ! -n \`mount | grep $INSTALL_PREFIX/systems/data_share/base/home\` ]];fi
+  ln -sf ~ $INSTALL_PREFIX/systems/data_share/link/home;
+  mount $INSTALL_PREFIX/systems/data_share/base/home;
 fi
 
-if [ -d $INSTALL_PREFIX/emulate/data_share/base/build ] && [[ ! -n \`mount | grep $INSTALL_PREFIX/emulate/data_share/base/build\` ]];then
-  mount $INSTALL_PREFIX/emulate/data_share/base/build;
+if [ -d $INSTALL_PREFIX/systems/data_share/base/build ] && [[ ! -n \`mount | grep $INSTALL_PREFIX/systems/data_share/base/build\` ]];then
+  mount $INSTALL_PREFIX/systems/data_share/base/build;
 fi
 
 mount_points="$mount_points";
@@ -410,14 +410,14 @@ done
 #
 [[ -n \$additional_file_hd ]] && file_hd="-hdb \$additional_file_hd"
 [[ -n  \$cdrom_mount ]] && cdrom_mount="-cdrom \$cdrom_mount"
-qemu-system-x86_64 -hda $INSTALL_PREFIX/emulate/emu-android-x86/root_disk.qcow2 \\
+qemu-system-x86_64 -hda $INSTALL_PREFIX/systems/emu-android-x86/root_disk.qcow2 \\
                    \$file_hd \\
                    -boot c \\
                    \$cdrom_mount \\
                    -m \${virt_memory_size} \\
                    -net nic,vlan=0 \\
                    -net nic,model=rtl8139 \\
-                   -net user,smb="$INSTALL_PREFIX/emulate/data_share/base" \\
+                   -net user,smb="$INSTALL_PREFIX/systems/data_share/base" \\
                    -enable-kvm \\
                    -vga vmware \\
                    -soundhw hda \\
@@ -430,9 +430,9 @@ done
 ##
 # Umount virtual filesystem
 #
-#[ -d $INSTALL_PREFIX/emulate/data_share/base/build ] && umount $INSTALL_PREFIX/emulate/data_share/base/build
-#umount $INSTALL_PREFIX/emulate/data_share/base/home
-#rm $INSTALL_PREFIX/emulate/data_share/link/home
+#[ -d $INSTALL_PREFIX/systems/data_share/base/build ] && umount $INSTALL_PREFIX/systems/data_share/base/build
+#umount $INSTALL_PREFIX/systems/data_share/base/home
+#rm $INSTALL_PREFIX/systems/data_share/link/home
 
 EOF
       sudo -A -- mv -f ./qemu-android-x86 /usr/local/bin

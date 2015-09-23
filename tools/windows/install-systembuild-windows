@@ -29,20 +29,20 @@
 # (QEmu support itself only one).                                             #
 #                                                                             #
 # Added folders :                                                             #
-#  * $INSTALL_PREFIX/emulate/data_share/base :                                #
+#  * $INSTALL_PREFIX/systems/data_share/base :                                #
 #     - The base path about folder to share with smbfs to windows             #
-#  * $INSTALL_PREFIX/emulate/data_share/link :                                #
+#  * $INSTALL_PREFIX/systems/data_share/link :                                #
 #     - Folder to store link about active user home directory                 #
 #       (Needed for system mount to have the same names)                      #
 #                                                                             #
 # Added files:                                                                #
 #  * /usr/local/bin/qemu-windows :                                            #
 #     - The emulation start script                                            #
-#  * $INSTALL_PREFIX/emulate/$app_name/root_disk.qcow2 :                      #
+#  * $INSTALL_PREFIX/systems/$app_name/root_disk.qcow2 :                      #
 #     - The virtual disk drive which contains windows                         #
-#  * $INSTALL_PREFIX/emulate/$app_name/usedUUID.txt :                         #
+#  * $INSTALL_PREFIX/systems/$app_name/usedUUID.txt :                         #
 #     - The used system UUID on them                                          #
-#  * $INSTALL_PREFIX/emulate/$app_name/qemu_config.txt :                      #
+#  * $INSTALL_PREFIX/systems/$app_name/qemu_config.txt :                      #
 #     - The configuration for qemu (mem size, cdrom source ...)               #
 #                                                                             #
 # Changed files:                                                              #
@@ -100,7 +100,10 @@ function handle_virtual_machine_install()
 {
   while :; do
   {
-    FILE=$(showdialog --file --title="Select cdrom source from /dev/* or a *.iso file" --width=640 --height=480 --center --filename=/dev/ 2> /dev/null)
+    FILE=$(showdialog --file \
+                      --title="Select cdrom source from /dev/* or a *.iso file" \
+                      --width=640 --height=480 \
+                      --center --filename=/dev/ 2> /dev/null)
     ret=$?;
     if [[ $ret != 0 ]];then
     {
@@ -127,14 +130,14 @@ function handle_virtual_machine_install()
     } fi
   } done
 
-  sudo -A -- qemu-img create -f qcow2 $INSTALL_PREFIX/emulate/$app_name/root_disk.qcow2 ${WINDOWS_LAST_USED_DISK_SIZE}G
+  sudo -A -- qemu-img create -f qcow2 $INSTALL_PREFIX/systems/$app_name/root_disk.qcow2 ${WINDOWS_LAST_USED_DISK_SIZE}G
   evaluate_ret_error $? "Creation of qemu image failed (1)"
-  sudo -A -- chmod 666 $INSTALL_PREFIX/emulate/$app_name/root_disk.qcow2
+  sudo -A -- chmod 666 $INSTALL_PREFIX/systems/$app_name/root_disk.qcow2
   evaluate_ret_error $? "Creation of qemu image failed (2)"
 
-  showdialog --text="Starting now the installation of virtual Windows system\nDo shutdown on end of installation" 2> /dev/null
+  showInfoDialog "Starting now the installation of virtual Windows system\nDo shutdown on end of installation"
 
-  qemu-system-x86_64 -hda $INSTALL_PREFIX/emulate/$app_name/root_disk.qcow2 \
+  qemu-system-x86_64 -hda $INSTALL_PREFIX/systems/$app_name/root_disk.qcow2 \
                      -boot d \
                      -cdrom "$cdrom_mount" \
                      -m $WINDOWS_LAST_USED_MEM_SIZE \
@@ -149,14 +152,17 @@ function handle_virtual_machine_install()
 ###
 # Function to implement already created virtual machine
 #
+
 function handle_virtual_machine_copy()
 {
+  local filename="$DOWNLOAD_DIR/"
   while :; do
   {
-    local filename=$(showdialog --file \
-                                --title="Select QEMU virtual machine to indruce" \
-                                --width=640 --height=480 --center \
-                                --filename="$DOWNLOAD_DIR/" --file-filter="*.qcow2" 2> /dev/null)
+    filename=$(showdialog --file \
+                          --title="Select QEMU virtual machine to indruce" \
+                          --width=640 --height=480 --center \
+                          --filename="$(dirname $filename)." \
+                          --file-filter="*.qcow2" 2> /dev/null)
     if [ -z "$filename" ];then
     {
       showWarningDialog_YesNo "You must select one way! \n\nTry again?"
@@ -179,9 +185,15 @@ If you have a present emulation system from VirtualBox you can select it
 and becomes translated to qemu format."
 
   rm -f $TEMP_DIR/*.ova
+
+  local filename="$DOWNLOAD_DIR/"
   while :; do
   {
-    local filename=$(showdialog --file --title="Select virtual box package to convert" --width=640 --height=480 --center --filename="$DOWNLOAD_DIR/" --file-filter="*.ova *.zip *.gz *.bz2 *.xz" 2> /dev/null)
+    filename=$(showdialog --file \
+                          --title="Select virtual box package to convert" \
+                          --width=640 --height=480 --center \
+                          --filename="$(dirname $filename)." \
+                          --file-filter="*.ova *.zip *.gz *.bz2 *.xz" 2> /dev/null);
     ret=$?;
     if [[ $ret != 0 ]];then
     {
@@ -191,7 +203,7 @@ and becomes translated to qemu format."
     }
     elif [[ $filename != *.ova ]];then
     {
-      xarchiver -e $filename -x $TEMP_DIR > /dev/null 2>&1
+      xarchiver -e "$filename" -x $TEMP_DIR > /dev/null 2>&1
       if [ "$?" != "0" ];then
       {
         showErrorDialog_YesNo "System creation cancelled! \n\nTry again?";
@@ -249,7 +261,11 @@ and becomes translated to qemu format."
   showQuestionDialog "Due you want to have a own copy of generated qemu virtual disk image?"
   if [ $? == 0 ];then
   {
-    local path=$(showdialog --file --directory --title="Select folder to store qemu image" --width=640 --height=480 --center --filename="$DOWNLOAD_DIR/" 2> /dev/null)
+    local path=$(showdialog --file --directory \
+                            --title="Select folder to store qemu image" \
+                            --width=640 --height=480 \
+                            --center \
+                            --filename="$DOWNLOAD_DIR/" 2> /dev/null)
     local path="$path/"`echo ${outname##$TEMP_DIR/}`
     mv "$outname" "$path" 2>&1 &
     pid=$!
@@ -277,10 +293,35 @@ and becomes translated to qemu format."
   } fi
 }
 
+function handle_external_machine_connection()
+{
+  is_external=1;
+}
+
 ###
 # Function to handle usage of ReactOS
-function handle_virtual_machine_react_os
+function handle_virtual_machine_react_os()
 {
+  https://sourceforge.net/projects/reactos/
+  if [[ $REACTOS_IMAGE_SRC_URL = "https://sourceforge.net/projects/reactos/" ]];then
+  {
+    while :; do
+    {
+      REACTOS_IMAGE_SRC_URL=$(showdialog --entry \
+                                         --title="Url to download ReactOS" \
+                                         --text="Url to download ReactOS QEmu package" \
+                                         --entry-text="$REACTOS_IMAGE_SRC_URL/" 2> /dev/null)
+      ret=$?;
+      if [[ $ret != 0 ]] || [[ $REACTOS_IMAGE_SRC_URL = "https://sourceforge.net/projects/reactos/" ]];then
+      {
+        showErrorDialog_YesNo "Selection of ReactOS virtual box package failed! \n\nTry again?";
+        [ $? != 0 ] && exit_build $ret;
+        continue;
+      } fi
+      break;
+    } done
+  } fi
+
   filename="$DOWNLOAD_DIR/${REACTOS_IMAGE_SRC_URL##*/}";
   set -o pipefail
   wget "${REACTOS_IMAGE_SRC_URL}" -O "${filename}" 2>&1 | \
@@ -333,7 +374,7 @@ function handle_virtual_machine_react_os
   install_qemu_disk "$app_name" "$outname"
 
   is_react_os=1
-  touch $INSTALL_PREFIX/emulate/$app_name/isReactOS
+  touch $INSTALL_PREFIX/systems/$app_name/isReactOS
 
   if [ $WINDOWS_LAST_USED_MEM_SIZE > 1384 ];then
     WINDOWS_LAST_USED_MEM_SIZE=1384;fi
@@ -486,17 +527,127 @@ if [ -z $WINDOWS_DESKTOP_ICON_PATH ];then
 if [ -z $WINDOWS_LAST_USED_UUID ];then
   WINDOWS_LAST_USED_UUID=`uuidgen`;fi
 if [ -z $REACTOS_IMAGE_SRC_URL ];then
-  REACTOS_IMAGE_SRC_URL=http://downloads.sourceforge.net/project/reactos/ReactOS/0.3.17/ReactOS-0.3.17-REL-QEMU.zip;fi
+  REACTOS_IMAGE_SRC_URL=https://sourceforge.net/projects/reactos/;fi
+if [ -z $WINDOWS_SSH_IP ];then
+  WINDOWS_SSH_IP=127.0.0.1;fi
+if [ -z $WINDOWS_SSH_PORT ];then
+  WINDOWS_SSH_PORT=2222;fi
+
+function parse_values()
+{
+  local id=$1
+  local value="$2"
+
+  if [ $id = 6 ];then
+  {
+    if   [[ $value = "Install from CD/DVD/ISO|" ]];then
+      echo "#> msg field 7:enable 1;"
+      echo "#> msg field 8:enable 1;"
+      echo "#> msg field 9:enable 1;"
+      echo "#> msg field 10:enable 1;"
+      echo "#> msg field 11:enable 1;"
+      echo "#> msg field 12:enable 1;"
+      echo "#> msg field 13:enable 1;"
+      echo "#> msg field 18:enable 0;"
+      echo "#> msg field 19:enable 0;"
+    elif [[ $value = "Use already present package|" ]];then
+      echo "#> msg field 7:enable 1;"
+      echo "#> msg field 8:enable 0;"
+      echo "#> msg field 9:enable 1;"
+      echo "#> msg field 10:enable 1;"
+      echo "#> msg field 11:enable 1;"
+      echo "#> msg field 12:enable 1;"
+      echo "#> msg field 13:enable 1;"
+      echo "#> msg field 18:enable 0;"
+      echo "#> msg field 19:enable 0;"
+    elif [[ $value = "Use machine from VirtualBox|" ]];then
+      echo "#> msg field 7:enable 1;"
+      echo "#> msg field 8:enable 0;"
+      echo "#> msg field 9:enable 1;"
+      echo "#> msg field 10:enable 1;"
+      echo "#> msg field 11:enable 1;"
+      echo "#> msg field 12:enable 1;"
+      echo "#> msg field 13:enable 1;"
+      echo "#> msg field 18:enable 0;"
+      echo "#> msg field 19:enable 0;"
+    elif [[ $value = "External network connection|" ]];then
+      echo "#> msg field 7:enable 0;"
+      echo "#> msg field 8:enable 0;"
+      echo "#> msg field 9:enable 0;"
+      echo "#> msg field 10:enable 0;"
+      echo "#> msg field 11:enable 0;"
+      echo "#> msg field 12:enable 0;"
+      echo "#> msg field 13:enable 0;"
+      echo "#> msg field 18:enable 1;"
+      echo "#> msg field 19:enable 1;"
+    fi
+  } fi
+
+}
 
 WINDOWS_VERSIONS="ReactOS\!Windows 2000\!Windows ME\!Windows XP\!Windows Vista\!^Windows 7\!Windows 8\!Windows 10"
 while :; do
 {
-  install_values=$(showdialog --form --title="Windows system installer" \
+  thread1_in=${TEMP_DIR}/thread1_in
+  touch ${TEMP_DIR}/thread1_in
+  install_values=$(
+  (
+    echo "#> msg field 18:enable 0;"
+    echo "#> msg field 19:enable 0;"
+
+    # Main loop
+    while :;do
+    {
+      if [ ! -f "$thread1_in" ] ||
+         [ -z `ps -h | grep "Windows system installer" | grep -v "grep" | awk -F ' ' '{print $1}'` ];then
+        exit 0;fi
+
+      proc=$(cat "$thread1_in")
+      echo -n "" > "$thread1_in";
+      IFS=$'\n';
+      for line in ${proc}; do
+      {
+        if [[ "$line" == "#< msg"* ]];then
+        {
+          if [[ "$line" = *"field"* ]];then
+          {
+            IFS=$'\n'; for p in ${line}; do
+              id=$(echo ${p} | awk -F ' ' '{print $4}' | awk -F ':' '{print $1}')
+              value=$(echo ${p#*:} | awk -F ';' '{print $1}')
+              IFS=$'|';
+              if [[ "$id" -ge "0" ]];then
+                parse_values $id "$value" >> "$thread1_in"
+              else
+                id2=0
+                IFS=$'|';
+                for value2 in ${value}; do
+                {
+                  parse_values $id2 "$value2" >> "$thread1_in"
+                  ((id2++))
+                } done;
+              fi; IFS=$'\n';
+            done; unset IFS;
+          }
+          else
+          {
+            echo "Wrong command! $line" > /dev/stderr
+          } fi
+        }
+        else
+        {
+          echo "$line"
+        } fi
+      } done
+      sleep 0.5;
+    } done
+  ) | \
+  showdialog --form --title="Windows system installer" \
                              --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" \
                              --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
-                             --field="<i><span size=\"large\">Windows build / emulation system installation</span></i>:LBL" "" \
+                             --xcom-log=$thread1_in \
+                             --field="<i><span size=\"large\">Windows build / emulation system installation or connection</span></i>:LBL" "" \
                              --field=":LBL" "" \
-                             --field="Emulation name:" "Windows" \
+                             --field="System / Emulation name:" "Windows" \
                              --field="Used Windows version:CB" "$WINDOWS_VERSIONS" \
                              --field="Use as default?:CHK" "$SET_DEFAULT" \
                              --field=":LBL" "" \
@@ -505,7 +656,8 @@ Select which way you want to include Windows emulation:\
 CB" "\
 Install from CD/DVD/ISO\!\
 Use already present package\!\
-Use machine from VirtualBox" \
+Use machine from VirtualBox\!\
+External network connection" \
                              --field="Set used virtual Windows memory size in MByte:NUM" "$WINDOWS_LAST_USED_MEM_SIZE" \
                              --field="Set used virtual Windows hard disk size in GByte:NUM" "$WINDOWS_LAST_USED_DISK_SIZE" \
                              --field="Used source as cdrom/dvd device after installation:FL" "$WINDOWS_LAST_CDROM_POINT" \
@@ -515,8 +667,10 @@ Use machine from VirtualBox" \
                              --field="System UUID:" "$WINDOWS_LAST_USED_UUID" \
                              --field=":LBL" "" \
                              --field="<b>Remote SSH access</b>\nIf known, username and password can be entered here or later on Muple settings.:LBL" "" \
-                             --field="Username (ssh):" "$WINDOWS_SSH_USERNAME" \
-                             --field="Password (ssh):H" "$WINDOWS_SSH_PASSWORD" \
+                             --field="Username:" "$WINDOWS_SSH_USERNAME" \
+                             --field="Password:H" "$WINDOWS_SSH_PASSWORD" \
+                             --field="URL or IP:" "$WINDOWS_SSH_IP" \
+                             --field="Port:NUM" "$WINDOWS_SSH_PORT" \
                              --field=":LBL" "" \
                              --field="\
      Copyright (C) 2015 Team KODI
@@ -525,8 +679,12 @@ Use machine from VirtualBox" \
      GNU General Public License, Version 3
      see http://www.gnu.org/licenses/:LBL" "" \
                              --field=":LBL" "" \
-                             --center 2> /dev/null);
-  if [ $? != 0 ];then
+                             --field=":XTALK" '' \
+                             --center 2> /dev/null;
+                             );
+  ret=$?
+  rm -f "$thread1_in"
+  if [ $ret != 0 ];then
   {
     showWarningDialog_YesNo "Are you sure to exit install?"
     [ $? = 0 ] && exit_build 1
@@ -537,11 +695,19 @@ Use machine from VirtualBox" \
 
 win_version="$(echo $install_values | awk -F '|' '{print $4}')"
 name=$(echo $install_values | awk -F '|' '{print $3}')
-app_name=$(echo emu-windows-${win_version}-${name} | tr ' ' '-' | tr '[:upper:]' '[:lower:]')
 is_default=$(echo $install_values | awk -F '|' '{print $5}')
+install_way="$(echo $install_values | awk -F '|' '{print $7}')"
+if [[ "$install_way" = *"External"* ]];then
+{
+  is_external=1;
+  app_name=$(echo ext-windows-${win_version}-${name} | tr ' ' '-' | tr '[:upper:]' '[:lower:]')
+}
+else
+{
+  app_name=$(echo emu-windows-${win_version}-${name} | tr ' ' '-' | tr '[:upper:]' '[:lower:]')
+} fi
 if [[ $is_default = "TRUE" ]];then
   WINDOWS_DEFAULT_RUN=$app_name;fi
-install_way="$(echo $install_values | awk -F '|' '{print $7}')"
 WINDOWS_LAST_USED_MEM_SIZE=$(echo $install_values | awk -F '|' '{print $8}' | awk -F ',' '{print $1}')
 WINDOWS_LAST_USED_DISK_SIZE=$(echo $install_values | awk -F '|' '{print $9}' | awk -F ',' '{print $1}')
 WINDOWS_LAST_CDROM_POINT="$(echo $install_values | awk -F '|' '{print $10}')"
@@ -551,8 +717,10 @@ WINDOWS_SINGLE_LAUNCH_ICON="$(echo $install_values | awk -F '|' '{print $13}')"
 WINDOWS_LAST_USED_UUID="$(echo $install_values | awk -F '|' '{print $14}')"
 WINDOWS_SSH_USERNAME="$(echo $install_values | awk -F '|' '{print $17}')"
 WINDOWS_SSH_PASSWORD="$(echo $install_values | awk -F '|' '{print $18}')"
+WINDOWS_SSH_IP="$(echo $install_values | awk -F '|' '{print $19}')"
+WINDOWS_SSH_PORT="$(echo $install_values | awk -F '|' '{print $20}')"
 
-if [ -d "$INSTALL_PREFIX/emulate/$app_name" ];then
+if [ -d "$INSTALL_PREFIX/systems/$app_name" ];then
 {
   showdialog --title "Already Installed?" \
              --image="$BASE_PATH/icons/icon-question-128x128.png" \
@@ -566,7 +734,7 @@ If no becomes selected then the system creation becomes continued behind install
   ignore_install=
   if [ $ret == 0 ];then
   {
-    rm -rf $INSTALL_PREFIX/emulate/$app_name
+    rm -rf $INSTALL_PREFIX/systems/$app_name
   }
   elif [ $ret == 1 ];then
   {
@@ -582,7 +750,7 @@ If no becomes selected then the system creation becomes continued behind install
 
 if [ -z $ignore_install ];then
 {
-  if [[ $add_other_disks = TRUE ]];then
+  if [[ $add_other_disks = TRUE ]] && [ -z $is_external ];then
   {
     ##
     # Ask for additional disk and include
@@ -657,63 +825,67 @@ if [ -z $ignore_install ];then
     } fi
   } fi
 
-  mkdir -p $INSTALL_PREFIX/emulate/$app_name
+  mkdir -p $INSTALL_PREFIX/systems/$app_name
 
   if [[ "$win_version" = "ReactOS" ]];then
-    handle_virtual_machine_react_os
+    handle_virtual_machine_react_os;
   elif [[ "$install_way" = *"Install"* ]];then
-    handle_virtual_machine_install
+    handle_virtual_machine_install;
   elif [[ "$install_way" = *"present"* ]];then
-    handle_virtual_machine_copy
+    handle_virtual_machine_copy;
   elif [[ "$install_way" = *"machine"* ]];then
-    handle_virtual_machine_convert
+    handle_virtual_machine_convert;
+  elif [[ "$install_way" = *"External"* ]];then
+    handle_external_machine_connection;
   else
     exit_build 1;fi
 } fi
 
-# Make sure that is_react_os set, after a canceled build this value can be lost
-[ -f $INSTALL_PREFIX/emulate/$app_name/isReactOS ] && is_react_os=1
+saveWindowsConfigFile
+sleep 1
 
-cat > "$INSTALL_PREFIX/emulate/$app_name/qemu_config.txt" << EOF
+if [ -z $is_external ];then
+{
+  # Make sure that is_react_os set, after a canceled build this value can be lost
+  [ -f $INSTALL_PREFIX/systems/$app_name/isReactOS ] && is_react_os=1
+
+  cat > "$INSTALL_PREFIX/systems/$app_name/qemu_config.txt" << EOF
 additional_file_hd=$additional_file_hd
 virt_memory_size=$WINDOWS_LAST_USED_MEM_SIZE
 virt_harddisk_size=$WINDOWS_LAST_USED_DISK_SIZE
 cdrom_mount=$WINDOWS_LAST_CDROM_POINT
 is_react_os=$is_react_os
 EOF
-chmod 666 "$INSTALL_PREFIX/emulate/$app_name/qemu_config.txt"
+  chmod 666 "$INSTALL_PREFIX/systems/$app_name/qemu_config.txt"
 
-saveWindowsConfigFile
-sleep 1
+  . "$INSTALL_PREFIX/systems/$app_name/qemu_config.txt"
 
-. "$INSTALL_PREFIX/emulate/$app_name/qemu_config.txt"
+  # Ask user about ther used folders to pass to windows
+  create_data_share "Windows" "$app_name"
 
-# Ask user about ther used folders to pass to windows
-create_data_share "Windows" "$app_name"
+  # Remove old entries
+  sudo -A -- bash -c "grep -v '$INSTALL_PREFIX/systems/data_share/base' /etc/fstab > /etc/fstab.temp && mv -f /etc/fstab.temp /etc/fstab"
 
-# Remove old entries
-sudo -A -- bash -c "grep -v '$INSTALL_PREFIX/emulate/data_share/base' /etc/fstab > /etc/fstab.temp && mv -f /etc/fstab.temp /etc/fstab"
+  # Create home folder for bind mount, used for all emulation system on same
+  # place, created again to make sure is present
+  mkdir -p $INSTALL_PREFIX/systems/data_share/link
+  chmod 777 $INSTALL_PREFIX/systems/data_share/link
+  mkdir -p $INSTALL_PREFIX/systems/data_share/base/home
+  sudo -A -- bash -c "echo \"$INSTALL_PREFIX/systems/data_share/link/home $INSTALL_PREFIX/systems/data_share/base/home none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab"
 
-# Create home folder for bind mount, used for all emulation system on same
-# place, created again to make sure is present
-mkdir -p $INSTALL_PREFIX/emulate/data_share/link
-chmod 777 $INSTALL_PREFIX/emulate/data_share/link
-mkdir -p $INSTALL_PREFIX/emulate/data_share/base/home
-sudo -A -- bash -c "echo \"$INSTALL_PREFIX/emulate/data_share/link/home $INSTALL_PREFIX/emulate/data_share/base/home none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab"
+  mkdir -p $INSTALL_PREFIX/systems/data_share/base/build
+  sudo -A -- bash -c "echo \"$BASE_PATH $INSTALL_PREFIX/systems/data_share/base/build none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab"
 
-mkdir -p $INSTALL_PREFIX/emulate/data_share/base/build
-sudo -A -- bash -c "echo \"$BASE_PATH $INSTALL_PREFIX/emulate/data_share/base/build none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab"
-
-cat > "$INSTALL_PREFIX/emulate/$app_name/usedUUID.txt" << EOF
+  cat > "$INSTALL_PREFIX/systems/$app_name/usedUUID.txt" << EOF
 ##
 # Stored UUID for qemu
 #
 
 $WINDOWS_LAST_USED_UUID
 EOF
-chmod 666 "$INSTALL_PREFIX/emulate/$app_name/usedUUID.txt"
+  chmod 666 "$INSTALL_PREFIX/systems/$app_name/usedUUID.txt"
 
-cat > $INSTALL_PREFIX/emulate/$app_name/qemu-windows-cdrom-change << EONF
+  cat > $INSTALL_PREFIX/systems/$app_name/qemu-windows-cdrom-change << EONF
 #!/bin/bash
 
 if [ -f /tmp/qemu-windows-cdrom-change.active ];then
@@ -725,7 +897,7 @@ PATH="$INSTALL_PREFIX/tools:$PATH"
 
 . "$INSTALL_PREFIX/windows.conf"
 . "$INSTALL_PREFIX/tools/tool_functions"
-. "$INSTALL_PREFIX/emulate/$app_name/qemu_config.txt"
+. "$INSTALL_PREFIX/systems/$app_name/qemu_config.txt"
 
 FILE=\$(showdialog --file --title="Select cdrom source from /dev/* or a *.iso file" --width=640 --height=480 --center --filename=\$cdrom_mount 2> /dev/null)
 [ "\$?" != "0" ] && exit
@@ -734,14 +906,14 @@ if [[ \${FILE} == /dev/* ]] || [[ \${FILE} == *.iso ]]; then
     cdrom_mount="\${FILE}"
     echo change ide1-cd0 \$cdrom_mount | ncat localhost 3010
 
-    cat > "$INSTALL_PREFIX/emulate/$app_name/qemu_config.txt" << EOF
+    cat > "$INSTALL_PREFIX/systems/$app_name/qemu_config.txt" << EOF
 additional_file_hd=\$additional_file_hd
 virt_memory_size=\$virt_memory_size
 virt_harddisk_size=\$virt_harddisk_size
 cdrom_mount=\$cdrom_mount
 is_react_os=\$is_react_os
 EOF
-    sudo -A -- chmod 666 "$INSTALL_PREFIX/emulate/$app_name/qemu_config.txt"
+    sudo -A -- chmod 666 "$INSTALL_PREFIX/systems/$app_name/qemu_config.txt"
     showInfoDialog "Windows DVD/CD-Rom source changed to \$cdrom_mount" 5
   else
     evaluate_ret_error 1 "Invalid -b option (\${FILE}), cdrom source not found"
@@ -753,9 +925,9 @@ fi
 rm -f /tmp/qemu-windows-cdrom-change.active
 
 EONF
-chmod 777 $INSTALL_PREFIX/emulate/$app_name/qemu-windows-cdrom-change
+  chmod 777 $INSTALL_PREFIX/systems/$app_name/qemu-windows-cdrom-change
 
-cat > ./qemu-windows << EONF
+  cat > ./qemu-windows << EONF
 #!/bin/bash
 ###
 # Autogenerated start script
@@ -800,7 +972,7 @@ done
 active_qemu=\$(ps aux | grep qemu-system-x86_64 | grep emu-windows-);
 if [[ ! -z \$active_qemu ]];then
 {
-  app_name=\$(echo \$active_qemu | awk -F '$INSTALL_PREFIX/emulate/' '{print $2}' | awk -F '/root_disk.qcow2' '{print $1}');
+  app_name=\$(echo \$active_qemu | awk -F '$INSTALL_PREFIX/systems/' '{print $2}' | awk -F '/root_disk.qcow2' '{print $1}');
   showdialog --form --title="Windows emulation commands" \\
              --window-icon="$INSTALL_PREFIX/icons/icon-mupel-128x128.png" \\
              --image="$INSTALL_PREFIX/icons/icon-kodi-mbe.png" \\
@@ -809,14 +981,14 @@ if [[ ! -z \$active_qemu ]];then
              --field="\\
 Windows emulation active and following run
 commands are available:LBL" "" \\
-             --field="Select DVD/CD-Rom source:FBTN" "$INSTALL_PREFIX/emulate/\$app_name/qemu-windows-cdrom-change" \\
-             --field="Open ssh access console:FBTN" "$INSTALL_PREFIX/emulate/\$app_name/open-ssh-console-access";
+             --field="Select DVD/CD-Rom source:FBTN" "$INSTALL_PREFIX/systems/\$app_name/qemu-windows-cdrom-change" \\
+             --field="Open ssh access console:FBTN" "$INSTALL_PREFIX/systems/\$app_name/open-ssh-console-access";
   exit 0;
 } fi
 
 if [ -z \$app_name ];then
 {
-  targets="\$(cd $INSTALL_PREFIX/emulate/; ls -1 -d emu-windows*)";
+  targets="\$(cd $INSTALL_PREFIX/systems/; ls -1 -d emu-windows*)";
   IFS="\n"; lines=\$(echo \$targets | wc -l); unset IFS;
   if [ \$lines -ge 2 ];then
   {
@@ -851,7 +1023,7 @@ if [ -z \$app_name ];then
   } fi
 } fi
 
-. "$INSTALL_PREFIX/emulate/\$app_name/qemu_config.txt";
+. "$INSTALL_PREFIX/systems/\$app_name/qemu_config.txt";
 
 ssh_name=\`echo \$app_name | tr '(' '_' | tr ')' '_'\`;
 ssh_cmp_name="# Known qemu ssh windows access \$app_name"
@@ -863,7 +1035,9 @@ if [ ! -f "\$HOME/.ssh/known_hosts" ] || [[ -z \`cat \$HOME/.ssh/known_hosts | g
   TEMP_DIR=\`mktemp -d\`
   sudo -A -- modprobe nbd max_part=8
   [ \$? != 0 ] && rm -rf \$TEMP_DIR && exit 1
-  sudo -A -- qemu-nbd --connect=/dev/nbd0 "\$HOME/.mupel/emulate/\$app_name/root_disk.qcow2"
+  sudo -A -- qemu-nbd --disconnect /dev/nbd0
+  [ $? != 0 ] && rm -rf \$TEMP_DIR && exit 1
+  sudo -A -- qemu-nbd --connect=/dev/nbd0 "\$HOME/.mupel/systems/\$app_name/root_disk.qcow2"
   [ \$? != 0 ] && rm -rf \$TEMP_DIR && exit 1
   sudo -A -- mount /dev/nbd0p2 \$TEMP_DIR
   [ \$? != 0 ] && rm -rf \$TEMP_DIR && exit 1
@@ -909,26 +1083,26 @@ if [ ! -e "\$cdrom_mount" ];then
 {
   cdrom_mount=/dev/dvd
 
-  cat > "$INSTALL_PREFIX/emulate/\$app_name/qemu_config.txt" << EOF
+  cat > "$INSTALL_PREFIX/systems/\$app_name/qemu_config.txt" << EOF
 additional_file_hd=\$additional_file_hd
 virt_memory_size=\$virt_memory_size
 virt_harddisk_size=\$virt_harddisk_size
 cdrom_mount=\$cdrom_mount
 is_react_os=\$is_react_os
 EOF
-  chmod 666 "$INSTALL_PREFIX/emulate/\$app_name/qemu_config.txt"
+  chmod 666 "$INSTALL_PREFIX/systems/\$app_name/qemu_config.txt"
 } fi
 
 ##
 # Mount virtual filesystem for windows
 #
-if [[ ! -n \`mount | grep $INSTALL_PREFIX/emulate/data_share/base/home\` ]];then
-  ln -sf ~ $INSTALL_PREFIX/emulate/data_share/link/home;
-  mount $INSTALL_PREFIX/emulate/data_share/base/home;
+if [[ ! -n \`mount | grep $INSTALL_PREFIX/systems/data_share/base/home\` ]];then
+  ln -sf ~ $INSTALL_PREFIX/systems/data_share/link/home;
+  mount $INSTALL_PREFIX/systems/data_share/base/home;
 fi
 
-if [ -d $INSTALL_PREFIX/emulate/data_share/base/build ] && [[ ! -n \`mount | grep $INSTALL_PREFIX/emulate/data_share/base/build\` ]];then
-  mount $INSTALL_PREFIX/emulate/data_share/base/build;
+if [ -d $INSTALL_PREFIX/systems/data_share/base/build ] && [[ ! -n \`mount | grep $INSTALL_PREFIX/systems/data_share/base/build\` ]];then
+  mount $INSTALL_PREFIX/systems/data_share/base/build;
 fi
 
 mount_points="$mount_points";
@@ -940,18 +1114,18 @@ done
 ##
 # Start windows
 #
-used_uuid=\$(cat "$INSTALL_PREFIX/emulate/\$app_name/usedUUID.txt" | tail -1);
+used_uuid=\$(cat "$INSTALL_PREFIX/systems/\$app_name/usedUUID.txt" | tail -1);
 [[ -n \$additional_file_hd ]] && file_hd="-hdb \$additional_file_hd";
 [[ -n  \$cdrom_mount ]] && cdrom_mount="-cdrom \$cdrom_mount";
 
 if [ \$is_react_os == 0 ];then
-  qemu-system-x86_64 -hda $INSTALL_PREFIX/emulate/\$app_name/root_disk.qcow2 \\
+  qemu-system-x86_64 -hda $INSTALL_PREFIX/systems/\$app_name/root_disk.qcow2 \\
                      \$file_hd \\
                      -boot c \\
                      \$cdrom_mount \\
                      -m \${virt_memory_size} \\
                      -net nic,vlan=0 \\
-                     -net user,smb="$INSTALL_PREFIX/emulate/data_share/base" \\
+                     -net user,smb="$INSTALL_PREFIX/systems/data_share/base" \\
                      -net nic,model=e1000 \\
                      -vga vmware \\
                      -soundhw hda \\
@@ -963,14 +1137,14 @@ if [ \$is_react_os == 0 ];then
                      -monitor telnet:127.0.0.1:3010,server,nowait,ipv4 \\
                      -uuid \$used_uuid
 else
-  qemu-system-x86_64 -hda $INSTALL_PREFIX/emulate/\$app_name/root_disk.qcow2 \\
+  qemu-system-x86_64 -hda $INSTALL_PREFIX/systems/\$app_name/root_disk.qcow2 \\
                      \$file_hd \\
                      -boot c \\
                      \$cdrom_mount \\
                      -m \${virt_memory_size} \\
                      -net nic,vlan=0 \\
                      -net nic,model=rtl8139 \\
-                     -net user,smb="$INSTALL_PREFIX/emulate/data_share/base" \\
+                     -net user,smb="$INSTALL_PREFIX/systems/data_share/base" \\
                      -vga vmware \\
                      -soundhw hda \\
                      -sdl \\
@@ -989,37 +1163,37 @@ done
 ##
 # Umount virtual filesystem
 #
-#[ -d $INSTALL_PREFIX/emulate/data_share/base/build ] && umount $INSTALL_PREFIX/emulate/data_share/base/build;
-#umount $INSTALL_PREFIX/emulate/data_share/base/home;
-#rm $INSTALL_PREFIX/emulate/data_share/link/home;
+#[ -d $INSTALL_PREFIX/systems/data_share/base/build ] && umount $INSTALL_PREFIX/systems/data_share/base/build;
+#umount $INSTALL_PREFIX/systems/data_share/base/home;
+#rm $INSTALL_PREFIX/systems/data_share/link/home;
 EONF
 
-sudo -A -- mv -f ./qemu-windows /usr/local/bin
-sudo -A -- chmod 777 /usr/local/bin/qemu-windows
-chmod 666 $INSTALL_PREFIX/emulate/$app_name/root_disk.qcow2
-cp -f $BASE_PATH/tools/windows/open-ssh-console-access $INSTALL_PREFIX/emulate/$app_name
-cp -f $BASE_PATH/icons/icon-microsoft-windows*.png $INSTALL_PREFIX/icons
-[ ! -d "$INSTALL_PREFIX/tools" ]                  && mkdir "$INSTALL_PREFIX/tools"
-[ ! -f "$INSTALL_PREFIX/tools/tool_functions" ]   && cp -f $BASE_PATH/tools/tool_functions   $INSTALL_PREFIX/tools
-[ ! -f "$INSTALL_PREFIX/tools/sudo-askpass" ]     && cp -f $BASE_PATH/tools/sudo-askpass     $INSTALL_PREFIX/tools
-[ ! -f "$INSTALL_PREFIX/tools/yad-mupel-x86_64" ] && cp -f $BASE_PATH/tools/yad-mupel-x86_64 $INSTALL_PREFIX/tools
+  sudo -A -- mv -f ./qemu-windows /usr/local/bin
+  sudo -A -- chmod 777 /usr/local/bin/qemu-windows
+  chmod 666 $INSTALL_PREFIX/systems/$app_name/root_disk.qcow2
+  cp -f $BASE_PATH/tools/windows/open-ssh-console-access $INSTALL_PREFIX/systems/$app_name
+  cp -f $BASE_PATH/icons/icon-microsoft-windows*.png $INSTALL_PREFIX/icons
+  [ ! -d "$INSTALL_PREFIX/tools" ]                  && mkdir "$INSTALL_PREFIX/tools"
+  [ ! -f "$INSTALL_PREFIX/tools/tool_functions" ]   && cp -f $BASE_PATH/tools/tool_functions   $INSTALL_PREFIX/tools
+  [ ! -f "$INSTALL_PREFIX/tools/sudo-askpass" ]     && cp -f $BASE_PATH/tools/sudo-askpass     $INSTALL_PREFIX/tools
+  [ ! -f "$INSTALL_PREFIX/tools/yad-mupel-x86_64" ] && cp -f $BASE_PATH/tools/yad-mupel-x86_64 $INSTALL_PREFIX/tools
 
-if [[ $WINDOWS_SINGLE_LAUNCH_ICON = TRUE ]];then
-{
-  used_name="QEmu Windows"
-  call_value=
-}
-else
-{
-  used_name=$name
-  call_value=$app_name
-} fi
+  if [[ $WINDOWS_SINGLE_LAUNCH_ICON = TRUE ]];then
+  {
+    used_name="QEmu Windows"
+    call_value=
+  }
+  else
+  {
+    used_name=$name
+    call_value=$app_name
+  } fi
 
-ICON_NAME=qemu-windows
-TMP_DIR=`mktemp --directory`
-DESKTOP_FILE=$TMP_DIR/qemu-windows-$call_value.desktop
+  ICON_NAME=qemu-windows
+  TMP_DIR=`mktemp --directory`
+  DESKTOP_FILE=$TMP_DIR/qemu-windows-$call_value.desktop
 
-cat > $DESKTOP_FILE << EOF
+  cat > $DESKTOP_FILE << EOF
 [Desktop Entry]
 Comment[de_DE]=Start MS Windows emulation
 Comment=Start MS Windows emulation
@@ -1042,69 +1216,69 @@ X-KDE-Username=
 X-MultipleArgs=false
 EOF
 
-xdg-desktop-menu  install --novendor --noupdate $DESKTOP_FILE
-xdg-icon-resource install --novendor --size  32 "$BASE_PATH/icons/icon-microsoft-windows-32x32.png"   $ICON_NAME
-xdg-icon-resource install --novendor --size  48 "$BASE_PATH/icons/icon-microsoft-windows-48x48.png"   $ICON_NAME
-xdg-icon-resource install --novendor --size  64 "$BASE_PATH/icons/icon-microsoft-windows-64x64.png"   $ICON_NAME
-xdg-icon-resource install --novendor --size 128 "$BASE_PATH/icons/icon-microsoft-windows-128x128.png" $ICON_NAME
-xdg-desktop-menu  forceupdate
+  xdg-desktop-menu  install --novendor --noupdate $DESKTOP_FILE
+  xdg-icon-resource install --novendor --size  32 "$BASE_PATH/icons/icon-microsoft-windows-32x32.png"   $ICON_NAME
+  xdg-icon-resource install --novendor --size  48 "$BASE_PATH/icons/icon-microsoft-windows-48x48.png"   $ICON_NAME
+  xdg-icon-resource install --novendor --size  64 "$BASE_PATH/icons/icon-microsoft-windows-64x64.png"   $ICON_NAME
+  xdg-icon-resource install --novendor --size 128 "$BASE_PATH/icons/icon-microsoft-windows-128x128.png" $ICON_NAME
+  xdg-desktop-menu  forceupdate
 
-if [ ! -z $WINDOWS_DESKTOP_ICON_PATH ];then
-  cp $DESKTOP_FILE $WINDOWS_DESKTOP_ICON_PATH;fi
+  if [ ! -z $WINDOWS_DESKTOP_ICON_PATH ];then
+    cp $DESKTOP_FILE $WINDOWS_DESKTOP_ICON_PATH;fi
 
-rm $DESKTOP_FILE
-rm -R $TMP_DIR
+  rm $DESKTOP_FILE
+  rm -R $TMP_DIR
 
-trap '' INT TERM QUIT HUP
-trap '' EXIT
+  trap '' INT TERM QUIT HUP
+  trap '' EXIT
 
-showdialog --form --title="Windows system installer" \
+  showdialog --form --title="Windows system installer" \
                   --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" \
                   --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
                   --button=gtk-info:1 --button=gtk-ok:0 --text="\
-  Everything done :-)
-  _____________________________________________________________
+Everything done :-)
+_____________________________________________________________
 
-  Use \"qemu-windows -s $app_name\" (present on /usr/local/bin) to start
-  windows.
+Use \"qemu-windows -s $app_name\" (present on /usr/local/bin) to start
+windows.
 
-  System UUID :
-      - `cat "$INSTALL_PREFIX/emulate/$app_name/usedUUID.txt" | tail -1`
-  Base system disk :
-      - $INSTALL_PREFIX/emulate/$app_name_disk.qcow2
-  Additional disk :
-      - $additional_file_hd
-  CDRom/DVD/iso :
-      - $cdrom_mount
-  Memory size :
-      - ${virt_memory_size}MByte
-  _____________________________________________________________
+System UUID :
+    - `cat "$INSTALL_PREFIX/systems/$app_name/usedUUID.txt" | tail -1`
+Base system disk :
+    - $INSTALL_PREFIX/systems/$app_name/root_disk.qcow2
+Additional disk :
+    - $additional_file_hd
+CDRom/DVD/iso :
+    - $cdrom_mount
+Memory size :
+    - ${virt_memory_size}MByte
+_____________________________________________________________
 
-  Follow the instruction of Muple to handle it." 2> /dev/null
+Follow the instruction of Muple to handle it." 2> /dev/null
 
-if [ $? != 0 ];then
-{
-  showdialog --title="Installation done" \
-             --image="$BASE_PATH/icons/icon-info-128x128.png" \
-             --text="\
+  if [ $? != 0 ];then
+  {
+    showdialog --title="Installation done" \
+               --image="$BASE_PATH/icons/icon-info-128x128.png" \
+               --text="\
 Following files, folders are added or changed
 _______________________________________________________________
 
 Added folders :
-  * $INSTALL_PREFIX/emulate/data_share/base :
+  * $INSTALL_PREFIX/systems/data_share/base :
      - The base path about folder to share with smbfs to windows
-  * $INSTALL_PREFIX/emulate/data_share/link :
+  * $INSTALL_PREFIX/systems/data_share/link :
      - Folder to store link about active user home directory
        (Needed for system mount to have the same names)
 
 Added files:
   * /usr/local/bin/qemu-windows :
      - The emulation start script
-  * $INSTALL_PREFIX/emulate/$app_name/root_disk.qcow2 :
+  * $INSTALL_PREFIX/systems/$app_name/root_disk.qcow2 :
      - The virtual disk drive which contains windows
-  * $INSTALL_PREFIX/emulate/$app_name/usedUUID.txt :
+  * $INSTALL_PREFIX/systems/$app_name/usedUUID.txt :
      - The used system UUID on them
-  * $INSTALL_PREFIX/emulate/$app_name/qemu_config.txt :
+  * $INSTALL_PREFIX/systems/$app_name/qemu_config.txt :
      - The configuration for qemu (mem size, cdrom source ...)
 
 Changed files:
@@ -1112,6 +1286,34 @@ Changed files:
     - Changed to include bind mount points from system to
       qemu's smbfs source.
 " 2> /dev/null
+  } fi
+}
+else
+{
+  cat > "$INSTALL_PREFIX/systems/$app_name/ext_config.txt" << EOF
+ssh_user=WINDOWS_SSH_USERNAME
+ssh_pw=WINDOWS_SSH_PASSWORD
+ssh_ip=$WINDOWS_SSH_IP
+ssh_port=$WINDOWS_SSH_PORT
+EOF
+  chmod 666 "$INSTALL_PREFIX/systems/$app_name/ext_config.txt"
+
+  . "$INSTALL_PREFIX/systems/$app_name/ext_config.txt"
+
+  showdialog --title="Installation done" \
+               --image="$BASE_PATH/icons/icon-info-128x128.png" \
+               --text="\
+<b>If you use a external Windows must be done some steps first</b>
+_______________________________________________________________
+
+You must create a samba share of your home folder and the
+folder which contains your Mupel.
+
+This must be after connection on Windows present there:
+- <b>Z:\\\build</b> - Where Mupel is present.
+- <b>Z:\\\home</b> - The home directory of Computer with Mupel
+
+"
 } fi
 
 exit_build 0

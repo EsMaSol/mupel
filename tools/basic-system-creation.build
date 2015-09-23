@@ -36,6 +36,7 @@ DO_CLEAN=0
 
 . "$HOME/.mupel/mupel.conf";
 . "$BASE_PATH/tools/tool_functions";
+. "$BASE_PATH/tools/tool_cef_functions";
 
 ###############################################################################
 # Sub functions
@@ -213,39 +214,16 @@ if [ $INCLUDE_CEF != 0 ];then
   [ ! -d "$BASE_PATH/build/cef-$GIT_CEF_USER" ] && mkdir -p "$BASE_PATH/build/cef-$GIT_CEF_USER"
   handleGITLoad "$BASE_PATH/build/cef-$GIT_CEF_USER" cef $CEF_SOURCE_URL $CEF_SOURCE_BRANCH "build_thread_1_general"
 
-  printf "\n${WHITE}${BRIGHT}Create gclient configuration file${NORMAL} ...\n";
-  echo " > '$BASE_PATH/build/cef-$GIT_CEF_USER/.gclient' ..."
-  if [ ! -f "${BASE_PATH}/build/cef-$GIT_CEF_USER/.gclient" ] || [[ $DO_CLEAN != 0 ]];then
+  printf "\
+${WHITE}${BRIGHT}Create gclient configuration file${NORMAL} ...
+ > '$BASE_PATH/build/cef-$GIT_CEF_USER/.gclient' ...";
+  if [ ! -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.gclient" ] || [[ $DO_CLEAN != 0 ]];then
   {
-    sh -c cat > "$BASE_PATH/build/cef-$GIT_CEF_USER/.gclient" << EOF
-solutions = [
-  {
-    "managed": False,
-    "name": "src",
-    "url": "https://chromium.googlesource.com/chromium/src.git",
-    "custom_deps": {
-      "build": None,
-      "build/scripts/command_wrapper/bin": None,
-      "build/scripts/gsd_generate_index": None,
-      "build/scripts/private/data/reliability": None,
-      "build/scripts/tools/deps2git": None,
-      "build/third_party/lighttpd": None,
-      "build/third_party/webrtc": None,
-      "commit-queue": None,
-      "depot_tools": None,
-      "src/chrome_frame/tools/test/reference_build/chrome": None,
-      "src/chrome/tools/test/reference_build/chrome_linux": None,
-      "src/chrome/tools/test/reference_build/chrome_mac": None,
-      "src/chrome/tools/test/reference_build/chrome_win": None,
-    },
-    "deps_file": ".DEPS.git",
-    "safesync_url": ""
+    createCEF_gclient "$BASE_PATH/build/cef-$GIT_CEF_USER/.gclient";
+    evaluateReturnValue $?;
   }
-]
-EOF
-  } fi
-  printf $CURS_UP
-  evaluateReturnValue $?;
+  else
+    log_skip_msg;fi
 
   ##
   # Initial Chromium checkout.
@@ -279,7 +257,7 @@ EOF
         if [ $position -ge 52 ];then
           position=0;fi
 
-        used_size=$(expr `expr $(du -s | awk -F ' ' '{print $1}') - $empty_size` / 1024 2> /dev/null);
+        used_size=$(expr `expr $(du -s | awk -F ' ' '{print $1}' 2> /dev/null) - $empty_size` / 1024 2> /dev/null);
         label=`tail -1 "$BASE_PATH/build/chromium-load.log" | cut -d' ' -f1 | cut -c-17`;
         printf "\r$WHITE[$NORMAL $progress $WHITE] $label - $used_size MByte$NORMAL";
 
@@ -435,3 +413,9 @@ rm -f $TEMP_DIR/creation-general.failed
 sleep 2
 
 exit 0
+
+
+
+
+
+

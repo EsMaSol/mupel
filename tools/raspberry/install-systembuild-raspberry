@@ -248,7 +248,7 @@ ________________________________________________________________________________
 trap 'evaluate_ret_error 1; exit_build 1' INT TERM QUIT HUP
 trap 'sudo -A -- apt-get clean; tput bel; echo; echo Failed' EXIT
 
-MOUNTPOINT="$INSTALL_PREFIX/emulate/data_share/base"
+MOUNTPOINT="$INSTALL_PREFIX/systems/data_share/base"
 
 if [ -z $RASPBERRY_DESKTOP_ICON_PATH ];then
   RASPBERRY_DESKTOP_ICON_PATH=$DESKTOP_DIR;fi
@@ -332,7 +332,7 @@ while :; do
     sudo -A -- apt-get -y install $dep schroot;
 
     # Don't accidentally overwrite an existing installation
-    [ -d $INSTALL_PREFIX/emulate/"${target}" ] &&
+    [ -d $INSTALL_PREFIX/systems/"${target}" ] &&
     {
       while :; do
         label="This chroot already exists on your machine."
@@ -372,10 +372,10 @@ while :; do
         case "${choice}" in
           "Abort|") exit_build 1;;
           "Overwrite|")
-               sudo -A -- rm -rf $INSTALL_PREFIX/emulate/${target};
+               sudo -A -- rm -rf $INSTALL_PREFIX/systems/${target};
                break;;
           "Delete|")
-               sudo -A -- rm -rf $INSTALL_PREFIX/emulate/${target}      \
+               sudo -A -- rm -rf $INSTALL_PREFIX/systems/${target}      \
                                     /usr/local/bin/${target}   \
                                     /etc/schroot/mount-${target}   \
                                     /etc/schroot/script-${target}  \
@@ -391,9 +391,9 @@ while :; do
         esac
       done
     }
-    mkdir -p $INSTALL_PREFIX/emulate/${target}/mount
-    mkdir -p $INSTALL_PREFIX/emulate/data_share/base
-    mkdir -p $INSTALL_PREFIX/emulate/data_share/mount
+    mkdir -p $INSTALL_PREFIX/systems/${target}/mount
+    mkdir -p $INSTALL_PREFIX/systems/data_share/base
+    mkdir -p $INSTALL_PREFIX/systems/data_share/mount
 
     [[ "x`cat /proc/mounts | grep ${MOUNTPOINT}/boot`" != "x" ]] && sudo -A -- umount -l "${MOUNTPOINT}/boot"
     [[ "x`cat /proc/mounts | grep ${MOUNTPOINT}/dev/pts`" != "x" ]] && sudo -A -- umount -l "${MOUNTPOINT}/dev/pts"
@@ -453,7 +453,7 @@ while :; do
 [ ! -d "$HOME/Downloads" ] && mkdir "$HOME/Downloads"
 IMAGE_ARCHIVE_FILE="$HOME/Downloads/${RPI_IMAGE_SRC_URL##*/}"
 IMAGE_FILE="${IMAGE_ARCHIVE_FILE%.*}.img"
-GPI_IMAGE="$INSTALL_PREFIX/emulate/${target}/rpi-tmpl.img"
+GPI_IMAGE="$INSTALL_PREFIX/systems/${target}/rpi-tmpl.img"
 
 # Download Image. This takes some time
 if [ ! -f "${IMAGE_FILE}" ]; then
@@ -654,7 +654,7 @@ EOF
 
       #sudo -A -- chmod 777 "${GPI_IMAGE}"; [ $? != 0 ] && exit 1;
       #sudo -A -- chown root:root "${GPI_IMAGE}"; [ $? != 0 ] && exit 1;
-      install ${RPI_KERNEL} $INSTALL_PREFIX/emulate/raspberry/kernel-qemu-raspberry.bin; [ $? != 0 ] && exit 1;
+      install ${RPI_KERNEL} $INSTALL_PREFIX/systems/raspberry/kernel-qemu-raspberry.bin; [ $? != 0 ] && exit 1;
 
       sleep 3
 
@@ -676,7 +676,7 @@ EOF
 [${target}]
 description=Raspberry Kodi Environment
 type=directory
-directory=$INSTALL_PREFIX/emulate/${target}/mount
+directory=$INSTALL_PREFIX/systems/${target}/mount
 users=root
 groups=${chroot_groups}
 root-groups=${chroot_groups}
@@ -736,12 +736,12 @@ EOF
 #!/bin/bash
 
 qemu-system-arm \\
-  -kernel $INSTALL_PREFIX/emulate/${target}/kernel-qemu-raspberry.bin \\
+  -kernel $INSTALL_PREFIX/systems/${target}/kernel-qemu-raspberry.bin \\
   -cpu arm1176 \\
   -m 256 \\
   -M versatilepb \\
   -append "root=/dev/sda2 panic=1 rw" \\
-  -hda $INSTALL_PREFIX/emulate/${target}/rpi-tmpl.img \\
+  -hda $INSTALL_PREFIX/systems/${target}/rpi-tmpl.img \\
   -net nic \\
   -net user \\
   -sdl \\

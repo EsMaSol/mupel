@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 ###############################################################################
 #                                                                             #
 #     Copyright (C) 2015 Team KODI                                            #
@@ -18,177 +18,505 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.      #
 #                                                                             #
 ###############################################################################
+#                                                                             #
+# Note: This script becomes called over cygwin on windows system!             #
+#       Access from muple to them is over a ssh connection.                   #
+#                                                                             #
+###############################################################################
 
-BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
+net use /delete z:
+sleep 2
+net use z: \\\\10.0.2.4\\qemu
 
-. "${HOME}/.mupel/mupel.conf";
-. "${BASE_PATH}/tools/tool_functions";
+BASE_PATH="z:/build"
+MUPEL_PATH=c:\\mupel
+
+. "z:/home/.mupel/mupel.conf";
+. "$BASE_PATH/tools/tool_functions";
+. "$BASE_PATH/tools/tool_cef_functions";
 
 DEBUG_BUILD="--enable-debug=no"
-BUILD_SYSTEM="win-x86_32"
+BIT_SIZE="32"
 TEMP_DIR=
 INSTALL_DIR_TYPE="Release"
 
-set -e
-
-##
-# Usage help function return as string the available values
-function usage()
-{
-  echo "Usage: $0 [--options]"
-  echo "Options:"
-  echo "--debug           build debug version"
-  echo "--build-direct    if inserted kodi becomes direct build without perform of pre"
-  echo "                  steps, becomes possible after one time the complete build"
-  echo "                  was done. Usable during programming to reduce time"
-  echo "--temp-dir        the temporary directory to store parts, if not set becomes new"
-  echo "                  created. This value is used from 'mupel' to have same dir."
-  echo "--help            this help message"
-  exit 1
-}
-##
-
-##
-# Function to process given input variables
-function process_opts()
-{
-  while test "$1" != "" ; do
-    case "$1" in
-      --build-direct)
-        DIRECT_CEF_BUILD=1
-        ;;
-      --debug)
-        DEBUG_BUILD="--enable-debug=yes"
-        INSTALL_DIR_TYPE="Debug"
-        ;;
-      --addon)
-        case "$2" in
-            "")
-              echo "Option '--addon', no argument"
-              shift
-              ;;
-            *)
-              ADDON_BUILD="$2"
-              shift
-              ;;
-        esac ;;
-      --temp-dir)
-        case "$2" in
-            "")
-              echo "Option '--temp-dir', no argument"
-              shift
-              ;;
-            *)
-              TEMP_DIR="$2"
-              shift
-              ;;
-        esac ;;
-      --help)                   usage;;
-      *)
-        echo "invalid command-line option: $OPTARG"
-        usage
-        ;;
-    esac
-    shift
-  done
-}
-##
 
 ###############################################################################
 # Start of main process
 
-process_opts "$@"
+processOptsCEF "$@"
+
+# Options that force the sources to change.
+if [[ -n $FORCECLEAN ]] || [[ -n $FORCEUPDATE ]];then
+  FORCE_CHANGE=1;fi
+
+initBuildScript_CEF;
+
+# Avoid errors when the "vs_toolchain.py update" Chromium hook runs.
+export DEPOT_TOOLS_WIN_TOOLCHAIN=0
+
+#trap '[[ ! -z $OWN_TEMP ]] && [[ ! -z $TEMP_DIR ]] && rm -rf $TEMP_DIR; trapError ${LINENO};' ERR;
+
+touch $TEMP_DIR/cef-windows-x86_$BIT_SIZE.failed;
+
+. "$BASE_PATH/versions";
+
+export Configuration=$INSTALL_DIR_TYPE;
+export WORKSPACE="c:\\mupel\\cef-$GIT_CEF_USER\\src";
+
+if [ -z $DIRECT_CEF_BUILD ];then
+  CEF_BUILD="complete";
+else
+  CEF_BUILD="direct";
+fi
+
+# Manage the out directory.
+out_dir=$BASE_PATH/build/cef-$GIT_CEF_USER/out_$CEF_SOURCE_BRANCH
+
+# Delete the existing out directory if requested.
+if [[ -n $FORCECLEAN ]] && [ -d "$out_dir" ];then
+  rm -rf $out_dir;fi
 
 printf "
--------------------------------------------------------------------------------
- CEF build Windows x86 32bit
+/------------------------------------------------------------------------------
+|
+|  CEF build Windows x86 ${BIT_SIZE}bit
+| =============================
+|
+|  Build type :           $CEF_BUILD
+|  Binary version :       $CEF_KODI_BINARY_VERSION
+|  Configuration :        $Configuration
+|  WORKSPACE :            $WORKSPACE
+|
+|  Force update :         $([[ -n $FORCEUPDATE ]] && echo yes || echo no)
+|  No update :            $([[ -n $NOUPDATE ]] && echo yes || echo no)
+|  Force config :         $([[ -n $FORCECONFIG ]] && echo yes || echo no)
+|  Force clean :          $([[ -n $FORCECLEAN ]] && echo yes || echo no)
+|  Force clean depends :  $([[ -n $FORCECLEANDEPS ]] && echo yes || echo no)
+|  Build tests :          $([[ -n $BUILDTESTS ]] && echo yes || echo no)
+|  Verbose build          $([[ -n $VERBOSEBUILD ]] && echo yes || echo no)
+|
+|  CEF Branch :           $CEF_SOURCE_BRANCH
+|  CEF URL :              $CEF_SOURCE_URL
+|  CEF Source Directory : $BASE_PATH/build/cef-$GIT_CEF_USER/cef
+|  CEF Output Directory : $out_dir
+|
+\\-------------------------------------------------------------------------------
 
 "
 
 sleep 3
 
-# Add failed file which becomes removed if everything is ok, this way is more
-# secure
-touch $TEMP_DIR/cef-win-x86_32.failed;
-
-# If no temporary directory is passed exit, is required from caller
-if [ -z $TEMP_DIR ];then
+##
+# Check for presence of chromium depot tools
+if [ ! -d "$MUPEL_PATH/depot_tools" ];then
 {
-  printf "${RED}${BRIGHT}ERROR: ${WHITE}temporary directory defined!${NORMAL}\n";
-  exit 1
+  printf "${WHITE}${BRIGHT}Download and install Windows Chromium depot tools to $MUPEL_PATH\\${WINDOWS_DEPOT_TOOLS_BUNDLE##*/}${NORMAL} ...\n";
+
+  handleGITLoad "$MUPEL_PATH" depot_tools $DEPOT_TOOLS_URL master;
+  handleErrorsCodes $? "git" "$DEPOT_TOOLS_URL" console exit;
+
+  export PATH="/cygdrive/c/mupel/depot_tools:${PATH}"
+
+  if [[ -z $NOUPDATE ]];then
+  {
+    cmd /C update_depot_tools.bat
+    handleErrorsCodes $? "update_depot_tools" "$MUPEL_PATH/depot_tools" console exit;
+  } fi
+
+  handleGITLoad "$MUPEL_PATH" gyp $WINDOWS_GYP master;
+  handleErrorsCodes $? "git" "$WINDOWS_GYP" console exit;
+
+  ( cd $MUPEL_PATH/gyp; cmd /C python setup.py install; )
+  handleErrorsCodes $? "python" "./gyp/setup.py" console exit;
+
+  gclient
+  handleErrorsCodes $? "gclient" "$MUPEL_PATH/depot_tools" console exit;
 } fi
 
-# Set error return
-trap 'trapError ${LINENO};' ERR
+[ ! -d "$MUPEL_PATH\\cef-$GIT_CEF_USER" ] &&
+  mkdir -p "$MUPEL_PATH\\cef-$GIT_CEF_USER"
 
-# If direct build is requested in build before was on other system a complete
-# build becomes forced
-if [ ! -f "${BASE_PATH}/build/.cef-win-x86_32.active" ] && [[ ! -z $DIRECT_CEF_BUILD ]];then
+printf "\
+${WHITE}${BRIGHT}Create gclient configuration file${NORMAL} ...
+ > '$MUPEL_PATH\\cef-$GIT_CEF_USER\\.gclient' ...";
+if [ ! -f "$MUPEL_PATH/cef-$GIT_CEF_USER/.gclient" ] || [[ -n $FORCECONFIG ]];then
 {
-  printf "${RED}${BRIGHT}WARNING: ${WHITE}Needed CEF code for direct build not present and complete build becomes done${NORMAL}\n";
-  unset DIRECT_CEF_BUILD;
+  createCEF_gclient "$MUPEL_PATH/cef-$GIT_CEF_USER/.gclient";
+  evaluateReturnValue $?;
+}
+else
+  log_skip_msg;fi
+
+##
+# Initial Chromium checkout.
+#
+printf "\n${WHITE}${BRIGHT}Download chromium source code${NORMAL} ...";
+if [[ -z $NOUPDATE ]] && [ ! -d "$MUPEL_PATH/cef-$GIT_CEF_USER/src" ];then
+{
+  CHROMIUM_CHECKOUT_NEW=1;
+
+  printf "\n${RED}${BRIGHT}WARNING: ${WHITE}Download takes a very long time ${UNDERLINE}(more as 12 hours possible)${NORMAL}\n";
+
+  cd "$MUPEL_PATH/cef-$GIT_CEF_USER";
+  [ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/chromium-windows-load.log" ] &&
+    mv -f "$BASE_PATH/build/cef-$GIT_CEF_USER/chromium-windows-load.log"
+          "$BASE_PATH/build/cef-$GIT_CEF_USER/chromium-windows-load.old.log";
+
+  touch "$BASE_PATH/build/cef-$GIT_CEF_USER/chromium-windows-load.log";
+  touch "$TEMP_DIR/.tempLoggerActive";
+
+  (
+    position=0;
+    empty_size=`du -s | awk -F ' ' '{print $1}' 2> /dev/null`;
+    printf "In progress, for details see $BASE_PATH/build/cef-$GIT_CEF_USER/chromium-windows-load.log\n";
+    while [ -f "$TEMP_DIR/.tempLoggerActive" ]; do
+    {
+      progress="";
+      counter=0;
+      while [ $counter -lt 52 ];do
+      {
+        let counter=counter+1;
+        if [[ $position == $counter ]];then
+          progress=${progress}$BRIGHT$GREEN"|"$NORMAL;
+        else
+          progress=${progress}".";fi
+      } done
+      let position=position+1;
+      if [ $position -ge 52 ];then
+        position=0;fi
+
+      used_size=$(expr `expr $(du -s | awk -F ' ' '{print $1}' 2> /dev/null) - $empty_size` / 1024 2> /dev/null);
+      label=`tail -1 "$BASE_PATH/build/cef-$GIT_CEF_USER/chromium-windows-load.log" | cut -d' ' -f1 | cut -c-17`;
+      printf "\r$WHITE[$NORMAL $progress $WHITE] $label - $used_size MByte$NORMAL";
+
+      sleep 1;
+    } done
+  ) &
+  tailPID=$!
+  echo "Initial Chromium checkout:" >> "$BASE_PATH/build/cef-$GIT_CEF_USER/chromium-windows-load.log";
+  echo "started" >> "$BASE_PATH/build/cef-$GIT_CEF_USER/chromium-windows-load.log";
+  gclient sync --nohooks --with_branch_heads --jobs 16 >> "$BASE_PATH/build/cef-$GIT_CEF_USER/chromium-windows-load.log" 2>&1
+  error_value="${?}";
+  rm -f "$TEMP_DIR/.tempLoggerActive";
+  if [[ ! -z `ps --no-headers -p $tailPID` ]]; then
+  {
+    kill $tailPID;
+  } fi
+  echo ""
+  evaluateReturnValue $error_value;
+}
+else
+  log_done_msg;fi
+echo "";
+
+##
+# Determine if the Chromium checkout needs to change.
+#
+CHROMIUM_CHECKOUT=`cat "$BASE_PATH/build/cef-$GIT_CEF_USER/cef/CHROMIUM_BUILD_COMPATIBILITY.txt" | tail -2 | cut -d' ' -f4 | cut -d "'" -f2 | head -1`;
+if [[ -z $NOUPDATE ]] && [ -d "$MUPEL_PATH/cef-$GIT_CEF_USER/src" ];then
+{
+  CHROMIUM_CURRENT_HASH=`git -C "$MUPEL_PATH/cef-$GIT_CEF_USER/src" rev-parse "HEAD"`;
+  CHROMIUM_DESIRED_HASH=`git -C "$MUPEL_PATH/cef-$GIT_CEF_USER/src" rev-parse "$CHROMIUM_CHECKOUT"`;
+  if [[ -n $CHROMIUM_CHECKOUT_NEW ]] ||
+     [[ -n $FORCE_CHANGE ]] ||
+     [[ "$CHROMIUM_CURRENT_HASH" != "$CHROMIUM_DESIRED_HASH" ]];then
+    CHROMIUM_CHECKOUT_CHANGED=1;
+  else
+    CHROMIUM_CHECKOUT_CHANGED=0;fi
+  printf "${WHITE}${BRIGHT}Checking version of 'Chromium'${NORMAL}\n";
+  printf "${WHITE}${BRIGHT} - Chromium Current Checkout:${NORMAL} $CHROMIUM_CURRENT_HASH\n";
+  printf "${WHITE}${BRIGHT} - Chromium Desired Checkout:${NORMAL} $CHROMIUM_DESIRED_HASH
+                              ($CHROMIUM_CHECKOUT)\n";
 } fi
 
-# Check Google Chromium source is present which becomes loaded from
-# 'basic-system-creation.build', if not present bring a error exit
-if [ ! -d "${BASE_PATH}/build/src" ];then
+##
+# Determine if the CEF checkout needs to change.
+#
+if [[ ! -n $NOUPDATE ]] && [ -d "$MUPEL_PATH/cef-$GIT_CEF_USER/src/cef" ];then
 {
-  printf "\
-${RED}${BRIGHT}ERROR: ${WHITE}Needed CEF source code on${NORMAL}
-${BRIGHT}${WHITE}${BASE_PATH}/build/src${NORMAL}
-${BRIGHT}${WHITE}for build not present!${NORMAL}\n";
-  exit 1;
+  CEF_CURRENT_HASH=`git -C "$MUPEL_PATH/cef-$GIT_CEF_USER/src/cef" rev-parse "HEAD"`;
+  CEF_DESIRED_HASH=`git -C "$BASE_PATH/build/cef-$GIT_CEF_USER/cef" rev-parse "HEAD"`;
+  if [[ -n $FORCE_CHANGE ]] ||
+     [[ "$CEF_CURRENT_HASH" != "$CEF_DESIRED_HASH" ]];then
+  {
+    CEF_CHECKOUT_CHANGED=1;
+    printf "${WHITE}${BRIGHT}Checking version of 'CEF'${NORMAL}\n";
+    printf "${WHITE}${BRIGHT} - CEF Current Checkout:${NORMAL} $CEF_CURRENT_HASH\n";
+    printf "${WHITE}${BRIGHT} - CEF Desired Checkout:${NORMAL} $CEF_DESIRED_HASH\n";
+  }
+  else
+    CEF_CHECKOUT_CHANGED=0;fi
 } fi
+
+# Delete the existing src/cef directory. It will be re-copied from the download
+# directory later.
+if [[ $CEF_CHECKOUT_CHANGED != 0 ]] && [ -d "$MUPEL_PATH/cef-$GIT_CEF_USER/src/cef" ];then
+  rm -fr "$MUPEL_PATH/cef-$GIT_CEF_USER/src/cef";fi
+
+# Delete the existing src/out directory if requested.
+if [[ -n $FORCECLEAN ]] && [ -d "$MUPEL_PATH/cef-$GIT_CEF_USER/src/out" ];then
+  rm -fr "$MUPEL_PATH/cef-$GIT_CEF_USER/src/out";fi
+
+# Move the existing src/out directory to the correct location in the download
+# directory. It will be moved back from the download directory later.
+if [ -d "$MUPEL_PATH/cef-$GIT_CEF_USER/src/out" ];then
+{
+  OLD_BRANCH=$(read_branch_config_file "$MUPEL_PATH/cef-$GIT_CEF_USER/src/out");
+  if [ -n $OLD_BRANCH ] && [[ $CHROMIUM_CHECKOUT_CHANGED != 0 ]] ||
+                           [[ $OLD_BRANCH != $CEF_SOURCE_BRANCH ]];then
+  {
+    rm -rf "$MUPEL_PATH/cef-$GIT_CEF_USER/out_$OLD_BRANCH";
+    mv -f "$MUPEL_PATH/cef-$GIT_CEF_USER/src/out" "$MUPEL_PATH/cef-$GIT_CEF_USER/out_$OLD_BRANCH"
+  } fi
+} fi
+
+##
+# Update the Chromium checkout.
+#
+old_dir=`pwd`
+cd "$MUPEL_PATH/cef-$GIT_CEF_USER/src";
+printf "${WHITE}${BRIGHT}Update the Chromium checkout to needed source${NORMAL} ...";
+if [ $CHROMIUM_CHECKOUT_CHANGED != 0 ];then
+{
+  printf "\n"
+  if [ -z $CHROMIUM_CHECKOUT_NEW ];then
+  {
+    if [[ -n $FORCECLEAN ]] && [[ -n $FORCECLEANDEPS ]];then
+    {
+      # Remove all local changes including third-party git checkouts managed by
+      # gclient.
+      git -C $MUPEL_PATH/cef-$GIT_CEF_USER/src clean -dffx;
+      handleErrorsCodes $? "git" "git -C $MUPEL_PATH\\cef-$GIT_CEF_USER\\src clean -dffx;" console exit;
+    }
+    else
+    {
+      # Revert all changes in the Chromium checkout.
+      gclient revert --nohooks;
+      handleErrorsCodes $? "gclient" "gclient revert --nohooks;" console exit;
+    } fi
+  } fi
+
+  # Fetch new sources.
+  git -C $MUPEL_PATH/cef-$GIT_CEF_USER/src fetch;
+  handleErrorsCodes $? "git" "git -C $MUPEL_PATH\\cef-$GIT_CEF_USER\\src fetch;" console exit;
+
+  # Also fetch tags, which are required for release branch builds.
+  git -C $MUPEL_PATH/cef-$GIT_CEF_USER/src fetch --tags;
+  handleErrorsCodes $? "git" "git -C $MUPEL_PATH\\cef-$GIT_CEF_USER\\src fetch --tags;" console exit;
+
+  # Checkout the requested branch.
+  git -C $MUPEL_PATH/cef-$GIT_CEF_USER/src checkout $([ -n $FORCECLEAN ] && echo "--force") $CHROMIUM_CHECKOUT;
+  handleErrorsCodes $? "git" "git -C $MUPEL_PATH/cef-$GIT_CEF_USER/src checkout --force $CHROMIUM_CHECKOUT;" console exit;
+
+  # Patch the Chromium DEPS file if necessary.
+  if [ -f "$MUPEL_PATH/cef-$GIT_CEF_USER/cef/patch/patches/.DEPS.git.patch" ] &&
+     [[ -z `patch --dry-run -Np0 -i "$MUPEL_PATH/cef-$GIT_CEF_USER/cef/patch/patches/.DEPS.git.patch"` ]];then
+    patch -Np0 -i "$MUPEL_PATH/cef-$GIT_CEF_USER/cef/patch/patches/.DEPS.git.patch";fi;
+
+  # Set the GYP_CHROMIUM_NO_ACTION value temporarily so that `gclient sync` does
+  # not run gyp.
+  set GYP_CHROMIUM_NO_ACTION 1;
+
+  # Update third-party dependencies including branch/tag information.
+  gclient sync $([ -n $FORCECLEAN ] && echo "--reset") --nohooks --with_branch_heads --jobs 16;
+  handleErrorsCodes $? "gclient" "gclient sync" console exit;
+
+  # Clear the GYP_CHROMIUM_NO_ACTION value.
+  unset GYP_CHROMIUM_NO_ACTION;
+
+  # Delete the src/out directory created by `gclient sync`.
+  rm -fr "$MUPEL_PATH/cef-$GIT_CEF_USER/src/out";
+  printf $CURS_UP;
+  log_success_msg;
+}
+else
+  log_skip_msg;fi
+
+# Copy CEF to chromium source folder
+printf "${WHITE}${BRIGHT}Transfering CEF source code to chromium${NORMAL}";
+if [ ! -d "$MUPEL_PATH/cef-$GIT_CEF_USER/src/cef" ];then
+{
+  cp -fR "$BASE_PATH/build/cef-$GIT_CEF_USER/cef" "$MUPEL_PATH/cef-$GIT_CEF_USER/src";
+  handleErrorsCodes $? "cp" "copy CEF to chromium source folder" console exit;
+  log_success_msg;
+}
+else
+  log_skip_msg;fi
+
+# Restore the src/out directory.
+[ -d "$MUPEL_PATH/cef-$GIT_CEF_USER/src/out" ] &&
+  out_src_dir_exists=1;
+if [ -d $out_dir ] && [ -z $out_src_dir_exists ];then
+  mv $out_dir "$MUPEL_PATH/cef-$GIT_CEF_USER/src/out";
+  out_src_dir_exists=1;
+elif [ -z $out_src_dir_exists ];then
+  mkdir "$MUPEL_PATH/cef-$GIT_CEF_USER/src/out";fi
+
+# Write the config file for identifying the branch.
+write_branch_config_file "$MUPEL_PATH/cef-$GIT_CEF_USER/src/out" $CEF_SOURCE_BRANCH;
+
+export GYP_GENERATORS=ninja,msvs-ninja
+export GYP_MSVS_VERSION=2013
+
+printf "${WHITE}${BRIGHT}Create CEF projects${NORMAL}";
+cd $MUPEL_PATH/cef-$GIT_CEF_USER/src/cef
+cmd /C cef_create_projects.bat
+log_success_msg
+cd $MUPEL_PATH/cef-$GIT_CEF_USER
+
+printf "${WHITE}${BRIGHT}Set last change flags ...${NORMAL}\n"
+python $MUPEL_PATH/cef-$GIT_CEF_USER/src/build/util/lastchange.py -o src/build/util/LASTCHANGE
+python $MUPEL_PATH/cef-$GIT_CEF_USER/src/build/util/lastchange.py -s src/third_party/WebKit -o src/build/util/LASTCHANGE.blink
+printf $CURS_UP
+log_success_msg
+
+
+#  command = 'ninja -C '
+#  if options.verbosebuild:
+#    command = 'ninja -v -C'
+#  target = ' cefclient'
+#  if options.buildtests:
+#    target = target + ' cef_unittests'
+#  if platform == 'linux':
+#    target = target + ' chrome_sandbox'
+#  build_dir_suffix = ''
+#  if platform == 'windows' and options.x64build:
+#    build_dir_suffix = '_x64'
+
+# Build using Ninja.
+cmd /C ninja $([ -n $VERBOSEBUILD ] && echo "-v") -C \
+             $MUPEL_PATH/cef-$GIT_CEF_USER/src/out/$INSTALL_DIR_TYPE \
+             cefclient \
+             $([ -n $BUILDTESTS ] && echo "cef_unittests") \
+             -j $CPU_PROC_JOBS
+
+
+#export PATH="/cygdrive/c/mupel/depot_tools:${PATH}"
+
+
+
+#else
+#{
+#  export PATH="/cygdrive/c/mupel/depot_tools:${PATH}"
+#
+#  printf "\n${WHITE}${BRIGHT}Update Chromium depot tools${NORMAL} ...\n";
+#  update_depot_tools
+#  printf $CURS_UP
+#  evaluateReturnValue $?;
+#} fi
+#
+## If direct build is requested in build before was on other system a complete
+## build becomes forced
+#if [ ! -f "$MUPEL_PATH/cef-$GIT_CEF_USER/.cef-win-x86_$BIT_SIZE.active" ] && [[ ! -z $DIRECT_CEF_BUILD ]];then
+#{
+#  printf "${RED}${BRIGHT}WARNING: ${WHITE}Needed CEF code for direct build not present and complete build becomes done${NORMAL}\n";
+#  unset DIRECT_CEF_BUILD;
+# } fi
+#
+# # Check Google Chromium source is present which becomes loaded from
+## 'basic-system-creation.build', if not present bring a error exit
+#if [ ! -d "$MUPEL_PATH/cef-$GIT_CEF_USER/src" ];then
+#{
+#  printf "\
+#${RED}${BRIGHT}ERROR: ${WHITE}Needed CEF source code on${NORMAL}
+#${BRIGHT}${WHITE}$MUPEL_PATH/cef-$GIT_CEF_USER/src${NORMAL}
+#${BRIGHT}${WHITE}for build not present!${NORMAL}\n";
+#  exit 1;
+#} fi
+#
+## Create the final install path for them
+#INSTALL_PATH=$MUPEL_PATH/cef-$GIT_CEF_USER/binary_distrib/$INSTALL_DIR_TYPE/cef
+#[ ! -d "${INSTALL_PATH}" ] && mkdir -p "${INSTALL_PATH}"
+#
+#export GYP_GENERATORS=ninja,msvs-ninja
+#export GYP_MSVS_VERSION=2013
+#
+## Set the GYP_CHROMIUM_NO_ACTION value temporarily so that `gclient sync` does
+## not run gyp.
+#set GYP_CHROMIUM_NO_ACTION 1;
+#
+#cd $MUPEL_PATH\\depot_tools
+#cmd /C gclient.bat runhooks
+#
+#
+#cmd /C gclient.bat sync --nohooks --with_branch_heads --jobs 16
+#
+## Clear the GYP_CHROMIUM_NO_ACTION value.
+#unset GYP_CHROMIUM_NO_ACTION;
+#
+#cd $MUPEL_PATH/cef-$GIT_CEF_USER/src/cef
+#cmd /C cef_create_projects.bat
+#printf $CURS_UP
+#log_success_msg
+#
+#cd $MUPEL_PATH/cef-$GIT_CEF_USER
+#
+#printf "${WHITE}${BRIGHT}Set last change flags ...${NORMAL}\n"
+#python $MUPEL_PATH/cef-$GIT_CEF_USER/src/build/util/lastchange.py -o src/build/util/LASTCHANGE
+#python $MUPEL_PATH/cef-$GIT_CEF_USER/src/build/util/lastchange.py -s src/third_party/WebKit -o src/build/util/LASTCHANGE.blink
+#printf $CURS_UP
+#log_success_msg
+#
+#cmd /C ninja $VERBOSE -C $MUPEL_PATH/cef-$GIT_CEF_USER/src/out/$INSTALL_DIR_TYPE cefclient cef_unittests -j $CPU_PROC_JOBS
+#
+#
+#
+
+
+
+
+exit 0
 
 ## Create the final install path for them
-#INSTALL_PATH=${BASE_PATH}/build/binary_distrib/${INSTALL_DIR_TYPE}/cef
+#INSTALL_PATH=$MUPEL_PATH/cef-$GIT_CEF_USER/binary_distrib/${INSTALL_DIR_TYPE}/cef
 #[ ! -d "${INSTALL_PATH}" ] && mkdir -p "${INSTALL_PATH}"
 #
 #printf "${WHITE}${BRIGHT}Moving in previous removed 64 bit parts${NORMAL}"
-#if [ ! -d "${BASE_PATH}/build/src/third_party/binutils/Linux_x64" ];then
-#  mv "${BASE_PATH}/build/.reverse_backup/third_party/binutils/Linux_x64" "${BASE_PATH}/build/src/third_party/binutils";fi
+#if [ ! -d "$MUPEL_PATH/cef-$GIT_CEF_USER/src/third_party/binutils/Linux_x64" ];then
+#  mv "$MUPEL_PATH/cef-$GIT_CEF_USER/.reverse_backup/third_party/binutils/Linux_x64" "$MUPEL_PATH/cef-$GIT_CEF_USER/src/third_party/binutils";fi
 #log_success_msg
 #
-#REV_BACKUP_PATH=${BASE_PATH}/build/.reverse_backup
-#if [ ! -d ${REV_BACKUP_PATH}/win-x86_32 ];then
-#  mkdir -p ${REV_BACKUP_PATH}/win-x86_32;fi
+#REV_BACKUP_PATH=$MUPEL_PATH/cef-$GIT_CEF_USER/.reverse_backup
+#if [ ! -d ${REV_BACKUP_PATH}/win-x86_$BIT_SIZE ];then
+#  mkdir -p ${REV_BACKUP_PATH}/win-x86_$BIT_SIZE;fi
 #
-#export PATH="${BASE_PATH}/build/depot_tools:${PATH}"
+#export PATH="$MUPEL_PATH/cef-$GIT_CEF_USER/depot_tools:${PATH}"
 #export GYP_GENERATORS=ninja
 #
-#printf "${WHITE}${BRIGHT}Starting build of CEF system for Windows x86 32bit ...${NORMAL}\n"
+#printf "${WHITE}${BRIGHT}Starting build of CEF system for Windows x86 ${BIT_SIZE}bit ...${NORMAL}\n"
 #
 ## Backup 64 bit parts, which becomes removed on source for 32 bit build
 #mkdir -p ${REV_BACKUP_PATH}/third_party/binutils
-#if [ -d "${BASE_PATH}/build/src/third_party/binutils/Linux_x64" ];then
+#if [ -d "$MUPEL_PATH/cef-$GIT_CEF_USER/src/third_party/binutils/Linux_x64" ];then
 #{
-#  cp -Rf "${BASE_PATH}/build/src/third_party/binutils/Linux_x64" "${REV_BACKUP_PATH}/third_party/binutils"
+#  cp -Rf "$MUPEL_PATH/cef-$GIT_CEF_USER/src/third_party/binutils/Linux_x64" "${REV_BACKUP_PATH}/third_party/binutils"
 #} fi
-#if [ -d "${BASE_PATH}/build/src/third_party/binutils/Linux_ia32" ];then
+#if [ -d "$MUPEL_PATH/cef-$GIT_CEF_USER/src/third_party/binutils/Linux_ia32" ];then
 #{
-#  cp -Rf "${BASE_PATH}/build/src/third_party/binutils/Linux_ia32" "${REV_BACKUP_PATH}/third_party/binutils"
-#  rm -Rf "${BASE_PATH}/build/src/third_party/binutils/Linux_ia32"
+#  cp -Rf "$MUPEL_PATH/cef-$GIT_CEF_USER/src/third_party/binutils/Linux_ia32" "${REV_BACKUP_PATH}/third_party/binutils"
+#  rm -Rf "$MUPEL_PATH/cef-$GIT_CEF_USER/src/third_party/binutils/Linux_ia32"
 #} fi
 #
 #export GYP_DEFINES="target_arch=x64"
 #
 #if [[ -z $DIRECT_CEF_BUILD ]];then
 #{
-#  if [ ! -f "${BASE_PATH}/build/.cef-win-x86_32.active" ];then
+#  if [ ! -f "$MUPEL_PATH/cef-$GIT_CEF_USER/.cef-win-x86_32.active" ];then
 #  {
-#    rm -rf "${BASE_PATH}/build/src/out"
+#    rm -rf "$MUPEL_PATH/cef-$GIT_CEF_USER/src/out"
 #    if [ -d "${REV_BACKUP_PATH}/win-x86_32/out" ];then
 #    {
 #      printf "${WHITE}${BRIGHT}Perform store back to chromium of previous builded Windows x86 32bit ...\n${NORMAL}"
-#      cp -rf "${REV_BACKUP_PATH}/win-x86_32/out" "${BASE_PATH}/build/src"
+#      cp -rf "${REV_BACKUP_PATH}/win-x86_32/out" "$MUPEL_PATH/cef-$GIT_CEF_USER/src"
 #
-#      rm -f "${BASE_PATH}/build/.cef-*.active"
+#      rm -f "$MUPEL_PATH/cef-$GIT_CEF_USER/.cef-*.active"
 #      printf $CURS_UP
 #      log_success_msg
 #    } fi
 #  } fi
 #
-#  cd ${BASE_PATH}/build/src/cef
+#  cd $MUPEL_PATH/cef-$GIT_CEF_USER/src/cef
 #  ./cef_create_projects.sh
 #  printf $CURS_UP
 #  log_success_msg
@@ -196,40 +524,40 @@ ${BRIGHT}${WHITE}for build not present!${NORMAL}\n";
 #  cd ${BASE_PATH}/build
 #
 #  printf "${WHITE}${BRIGHT}Update chromium clang scripts ...${NORMAL}\n"
-#  python ${BASE_PATH}/build/src/tools/clang/scripts/update.py --if-needed
+#  python $MUPEL_PATH/cef-$GIT_CEF_USER/src/tools/clang/scripts/update.py --if-needed
 #  printf $CURS_UP
 #  log_success_msg
 #
 #  printf "${WHITE}${BRIGHT}Set last change flags ...${NORMAL}\n"
-#  python ${BASE_PATH}/build/src/build/util/lastchange.py -o src/build/util/LASTCHANGE
-#  python ${BASE_PATH}/build/src/build/util/lastchange.py -s src/third_party/WebKit -o src/build/util/LASTCHANGE.blink
+#  python $MUPEL_PATH/cef-$GIT_CEF_USER/src/build/util/lastchange.py -o src/build/util/LASTCHANGE
+#  python $MUPEL_PATH/cef-$GIT_CEF_USER/src/build/util/lastchange.py -s src/third_party/WebKit -o src/build/util/LASTCHANGE.blink
 #  printf $CURS_UP
 #  log_success_msg
 #
 #  printf "${WHITE}${BRIGHT}Download third party binutils ...${NORMAL}\n"
-#  python ${BASE_PATH}/build/src/third_party/binutils/download.py
+#  python $MUPEL_PATH/cef-$GIT_CEF_USER/src/third_party/binutils/download.py
 #  printf $CURS_UP
 #  log_success_msg
 #
-#  if [ ! -d ${BASE_PATH}/build/src/third_party/binutils/Linux_x64 ];then
+#  if [ ! -d $MUPEL_PATH/cef-$GIT_CEF_USER/src/third_party/binutils/Linux_x64 ];then
 #  {
 #    printf "${WHITE}${BRIGHT}Restore 64 bit parts from binutils ...${NORMAL}\n"
-#    cp -Rf "${REV_BACKUP_PATH}/third_party/binutils/Linux_x64" "${BASE_PATH}/build/src/third_party/binutils"
+#    cp -Rf "${REV_BACKUP_PATH}/third_party/binutils/Linux_x64" "$MUPEL_PATH/cef-$GIT_CEF_USER/src/third_party/binutils"
 #    printf $CURS_UP
 #    log_success_msg
 #  } fi
 #
-#  touch "${BASE_PATH}/build/.cef-win-x86_32.active"
+#  touch "$MUPEL_PATH/cef-$GIT_CEF_USER/.cef-win-x86_32.active"
 #} fi
 #
 #printf "${WHITE}${BRIGHT}Start $INSTALL_DIR_TYPE build of build CEF (Windows x86 32bit) ...\n${NORMAL}"
 #[[ $CEF_VERBOSE_BUILD = "TRUE" ]] && VERBOSE="-v"
-#ninja $VERBOSE -C ${BASE_PATH}/build/src/out/$INSTALL_DIR_TYPE cefclient cef_unittests chrome_sandbox -j $CPU_PROC_JOBS
+#ninja $VERBOSE -C $MUPEL_PATH/cef-$GIT_CEF_USER/src/out/$INSTALL_DIR_TYPE cefclient cef_unittests chrome_sandbox -j $CPU_PROC_JOBS
 #printf $CURS_UP
 #log_success_msg
 #
 #printf "${WHITE}${BRIGHT}Perform storage of Windows x86 32bit in ${REV_BACKUP_PATH}/win-x86_32 ...\n${NORMAL}"
-#cp -rf "${BASE_PATH}/build/src/out" "${REV_BACKUP_PATH}/win-x86_32"
+#cp -rf "$MUPEL_PATH/cef-$GIT_CEF_USER/src/out" "${REV_BACKUP_PATH}/win-x86_32"
 #printf $CURS_UP
 #log_success_msg
 #
@@ -257,7 +585,7 @@ ${BRIGHT}${WHITE}for build not present!${NORMAL}\n";
 #options="--ninja-build --quiet --allow-partial "
 #
 ## Create the distribution.
-#python "${BASE_PATH}/build/src/cef/tools/make_distrib.py" --output-dir "${INSTALL_PATH}" ${options}
+#python "$MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/tools/make_distrib.py" --output-dir "${INSTALL_PATH}" ${options}
 #
 #if [ -f ${INSTALL_PATH}/kodi-web-*_win32.7z ];then
 #  rm -f ${INSTALL_PATH}/kodi-web-*_win32.7z;fi
