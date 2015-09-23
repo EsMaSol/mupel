@@ -1051,11 +1051,11 @@ if [ ! -f "\$HOME/.ssh/known_hosts" ] || [[ -z \`cat \$HOME/.ssh/known_hosts | g
     [ \$? != 0 ] && rm -rf \$TEMP_DIR && exit 1
 
     if [ -d \$TEMP_DIR/cygwin ];then
-      CYGWIN=\$TEMP_DIR/cygwin
+      CYGWIN=cygwin
     elif [ -d \$TEMP_DIR/cygwin64 ];then
-      CYGWIN=\$TEMP_DIR/cygwin64
+      CYGWIN=cygwin64
     elif [ -d \$TEMP_DIR/cygwin32 ];then
-      CYGWIN=\$TEMP_DIR/cygwin32
+      CYGWIN=cygwin32
     else
       showdialog \\
         --title="Warning" \\
