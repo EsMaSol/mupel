@@ -1069,14 +1069,14 @@ Must be present on C:\\\\cygwin or C:\\\\cygwin64
     fi
 
     if [ -n \$CYGWIN ];then
-      [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub ]]     && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub\` ]] &&
-        ssh_host_dsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_dsa_key.pub\`)
-      [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub ]]   && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub\` ]] &&
-        ssh_host_ecdsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ecdsa_key.pub\`)
-      [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub ]] && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub\` ]] &&
-        ssh_host_ed25519_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_ed25519_key.pub\`)
-      [[ -f \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub ]]     && [[ ! -z \`cat \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub\` ]] &&
-        ssh_host_rsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/cygwin/etc/ssh_host_rsa_key.pub\`)
+      [[ -f \$TEMP_DIR/\$CYGWIN/etc/ssh_host_dsa_key.pub ]]     && [[ ! -z \`cat \$TEMP_DIR/\$CYGWIN/etc/ssh_host_dsa_key.pub\` ]] &&
+        ssh_host_dsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/\$CYGWIN/etc/ssh_host_dsa_key.pub\`)
+      [[ -f \$TEMP_DIR/\$CYGWIN/etc/ssh_host_ecdsa_key.pub ]]   && [[ ! -z \`cat \$TEMP_DIR/\$CYGWIN/etc/ssh_host_ecdsa_key.pub\` ]] &&
+        ssh_host_ecdsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/\$CYGWIN/etc/ssh_host_ecdsa_key.pub\`)
+      [[ -f \$TEMP_DIR/\$CYGWIN/etc/ssh_host_ed25519_key.pub ]] && [[ ! -z \`cat \$TEMP_DIR/\$CYGWIN/etc/ssh_host_ed25519_key.pub\` ]] &&
+        ssh_host_ed25519_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/\$CYGWIN/etc/ssh_host_ed25519_key.pub\`)
+      [[ -f \$TEMP_DIR/\$CYGWIN/etc/ssh_host_rsa_key.pub ]]     && [[ ! -z \`cat \$TEMP_DIR/\$CYGWIN/etc/ssh_host_rsa_key.pub\` ]] &&
+        ssh_host_rsa_key=\$(echo \$ssh_name \`cat \$TEMP_DIR/\$CYGWIN/etc/ssh_host_rsa_key.pub\`)
 
       if [[ -z \$ssh_host_dsa_key ]] && [[ -z \$ssh_host_ecdsa_key ]] && [[ -z \$ssh_host_ed25519_key ]] && [[ -z \$ssh_host_rsa_key ]];then
         showErrorDialog_YesNo "<b>\
