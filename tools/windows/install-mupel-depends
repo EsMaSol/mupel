@@ -56,6 +56,10 @@ which tput > /dev/null 2>1
 [ "$?" != "0" ] && packages="$packages ncurses"
 which git > /dev/null 2>1
 [ "$?" != "0" ] && packages="$packages git"
+which cmake > /dev/null 2>1
+[ "$?" != "0" ] && packages="$packages cmake"
+which unzip > /dev/null 2>1
+[ "$?" != "0" ] && packages="$packages unzip"
 
 if [[ ! -z $packages ]];then
   printf "${BRIGHT}${BLUE}Note:${WHITE} Missing Cygwin part's '$packages' becomes installed${NORMAL}\n"
