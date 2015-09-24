@@ -9,7 +9,11 @@ PATH="$BASE_PATH/tools:$PATH"
 # Override sudo console password request, sudo need called with "sudo -A <cmd>"
 export SUDO_ASKPASS="$BASE_PATH/tools/sudo-askpass"
 
-if [ `uname -s` = Darwin ];then
+[ `uname -s` = Darwin ] &&
+    memory=$(expr `sysctl hw.memsize | awk -F ' ' '{print $2}'` / 1024) ||
+    memory=`grep MemTotal /proc/meminfo | awk '{print $2}'`
+
+if [ `uname -s` = Darwin ] || [[ `uname -s` = CYGWIN_NT* ]];then
   BLACK="\\033[0;30m"
   RED="\\033[0;31m"
   GREEN="\\033[0;32m"
@@ -25,8 +29,6 @@ if [ `uname -s` = Darwin ];then
   BLINK="\\033[0;5m"
   REVERSE="\\033[0;7m"
   UNDERLINE="\\033[0;4m"
-
-  memory=$(expr `sysctl hw.memsize | awk -F ' ' '{print $2}'` / 1024)
 else
   BLACK=$(tput setaf 0)
   RED=$(tput setaf 1)
@@ -43,8 +45,6 @@ else
   BLINK=$(tput blink)
   REVERSE=$(tput smso)
   UNDERLINE=$(tput smul)
-
-  memory=`grep MemTotal /proc/meminfo | awk '{print $2}'`
 fi
 memory=`expr $memory / 1024`
 
