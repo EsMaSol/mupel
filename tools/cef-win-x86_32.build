@@ -32,6 +32,7 @@ BASE_PATH="z:/build"
 MUPEL_PATH=c:\\mupel
 
 . "z:/home/.mupel/mupel.conf";
+. "z:/home/.mupel/windows.conf"
 . "$BASE_PATH/tools/tool_functions";
 . "$BASE_PATH/tools/tool_cef_functions";
 
@@ -60,6 +61,8 @@ export DEPOT_TOOLS_WIN_TOOLCHAIN=0
 touch $TEMP_DIR/cef-windows-x86_$BIT_SIZE.failed;
 
 . "$BASE_PATH/versions";
+
+$BASE_PATH/tools/windows/install-mupel-depends
 
 export Configuration=$INSTALL_DIR_TYPE;
 export WORKSPACE="c:\\mupel\\cef-$GIT_CEF_USER\\src";

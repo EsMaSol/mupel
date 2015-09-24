@@ -20,19 +20,17 @@
 ###############################################################################
 
 # Force mount of needed network drive
-net use /delete z:
-sleep 2
-net use z: \\\\10.0.2.4\\qemu
+#net use /delete z:
+#sleep 2
+#net use z: \\\\10.0.2.4\\qemu
 
 BASE_PATH="z:/build"
 MUPEL_PATH=c:\\mupel
 
 . "z:/home/.mupel/mupel.conf";
+. "z:/home/.mupel/windows.conf"
 . "$BASE_PATH/tools/tool_functions"
 . "$BASE_PATH/tools/tool_install_functions"
-. "$BASE_PATH/tools/windows/windows.conf"
-. "$BASE_PATH/versions"
-. "z:/home/.mupel/windows.conf"
 
 # Install needed 'apt-cyg' if not present
 which apt-cyg > /dev/null 2>1

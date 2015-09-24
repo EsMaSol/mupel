@@ -619,8 +619,10 @@ function buildThreadBaseGeneralProcess()
 Basic system creation failed!
 Systems build stopped here." \
                --button=gtk-ok:1 2> /dev/null &
-    rm -f "$TEMP_DIR/build_thread-base_general.pid";
-    exit ${error_value}
+
+    rm -f $TEMP_DIR/build_thread-base_general.pid;
+    rm -f $TEMP_DIR/build_thread-$system.pid;
+    exit 1
   } fi
 }
 
@@ -753,7 +755,9 @@ function buildThreadForOS()
       break;
     } done
     if [ ! -z $os_ready ];then
+    {
       echo "connected";
+    }
     else
     {
       echo "failed, build interrupted!"
