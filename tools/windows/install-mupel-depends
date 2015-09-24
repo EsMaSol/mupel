@@ -1,0 +1,63 @@
+#!/bin/bash
+###############################################################################
+#                                                                             #
+#     Copyright (C) 2015 Team KODI                                            #
+#     http://kodi.tv                                                          #
+#                                                                             #
+#  This program is free software: you can redistribute it and/or modify       #
+#  it under the terms of the GNU General Public License as published by       #
+#  the Free Software Foundation, either version 3 of the License, or          #
+#  (at your option) any later version.                                        #
+#                                                                             #
+#  This program is distributed in the hope that it will be useful,            #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of             #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              #
+#  GNU General Public License for more details.                               #
+#                                                                             #
+#  You should have received a copy of the GNU General Public License          #
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.      #
+#                                                                             #
+###############################################################################
+
+# Force mount of needed network drive
+net use /delete z:
+sleep 2
+net use z: \\\\10.0.2.4\\qemu
+
+BASE_PATH="z:/build"
+MUPEL_PATH=c:\\mupel
+
+. "z:/home/.mupel/mupel.conf";
+. "$BASE_PATH/tools/tool_functions"
+. "$BASE_PATH/tools/tool_install_functions"
+. "$BASE_PATH/tools/windows/windows.conf"
+. "$BASE_PATH/versions"
+. "z:/home/.mupel/windows.conf"
+
+# Install needed 'apt-cyg' if not present
+which apt-cyg > /dev/null 2>1
+if [ $? != 0 ];then
+  printf "${BRIGHT}${BLUE}Note:${WHITE} Missing Cygwin part 'apt-cyg' becomes installed${NORMAL}\n"
+  lynx -source rawgit.com/transcode-open/apt-cyg/master/apt-cyg > apt-cyg
+  # Prevent use of 'mapfile -t pks', use of them result in freeze by a ssh
+  # direct command call!
+  sed  -i 's/  mapfile -t pks/  test #mapfile -t pks/' apt-cyg
+  install apt-cyg /bin
+  rm apt-cyg
+fi
+
+# Check presence of needed parts in Cygwin
+packages=""
+which wget > /dev/null 2>1
+[ "$?" != "0" ] && packages="$packages wget"
+which mcedit > /dev/null 2>1
+[ "$?" != "0" ] && packages="$packages mc"
+which tput > /dev/null 2>1
+[ "$?" != "0" ] && packages="$packages ncurses"
+which git > /dev/null 2>1
+[ "$?" != "0" ] && packages="$packages git"
+
+if [[ ! -z $packages ]];then
+  printf "${BRIGHT}${BLUE}Note:${WHITE} Missing Cygwin part's '$packages' becomes installed${NORMAL}\n"
+  apt-cyg install $packages
+fi
