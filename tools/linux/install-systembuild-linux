@@ -438,9 +438,12 @@ function system_overwrite()
 
 function system_install()
 {
-  local distname=$1
-  local arch=$2
-  local target="${distname}${arch}"
+  local distname=$1;
+  local arch=$2;
+  local target="${distname}${arch}";
+
+  local archflag;
+  [ "${arch}" == "32bit" ] && archflag="--arch i386" || archflag="--arch amd64"
 
   sudo -A -- mkdir -p /var/lib/chroot/${target}
   (
@@ -513,7 +516,7 @@ EOF
       priority=$(grep -qs 'priority=' /etc/schroot/schroot.conf && echo 'priority=3' || :)
       sudo -A -- "bash -c 'cat >>/etc/schroot/schroot.conf'" << 'EOF'
 [${target%bit}]
-description=${brand} ${distname} ${arch}bit
+description=${brand} ${distname} ${arch}
 type=directory
 directory=/var/lib/chroot/${target}
 users=root
