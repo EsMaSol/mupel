@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 ###############################################################################
 #                                                                             #
 #     Copyright (C) 2015 Team KODI                                            #
@@ -19,25 +19,16 @@
 #                                                                             #
 ###############################################################################
 #                                                                             #
-# Note: This script becomes called on Mac OS X system!                        #
+# Note: This script becomes called over cygwin on windows system!             #
 #       Access from muple to them is over a ssh connection.                   #
 #                                                                             #
 ###############################################################################
 
-trap 'echo Error on line ${LINENO} inside Mac OS X system call;' ERR
+BASE_PATH="z:/build"
+MUPEL_PATH=c:\\mupel
 
-MUPEL_PATH=$HOME/Desktop/Mupel
-
-if [ ! -d $MUPEL_PATH/remote_access ];then
-  mkdir -p $MUPEL_PATH/remote_access;fi
-if [[ -z  `mount | grep //guest:@10.0.2.4/qemu` ]];then
-  mount -t smbfs //guest:@10.0.2.4/qemu $MUPEL_PATH/remote_access;fi
-
-BIT_SIZE="64";
-BASE_PATH=$MUPEL_PATH/remote_access/build
-
-. "$MUPEL_PATH/remote_access/home/.mupel/mupel.conf";
-. "$MUPEL_PATH/remote_access/home/.mupel/mac-osx.conf";
+. "z:/home/.mupel/mupel.conf";
+. "z:/home/.mupel/windows.conf"
 . "$BASE_PATH/tools/tool_functions";
 . "$BASE_PATH/tools/tool_cef_functions";
 
@@ -45,7 +36,7 @@ TEMP_DIR=$BASE_PATH/build/.tmp;
 
 function exitBuild
 {
-  rm -f $TEMP_DIR/build_thread-cef_active-osx-x86_$BIT_SIZE;
+  rm -f $TEMP_DIR/build_thread-cef_active-win-x86_$BIT_SIZE;
   rm -f $TEMP_DIR/build_thread-cef_active;
 }
 
@@ -63,16 +54,16 @@ if [[ -n $FORCECLEAN ]] || [[ -n $FORCEUPDATE ]];then
 
 initBuildScript_CEF;
 
-
-
+# Avoid errors when the "vs_toolchain.py update" Chromium hook runs.
+export DEPOT_TOOLS_WIN_TOOLCHAIN=0
 
 trap exitBuild EXIT
 
-touch $TEMP_DIR/cef-osx-x86_$BIT_SIZE.failed;
+touch $TEMP_DIR/cef-windows-x86_$BIT_SIZE.failed;
 
 . "$BASE_PATH/versions";
 
-
+$BASE_PATH/tools/windows/install-mupel-depends
 
 if [ -z $DIRECT_CEF_BUILD ];then
   CEF_BUILD="complete";
@@ -94,8 +85,8 @@ INSTALL_PATH=$BASE_PATH/build/cef-$GIT_CEF_USER/binary_distrib
 printf "
 /------------------------------------------------------------------------------
 |
-|  CEF build Mac OS X x86 ${BIT_SIZE}bit
-| ==============================
+|  CEF build Windows x86 ${BIT_SIZE}bit
+| =============================
 |
 |  Build type :           $CEF_BUILD
 |  Binary version :       $CEF_KODI_BINARY_VERSION
@@ -120,52 +111,51 @@ printf "
 
 sleep 3
 
-
+[ ! -d "$MUPEL_PATH" ] && mkdir -p "$MUPEL_PATH";
 
 ##
 # Check for presence of chromium depot tools
-printf "${BRIGHT}${WHITE}Download and install Windows Chromium depot tools to $MUPEL_PATH/${WINDOWS_DEPOT_TOOLS_BUNDLE##*/}${NORMAL} ...\n";
+printf "${BRIGHT}${WHITE}Download and install Windows Chromium depot tools to $MUPEL_PATH\\${WINDOWS_DEPOT_TOOLS_BUNDLE##*/}${NORMAL} ...\n";
 if [ ! -d "$MUPEL_PATH/depot_tools" ];then
 {
   handleGITLoad "$MUPEL_PATH" depot_tools $DEPOT_TOOLS_URL master;
   handleErrorsCodes $? "git" "$DEPOT_TOOLS_URL" console exit;
 
-  PATH="$MUPEL_PATH/depot_tools:${PATH}"
-  export PATH;
+  export PATH="/cygdrive/c/mupel/depot_tools:${PATH}"
 
   if [[ -z $NOUPDATE ]];then
   {
-    update_depot_tools
+    cmd /C update_depot_tools.bat
     handleErrorsCodes $? "update_depot_tools" "$MUPEL_PATH/depot_tools" console exit;
   } fi
 
+  handleGITLoad "$MUPEL_PATH" gyp $WINDOWS_GYP master;
+  handleErrorsCodes $? "git" "$WINDOWS_GYP" console exit;
 
+  cp -f /cygdrive/c/mupel/depot_tools/ENV/Scripts/* $MUPEL_PATH/depot_tools/ENV/bin
+  handleErrorsCodes $? "cp" "cp -f /cygdrive/c/mupel/depot_tools/ENV/Scripts/* $MUPEL_PATH/depot_tools/ENV/bin" console exit;
 
-
-
-
-
-
-
+  ( cd $MUPEL_PATH/gyp; cmd /C python setup.py install; )
+  handleErrorsCodes $? "python" "./gyp/setup.py" console exit;
 
   gclient
   evaluateReturnValue $?;
 }
 else
 {
-  export PATH="$MUPEL_PATH/depot_tools:${PATH}";
+  export PATH="/cygdrive/c/mupel/depot_tools:${PATH}";
   log_skip_msg;
 } fi
 
-if [ ! -d "$MUPEL_PATH/cef-$GIT_CEF_USER" ];then
+if [ ! -d "$MUPEL_PATH\\cef-$GIT_CEF_USER" ];then
 {
-  mkdir -p "$MUPEL_PATH/cef-$GIT_CEF_USER"
-  handleErrorsCodes $? "mkdir" "mkdir -p \"$MUPEL_PATH/cef-$GIT_CEF_USER\"" console exit;
+  mkdir -p "$MUPEL_PATH\\cef-$GIT_CEF_USER"
+  handleErrorsCodes $? "mkdir" "mkdir -p \"$MUPEL_PATH\\cef-$GIT_CEF_USER\"" console exit;
 } fi
 
 printf "\
 ${BRIGHT}${WHITE}Create gclient configuration file${NORMAL} ...
- > '$MUPEL_PATH/cef-$GIT_CEF_USER/.gclient' ...";
+ > '$MUPEL_PATH\\cef-$GIT_CEF_USER\\.gclient' ...";
 if [ ! -f "$MUPEL_PATH/cef-$GIT_CEF_USER/.gclient" ] || [[ -n $FORCECONFIG ]];then
 {
   createCEF_gclient "$MUPEL_PATH/cef-$GIT_CEF_USER/.gclient";
@@ -176,8 +166,8 @@ else
 
 trap 'trapError ${LINENO};' ERR;
 
-export GYP_GENERATORS=ninja
-
+export GYP_GENERATORS=ninja,msvs-ninja
+export GYP_MSVS_VERSION=2013
 if [ $BIT_SIZE = 64 ];then
   export GYP_DEFINES="target_arch=x64";fi
 
@@ -204,17 +194,17 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
     printf "\n${BRIGHT}${RED}WARNING: ${WHITE}Download takes a very long time ${UNDERLINE}(more as 12 hours possible)${NORMAL}\n";
 
     cd "$MUPEL_PATH/cef-$GIT_CEF_USER";
-    [ -f "$BASE_PATH/build/chromium-osx-load.log" ] &&
-      mv -f "$BASE_PATH/build/chromium-osx-load.log" \
-            "$BASE_PATH/build/chromium-osx-load.old.log";
+    [ -f "$BASE_PATH/build/chromium-windows-load.log" ] &&
+      mv -f "$BASE_PATH/build/chromium-windows-load.log" \
+            "$BASE_PATH/build/chromium-windows-load.old.log";
 
-    touch "$BASE_PATH/build/chromium-osx-load.log";
+    touch "$BASE_PATH/build/chromium-windows-load.log";
     touch "$TEMP_DIR/.tempLoggerActive";
 
     (
       position=0;
       empty_size=`du -s | awk -F ' ' '{print $1}' 2> /dev/null`;
-      printf "In progress, for details see $BASE_PATH/build/chromium-osx-load.log\n";
+      printf "In progress, for details see $BASE_PATH/build/chromium-windows-load.log\n";
       while [ -f "$TEMP_DIR/.tempLoggerActive" ]; do
       {
         progress="";
@@ -232,16 +222,16 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
           position=0;fi
 
         used_size=$(expr `expr $(du -s 2> /dev/null | awk -F ' ' '{print $1}' 2> /dev/null) - $empty_size` / 1024 2> /dev/null);
-        label=`tail -1 "$BASE_PATH/build/chromium-osx-load.log" | cut -d' ' -f1 | cut -c-17`;
+        label=`tail -1 "$BASE_PATH/build/chromium-windows-load.log" | cut -d' ' -f1 | cut -c-17`;
         printf "\r$WHITE[$NORMAL $progress $WHITE] $label - $used_size MByte$NORMAL";
 
         sleep 1;
       } done
     ) &
     tailPID=$!
-    echo "Initial Chromium checkout:" >> "$BASE_PATH/build/chromium-osx-load.log";
-    echo "started" >> "$BASE_PATH/build/chromium-osx-load.log";
-    gclient sync --nohooks --with_branch_heads --jobs 16 >> "$BASE_PATH/build/chromium-osx-load.log" 2>&1
+    echo "Initial Chromium checkout:" >> "$BASE_PATH/build/chromium-windows-load.log";
+    echo "started" >> "$BASE_PATH/build/chromium-windows-load.log";
+    gclient sync --nohooks --with_branch_heads --jobs 16 >> "$BASE_PATH/build/chromium-windows-load.log" 2>&1
     error_value="${?}";
     rm -f "$TEMP_DIR/.tempLoggerActive";
     if [[ ! -z `ps --no-headers -p $tailPID` ]]; then
@@ -332,7 +322,7 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
         # Remove all local changes including third-party git checkouts managed by
         # gclient.
         git -C $MUPEL_PATH/cef-$GIT_CEF_USER/src clean -dffx;
-        handleErrorsCodes $? "git" "git -C $MUPEL_PATH/cef-$GIT_CEF_USER/src clean -dffx;" console exit;
+        handleErrorsCodes $? "git" "git -C $MUPEL_PATH\\cef-$GIT_CEF_USER\\src clean -dffx;" console exit;
       }
       else
       {
@@ -344,11 +334,11 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
 
     # Fetch new sources.
     git -C $MUPEL_PATH/cef-$GIT_CEF_USER/src fetch;
-    handleErrorsCodes $? "git" "git -C $MUPEL_PATH/cef-$GIT_CEF_USER/src fetch;" console exit;
+    handleErrorsCodes $? "git" "git -C $MUPEL_PATH\\cef-$GIT_CEF_USER\\src fetch;" console exit;
 
     # Also fetch tags, which are required for release branch builds.
     git -C $MUPEL_PATH/cef-$GIT_CEF_USER/src fetch --tags;
-    handleErrorsCodes $? "git" "git -C $MUPEL_PATH/cef-$GIT_CEF_USER/src fetch --tags;" console exit;
+    handleErrorsCodes $? "git" "git -C $MUPEL_PATH\\cef-$GIT_CEF_USER\\src fetch --tags;" console exit;
 
     # Checkout the requested branch.
     git -C $MUPEL_PATH/cef-$GIT_CEF_USER/src checkout $([ -n $FORCECLEAN ] && echo "--force") $CHROMIUM_CHECKOUT;
@@ -403,14 +393,9 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
 
   printf "${BRIGHT}${WHITE}Create CEF projects${NORMAL}";
   cd $MUPEL_PATH/cef-$GIT_CEF_USER/src/cef
-  ./cef_create_projects.sh
+  cmd /C cef_create_projects.bat
   log_success_msg
   cd $MUPEL_PATH/cef-$GIT_CEF_USER
-
-  printf "${BRIGHT}${WHITE}Update chromium clang scripts ...${NORMAL}\n"
-  python $MUPEL_PATH/cef-$GIT_CEF_USER/src/tools/clang/scripts/update.py --if-needed
-  printf $CURS_UP
-  log_success_msg
 
   printf "${BRIGHT}${WHITE}Set last change flags ...${NORMAL}\n"
   python $MUPEL_PATH/cef-$GIT_CEF_USER/src/build/util/lastchange.py -o src/build/util/LASTCHANGE
@@ -420,31 +405,31 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
 
   touch "$TEMP_DIR/cef-$GIT_CEF_USER-osx-x86_${BIT_SIZE}.active"
 } fi
-#      $MUPEL_PATH/cef-$GIT_CEF_USER/src/out/${INSTALL_DIR_TYPE}$([[ $BIT_SIZE = 64 ]] && echo _x64) \
+
 # Build using Ninja.
-printf "${BRIGHT}${WHITE}Start $INSTALL_DIR_TYPE build of build CEF (Mac OS X x86 ${BIT_SIZE}bit) ...\n${NORMAL}"
-ninja $([ -n $VERBOSEBUILD ] && echo "-v") -C \
-      $MUPEL_PATH/cef-$GIT_CEF_USER/src/out/${INSTALL_DIR_TYPE} \
-      cefclient \
-      $([ -n $BUILDTESTS ] && echo "cef_unittests") \
-      -j $CPU_PROC_JOBS
+printf "${BRIGHT}${WHITE}Start $INSTALL_DIR_TYPE build of build CEF (Windows x86 ${BIT_SIZE}bit) ...\n${NORMAL}"
+cmd /C ninja $([ -n $VERBOSEBUILD ] && echo "-v") -C \
+             $MUPEL_PATH/cef-$GIT_CEF_USER/src/out/${INSTALL_DIR_TYPE}$([[ $BIT_SIZE = 64 ]] && echo _x64) \
+             cefclient \
+             $([ -n $BUILDTESTS ] && echo "cef_unittests") \
+             -j $CPU_PROC_JOBS
 log_success_msg
 
 if [[ -z $DIRECT_CEF_BUILD ]];then
 {
-####
+  ####
 
-  printf "${BRIGHT}${WHITE}Start creation of kodi's build distribution for Mac OS X x86 ${BIT_SIZE}bit ...${NORMAL}\n"
+  printf "${BRIGHT}${WHITE}Start creation of kodi's build distribution for Windows x86 ${BIT_SIZE}bit ...${NORMAL}\n"
 
-  #export CEF_COMMAND_7ZIP="7z"
+  #export CEF_COMMAND_7ZIP="C:\\Program Files\\7-Zip\\7z"
   unset CEF_COMMAND_7ZIP;
   [ -n $CEF_COMMAND_7ZIP ] && pack_end=7z || pack_end=zip
 
   # Remove old to prevent package from errors which comes if build becomes cancelled on 'make_distrib.py'
-  [ -f $MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/binary_distrib/cef_binary_*_osx${BIT_SIZE}.$pack_end ] &&
-    rm -f $MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/binary_distrib/cef_binary_*_osx${BIT_SIZE}.$pack_end;
-  [ -f $MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/binary_distrib/cef_binary_*_osx${BIT_SIZE}_release_symbols.$pack_end ] &&
-    rm -f $MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/binary_distrib/cef_binary_*_osx${BIT_SIZE}_release_symbols.$pack_end;
+  [ -f $MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/binary_distrib/cef_binary_*_windows${BIT_SIZE}.$pack_end ] &&
+    rm -f $MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/binary_distrib/cef_binary_*_windows${BIT_SIZE}.$pack_end;
+  [ -f $MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/binary_distrib/cef_binary_*_windows${BIT_SIZE}_release_symbols.$pack_end ] &&
+    rm -f $MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/binary_distrib/cef_binary_*_windows${BIT_SIZE}_release_symbols.$pack_end;
 
   # --output-dir    - output directory [required]
   # --allow-partial - allow creation of partial distributions
@@ -459,18 +444,18 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
 
   # Create the distribution.
   cd $MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/tools
-  ./make_distrib.sh --ninja-build \
-                    --allow-partial \
-                    $([[ $BIT_SIZE = 64 ]] && echo --x64-build) \
-                    $([[ -z $VERBOSEBUILD ]] && echo --quiet)
+  cmd /C make_distrib.bat --ninja-build \
+                          --allow-partial \
+                          $([[ $BIT_SIZE = 64 ]] && echo --x64-build) \
+                          $([[ -z $VERBOSEBUILD ]] && echo --quiet)
 
   [ $INSTALL_DIR_TYPE = "Debug" ] && EXTRA_NAME=debug- || EXTRA_NAME=release-
 
   # Remove old packages if present on base
-  [ -f ${INSTALL_PATH}/kodi-web-${EXTRA_NAME}*_macosx${BIT_SIZE}.$pack_end ] &&
-    rm -f ${INSTALL_PATH}/kodi-web-${EXTRA_NAME}*_macosx${BIT_SIZE}.$pack_end;
-  [ -f ${INSTALL_PATH}/kodi-web-${EXTRA_NAME}*_macosx${BIT_SIZE}_release_symbols.$pack_end ] &&
-    rm -f ${INSTALL_PATH}/kodi-web-${EXTRA_NAME}*_macosx${BIT_SIZE}_release_symbols.$pack_end;
+  [ -f ${INSTALL_PATH}/kodi-web-${EXTRA_NAME}*_windows${BIT_SIZE}.$pack_end ] &&
+    rm -f ${INSTALL_PATH}/kodi-web-${EXTRA_NAME}*_windows${BIT_SIZE}.$pack_end;
+  [ -f ${INSTALL_PATH}/kodi-web-${EXTRA_NAME}*_windows${BIT_SIZE}_release_symbols.$pack_end ] &&
+    rm -f ${INSTALL_PATH}/kodi-web-${EXTRA_NAME}*_windows${BIT_SIZE}_release_symbols.$pack_end;
 
   ####
 
@@ -478,21 +463,21 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
 
   printf "${BRIGHT}${WHITE}Move created packages to base system ...${NORMAL}\n"
 
-  name=$(cd "$MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/binary_distrib"; ls -1 cef_binary_*_macosx${BIT_SIZE}.* 2> /dev/null)
+  name=$(cd "$MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/binary_distrib"; ls -1 cef_binary_*_windows${BIT_SIZE}.* 2> /dev/null)
   if [ -n $name ];then
     mv -f $MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/binary_distrib/${name} ${INSTALL_PATH}/kodi-web-${EXTRA_NAME}${CEF_KODI_BINARY_VERSION}_${name}
   else
   {
-    printf "${BRIGHT}${RED}ERROR: ${WHITE}Needed Package '$MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/binary_distrib/cef_binary_*_macosx${BIT_SIZE}.*' not present${NORMAL}\n"
+    printf "${BRIGHT}${RED}ERROR: ${WHITE}Needed Package '$MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/binary_distrib/cef_binary_*_windows${BIT_SIZE}.*' not present${NORMAL}\n"
     exit 1
   } fi
 
-  name=$(cd "$MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/binary_distrib"; ls -1 cef_binary_*_macosx${BIT_SIZE}_release_symbols.* 2> /dev/null)
+  name=$(cd "$MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/binary_distrib"; ls -1 cef_binary_*_windows${BIT_SIZE}_release_symbols.* 2> /dev/null)
   if [ -n $name ];then
     mv -f $MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/binary_distrib/${name} ${INSTALL_PATH}/kodi-web-${EXTRA_NAME}${CEF_KODI_BINARY_VERSION}_${name}
   else
   {
-    printf "${BRIGHT}${RED}ERROR: ${WHITE}Needed Package '$MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/binary_distrib/cef_binary_*_macosx${BIT_SIZE}_release_symbols.*' not present${NORMAL}\n"
+    printf "${BRIGHT}${RED}ERROR: ${WHITE}Needed Package '$MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/binary_distrib/cef_binary_*_windows${BIT_SIZE}_release_symbols.*' not present${NORMAL}\n"
     exit 1
   } fi
 
@@ -511,6 +496,5 @@ ${BRIGHT}${WHITE}All CEF steps ${GREEN}successfully${WHITE} performed and build 
 "
 
 rm -f $TEMP_DIR/cef-win-x86_${BIT_SIZE}.failed;
-umount $MUPEL_PATH/remote_access
 
 exit 0

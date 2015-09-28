@@ -8,7 +8,7 @@ BASE_PATH=$HOME/.mupel
 ssh_name=`echo $WINDOWS_DEFAULT_RUN | tr '(' '_' | tr ')' '_'`;
 if [[ -z $ssh_name ]];then
   ssh_name="127.0.0.1 -p 2222";fi
-
+echo $WINDOWS_DEFAULT_RUN
 sshpass -p $WINDOWS_SSH_PASSWORD ssh $WINDOWS_DEFAULT_RUN -l $WINDOWS_SSH_USERNAME test echo
 ret=$?
 if [ $ret = 6 ];then

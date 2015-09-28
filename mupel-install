@@ -64,7 +64,6 @@ USE_LINUX_X86_32="FALSE"
 USE_LINUX_X86_64="FALSE"
 USE_MS_WINDOWS_32="FALSE"
 USE_MS_WINDOWS_64="FALSE"
-USE_MAC_OS_X_32="FALSE"
 USE_MAC_OS_X_64="FALSE"
 USE_LINUX_RPBI="FALSE"
 USE_ANDROID_ARM="FALSE"
@@ -449,7 +448,6 @@ while :; do
                              --field="Include Linux x86-64bit:CHK"    "$USE_LINUX_X86_64" \
                              --field="Include Windows 32bit:CHK"      "$USE_MS_WINDOWS_32" \
                              --field="Include Windows 64bit:CHK"      "$USE_MS_WINDOWS_64" \
-                             --field="Include Mac OS-X 32bit:CHK"     "$USE_MAC_OS_X_32" \
                              --field="Include Mac OS-X 64bit:CHK"     "$USE_MAC_OS_X_64" \
                              --field="Include Linux Raspberry PI:CHK" "$USE_LINUX_RPBI" \
                              --field="Include Android ARM:CHK"        "$USE_ANDROID_ARM" \
@@ -490,17 +488,16 @@ USE_LINUX_X86_32="$(echo $install_values | awk -F '|' '{print $7}')";
 USE_LINUX_X86_64="$(echo $install_values | awk -F '|' '{print $8}')";
 USE_MS_WINDOWS_32="$(echo $install_values | awk -F '|' '{print $9}')";
 USE_MS_WINDOWS_64="$(echo $install_values | awk -F '|' '{print $10}')";
-USE_MAC_OS_X_32="$(echo $install_values | awk -F '|' '{print $11}')";
-USE_MAC_OS_X_64="$(echo $install_values | awk -F '|' '{print $12}')";
-USE_LINUX_RPBI="$(echo $install_values | awk -F '|' '{print $13}')";
-USE_ANDROID_ARM="$(echo $install_values | awk -F '|' '{print $14}')";
-USE_ANDROID_X86="$(echo $install_values | awk -F '|' '{print $15}')";
-USE_IOS_ATV2="$(echo $install_values | awk -F '|' '{print $16}')";
-DEPOT_TOOLS_URL="$(echo $install_values | awk -F '|' '{print $18}')";
-USE_JENKINS="$(echo $install_values | awk -F '|' '{print $19}')";
-MUPEL_DESKTOP_ICON_PATH="$(echo $install_values | awk -F '|' '{print $20}')";
-GIT_USERNAME="$(echo $install_values | awk -F '|' '{print $23}')";
-GIT_EMAIL="$(echo $install_values | awk -F '|' '{print $24}')";
+USE_MAC_OS_X_64="$(echo $install_values | awk -F '|' '{print $11}')";
+USE_LINUX_RPBI="$(echo $install_values | awk -F '|' '{print $12}')";
+USE_ANDROID_ARM="$(echo $install_values | awk -F '|' '{print $13}')";
+USE_ANDROID_X86="$(echo $install_values | awk -F '|' '{print $14}')";
+USE_IOS_ATV2="$(echo $install_values | awk -F '|' '{print $15}')";
+DEPOT_TOOLS_URL="$(echo $install_values | awk -F '|' '{print $17}')";
+USE_JENKINS="$(echo $install_values | awk -F '|' '{print $18}')";
+MUPEL_DESKTOP_ICON_PATH="$(echo $install_values | awk -F '|' '{print $19}')";
+GIT_USERNAME="$(echo $install_values | awk -F '|' '{print $22}')";
+GIT_EMAIL="$(echo $install_values | awk -F '|' '{print $23}')";
 
 if [ -z $GIT_NOT_SET ] && [[ $GIT_USERNAME != $GIT_USERNAME_OLD ]] || [[ $GIT_EMAIL != $GIT_EMAIL_OLD ]];then
 {
@@ -705,7 +702,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
   } fi
 } fi
 
-if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
+if [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
 {
   if [ -f $BASE_PATH/tools/mac-osx/install-systembuild-mac-osx ];then
   {
@@ -824,7 +821,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
   } done
 } fi
 
-if [[ $USE_MAC_OS_X_32 = "TRUE" ]] || [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
+if [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
 {
   while :; do
   {

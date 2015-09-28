@@ -58,6 +58,8 @@ which cmake > /dev/null 2>1
 [ "$?" != "0" ] && packages="$packages cmake"
 which unzip > /dev/null 2>1
 [ "$?" != "0" ] && packages="$packages unzip"
+which 7z > /dev/null 2>1
+[ "$?" != "0" ] && packages="$packages p7zip"
 
 if [[ ! -z $packages ]];then
   printf "${BRIGHT}${BLUE}Note:${WHITE} Missing Cygwin part's '$packages' becomes installed${NORMAL}\n"

@@ -141,11 +141,13 @@ function handle_virtual_machine_install()
                      -boot d \
                      -cdrom "$cdrom_mount" \
                      -m $WINDOWS_LAST_USED_MEM_SIZE \
+                     -name "$app_name" \
                      -net nic,vlan=0 \
                      -net user \
                      -redir tcp:2222::22 \
                      -monitor telnet:127.0.0.1:3010,server,nowait,ipv4 \
-                     -uuid $WINDOWS_LAST_USED_UUID
+                     -uuid $WINDOWS_LAST_USED_UUID \
+                     -enable-kvm
   evaluate_ret_error $? "Run of virtual system for windows installation failed"
 }
 
@@ -1121,7 +1123,7 @@ if [ ! -f "\$HOME/.ssh/config" ] || [[ -z \`cat \$HOME/.ssh/config | grep "\$ssh
 
     echo "\$ssh_cmp_name"             >> \$HOME/.ssh/config
     echo "Host \$ssh_name"            >> \$HOME/.ssh/config
-    echo "  Hostname 127.0.0.1       >> \$HOME/.ssh/config
+    echo "  Hostname 127.0.0.1"      >> \$HOME/.ssh/config
     echo "  HostKeyAlias \$ssh_name"  >> \$HOME/.ssh/config
     echo "  CheckHostIP no"          >> \$HOME/.ssh/config
     echo "  Port 2222"               >> \$HOME/.ssh/config
@@ -1168,12 +1170,13 @@ used_uuid=\$(cat "$INSTALL_PREFIX/systems/\$app_name/usedUUID.txt" | tail -1);
 [[ -n \$additional_file_hd ]] && file_hd="-hdb \$additional_file_hd";
 [[ -n  \$cdrom_mount ]] && cdrom_mount="-cdrom \$cdrom_mount";
 
-if [ \$is_react_os == 0 ];then
+if [ \$is_react_os = 0 ];then
   qemu-system-x86_64 -hda $INSTALL_PREFIX/systems/\$app_name/root_disk.qcow2 \\
                      \$file_hd \\
                      -boot c \\
                      \$cdrom_mount \\
                      -m \${virt_memory_size} \\
+                     -name "\$app_name" \\
                      -net nic,vlan=0 \\
                      -net user,smb="$INSTALL_PREFIX/systems/data_share/base" \\
                      -net nic,model=e1000 \\
@@ -1192,6 +1195,7 @@ else
                      -boot c \\
                      \$cdrom_mount \\
                      -m \${virt_memory_size} \\
+                     -name "\$app_name" \\
                      -net nic,vlan=0 \\
                      -net nic,model=rtl8139 \\
                      -net user,smb="$INSTALL_PREFIX/systems/data_share/base" \\

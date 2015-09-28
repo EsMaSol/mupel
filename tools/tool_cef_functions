@@ -35,6 +35,15 @@ function usageCEF()
 # Function to process given input variables
 function processOptsCEF()
 {
+  [[ $CEF_DEBUG = "TRUE" ]]            && DEBUG_BUILD="--enable-debug=yes" && INSTALL_DIR_TYPE="Debug";
+  [[ $CEF_FORCE_UPDATE = "TRUE" ]]     && FORCEUPDATE=1;
+  [[ $CEF_NO_UPDATE = "TRUE" ]]        && NOUPDATE=1;
+  [[ $CEF_FORCE_CONFIG = "TRUE" ]]     && FORCECONFIG=1;
+  [[ $CEF_FORCE_CLEAN = "TRUE" ]]      && FORCECLEAN=1;
+  [[ $CEF_FORCE_CLEAN_DEPS = "TRUE" ]] && FORCECLEANDEPS=1;
+  [[ $CEF_BUILD_TESTS = "TRUE" ]]      && BUILDTESTS=1;
+  [[ $CEF_VERBOSE_BUILD = "TRUE" ]]    && VERBOSEBUILD=1;
+
   while test "$1" != "" ; do
     case "$1" in
       --build-direct)
@@ -67,7 +76,7 @@ function processOptsCEF()
         ;;
       --help)                   usageCEF;;
       *)
-        echo "invalid command-line option: $OPTARG"
+        echo "invalid command-line option: $1"
         usageCEF
         ;;
     esac
@@ -133,3 +142,33 @@ function write_branch_config_file()
   if [ ! -f $path/cef.branch ];then
     echo $branch > $path/cef.branch;fi
 }
+
+##
+function initBuildScript_CEF()
+{
+  GIT_CEF_USER=$(echo $CEF_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+  if [ -z $GIT_CEF_USER ];then
+  {
+    printf "${RED}${BRIGHT}ERROR: ${WHITE}Needed git user name could not be detected for CEF${NORMAL}\n";
+    exit 1;
+  } fi
+
+  if [ ! -d $BASE_PATH/build/cef-$GIT_CEF_USER/cef ];then
+  {
+    printf "\
+${RED}${BRIGHT}ERROR: ${WHITE}Needed source code on${NORMAL}
+${BRIGHT}${WHITE}$BASE_PATH/build/cef-$GIT_CEF_USER/cef${NORMAL}
+${BRIGHT}${WHITE}for build not present!${NORMAL}\n";
+    exit 1;
+  } fi
+
+  ##
+  # If no temporary directory is passed create a own
+  if [ -z $TEMP_DIR ];then
+  {
+    OWN_TEMP=1;
+    TEMP_DIR=$(mktemp -d);
+    printf "${YELLOW}${BRIGHT}WARNING: ${WHITE}No temporary directory defined, using own $TEMP_DIR${NORMAL}\n\n";
+  } fi
+}
+##

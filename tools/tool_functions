@@ -792,8 +792,10 @@ function loadConfigFile()
   {
     . "$HOME/.mupel/mupel.conf";
     GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+    GIT_CEF_USER=$(echo $CEF_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
     export KODI_SEL_ADDON;
     export GIT_USER;
+    export GIT_CEF_USER;
   }
   else
     printf "${RED}${BRIGHT}ERROR: ${WHITE}Needed Mupel config file '$HOME/.mupel/mupel.conf' not present${NORMAL}\n";fi
@@ -842,7 +844,6 @@ USE_LINUX_X86_DISTR=$USE_LINUX_X86_DISTR
 USE_LINUX_RPBI=$USE_LINUX_RPBI
 USE_MS_WINDOWS_32=$USE_MS_WINDOWS_32
 USE_MS_WINDOWS_64=$USE_MS_WINDOWS_64
-USE_MAC_OS_X_32=$USE_MAC_OS_X_32
 USE_MAC_OS_X_64=$USE_MAC_OS_X_64
 USE_ANDROID_ARM=$USE_ANDROID_ARM
 USE_ANDROID_X86=$USE_ANDROID_X86
@@ -864,6 +865,13 @@ CEF_SOURCE_URL=$CEF_SOURCE_URL
 CEF_SOURCE_URL_INACTIVE=$CEF_SOURCE_URL_INACTIVE
 CEF_SOURCE_USE_BASE=$CEF_SOURCE_USE_BASE
 CEF_SOURCE_BRANCH=$CEF_SOURCE_BRANCH
+CEF_DEBUG=$CEF_DEBUG
+CEF_FORCE_UPDATE=$CEF_FORCE_UPDATE
+CEF_NO_UPDATE=$CEF_NO_UPDATE
+CEF_FORCE_CONFIG=$CEF_FORCE_CONFIG
+CEF_FORCE_CLEAN=$CEF_FORCE_CLEAN
+CEF_FORCE_CLEAN_DEPS=$CEF_FORCE_CLEAN_DEPS
+CEF_BUILD_TESTS=$CEF_BUILD_TESTS
 CEF_VERBOSE_BUILD=$CEF_VERBOSE_BUILD
 CEF_KODI_BINARY_VERSION=$CEF_KODI_BINARY_VERSION
 DEPOT_TOOLS_URL=$DEPOT_TOOLS_URL
@@ -1128,36 +1136,6 @@ function initBuildScript_Kodi()
     printf "\
 ${RED}${BRIGHT}ERROR: ${WHITE}Needed source code on${NORMAL}
 ${BRIGHT}${WHITE}$BASE_PATH/build/kodi-$GIT_USER/kodi${NORMAL}
-${BRIGHT}${WHITE}for build not present!${NORMAL}\n";
-    exit 1;
-  } fi
-
-  ##
-  # If no temporary directory is passed create a own
-  if [ -z $TEMP_DIR ];then
-  {
-    OWN_TEMP=1;
-    TEMP_DIR=$(mktemp -d);
-    printf "${YELLOW}${BRIGHT}WARNING: ${WHITE}No temporary directory defined, using own $TEMP_DIR${NORMAL}\n\n";
-  } fi
-}
-##
-
-##
-function initBuildScript_CEF()
-{
-  GIT_CEF_USER=$(echo $CEF_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
-  if [ -z $GIT_CEF_USER ];then
-  {
-    printf "${RED}${BRIGHT}ERROR: ${WHITE}Needed git user name could not be detected for CEF${NORMAL}\n";
-    exit 1;
-  } fi
-
-  if [ ! -d $BASE_PATH/build/cef-$GIT_CEF_USER/cef ];then
-  {
-    printf "\
-${RED}${BRIGHT}ERROR: ${WHITE}Needed source code on${NORMAL}
-${BRIGHT}${WHITE}$BASE_PATH/build/cef-$GIT_CEF_USER/cef${NORMAL}
 ${BRIGHT}${WHITE}for build not present!${NORMAL}\n";
     exit 1;
   } fi
