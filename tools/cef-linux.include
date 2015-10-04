@@ -157,7 +157,7 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
 
     (
       position=0;
-      empty_size=`du -s | awk -F ' ' '{print $1}' 2> /dev/null`;
+      empty_size=`du -s $BASE_PATH/build/cef-$GIT_CEF_USER 2> /dev/null | awk -F ' ' '{print $1}' 2> /dev/null`;
       printf "In progress, for details see $BASE_PATH/build/chromium-load.log\n";
       while [ -f "$TEMP_DIR/.tempLoggerActive" ]; do
       {
@@ -175,7 +175,7 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
         if [ $position -ge 52 ];then
           position=0;fi
 
-        used_size=$(($(du -s $MUPEL_PATH/cef-$GIT_CEF_USER 2> /dev/null | awk -F ' ' '{print $1}' 2> /dev/null) - $empty_size));
+        used_size=$(($(du -s $BASE_PATH/build/cef-$GIT_CEF_USER 2> /dev/null | awk -F ' ' '{print $1}' 2> /dev/null) - $empty_size));
         used_size=$(($used_size / 1024));
         label=`tail -1 "$BASE_PATH/build/chromium-load.log" | cut -d' ' -f1 | cut -c-17`;
         printf "\r$WHITE[$NORMAL $progress $WHITE] $label - $used_size MByte$NORMAL";
