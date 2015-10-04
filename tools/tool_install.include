@@ -6,19 +6,19 @@ if [ -f "$HOME/.mupel/mupel.conf" ];then
 } fi
 PATH="$BASE_PATH/tools:$PATH"
 
-function run_in_terminal()
+function run_in_terminal
 {
   xterm -bg black -fg white -e $1
 }
 
-function install_qemu_disk()
+function install_qemu_disk
 {
   local name="$1"
   local outname="$2"
 
   (
-    mkdir -p $INSTALL_PREFIX/systems/${name};
-    cp "$outname" "$INSTALL_PREFIX/systems/${name}/root_disk.qcow2" 2>&1 &
+    mkdir -p $EMU_INSTALL_PREFIX/${name};
+    cp "$outname" "$EMU_INSTALL_PREFIX/${name}/root_disk.qcow2" 2>&1 &
     local pid=$!;
     sleep 1;
 
@@ -30,7 +30,7 @@ function install_qemu_disk()
     local size="0";
     while ps -p $pid > /dev/null; do
     {
-      size="$(ls -l $INSTALL_PREFIX/systems/${name}/root_disk.qcow2 | awk '{print $5}')";
+      size="$(ls -l $EMU_INSTALL_PREFIX/${name}/root_disk.qcow2 | awk '{print $5}')";
       percent="$(echo $size $fullsize | awk '{print 100*$1/$2}')";
       percent=`echo ${percent##*\(} | awk -F '/' '{print $1}' | awk -F '.' '{print $1}'`;
       echo "$percent";
@@ -50,7 +50,7 @@ function install_qemu_disk()
   } fi
 }
 
-function copy()
+function copy
 {
   local from="$1"
   local to="$2"
@@ -107,24 +107,24 @@ function copy()
   return $ret;
 }
 
-function create_data_share()
+function create_data_share
 {
   local real_name="$1";
   local name="$2";
 
   # Remove old entries
-  sudo -A -- bash -c "grep -v '$INSTALL_PREFIX/systems/data_share/base' /etc/fstab > /etc/fstab.temp && mv -f /etc/fstab.temp /etc/fstab";
+  sudo -A -- bash -c "grep -v '$EMU_INSTALL_PREFIX/data_share/base' /etc/fstab > /etc/fstab.temp && mv -f /etc/fstab.temp /etc/fstab";
 
   # Create home folder for bind mount, used for all emulation system on same
   # place, created again to make sure is present
-  mkdir -p $INSTALL_PREFIX/systems/data_share/link;
-  chmod 777 $INSTALL_PREFIX/systems/data_share/link;
+  mkdir -p $EMU_INSTALL_PREFIX/data_share/link;
+  chmod 777 $EMU_INSTALL_PREFIX/data_share/link;
 
-  mkdir -p $INSTALL_PREFIX/systems/data_share/base/home
-  sudo -A -- bash -c "echo \"$INSTALL_PREFIX/systems/data_share/link/home $INSTALL_PREFIX/systems/data_share/base/home none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab"
+  mkdir -p $EMU_INSTALL_PREFIX/data_share/base/home
+  sudo -A -- bash -c "echo \"$EMU_INSTALL_PREFIX/data_share/link/home $EMU_INSTALL_PREFIX/data_share/base/home none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab"
 
-  mkdir -p $INSTALL_PREFIX/systems/data_share/base/build
-  sudo -A -- bash -c "echo \"$BASE_PATH $INSTALL_PREFIX/systems/data_share/base/build none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab"
+  mkdir -p $EMU_INSTALL_PREFIX/data_share/base/build
+  sudo -A -- bash -c "echo \"$BASE_PATH $EMU_INSTALL_PREFIX/data_share/base/build none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab"
 
   showQuestionDialog "The home directory '$HOME' becomes passed to ${real_name}.\n\nDo you want also another one to pass there?";
   local ret=$?;
@@ -141,16 +141,16 @@ function create_data_share()
         [ $? == 0 ] && break;
         continue;
       } fi
-      mkdir -p $INSTALL_PREFIX/systems/data_share/base/${name};
+      mkdir -p $EMU_INSTALL_PREFIX/data_share/base/${name};
       if [ ${?} != 0 ]; then
       {
         evaluate_ret_error 1 "Failed to with name '${name}'";
         continue;
       } fi
 
-      sudo -A -- bash -c "echo \"$path $INSTALL_PREFIX/systems/data_share/base/${name} none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab";
+      sudo -A -- bash -c "echo \"$path $EMU_INSTALL_PREFIX/data_share/base/${name} none rw,bind,user,umask=000,utf8,noauto 0 0\" >> /etc/fstab";
       [ "$mount_points" != "" ] && mount_points="$mount_points ";
-      mount_points="${mount_points}$INSTALL_PREFIX/systems/data_share/base/${name}";
+      mount_points="${mount_points}$EMU_INSTALL_PREFIX/data_share/base/${name}";
 
       showQuestionDialog "Do you want to pass another directory to ${real_name}?";
       local ret=$?;

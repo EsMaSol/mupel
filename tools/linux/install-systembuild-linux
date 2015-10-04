@@ -23,17 +23,15 @@ BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/../.. ; pwd -P)}
 
 . "$HOME/.mupel/mupel.conf"
 . "$BASE_PATH/tools/tool_functions"
-. "$BASE_PATH/tools/tool_install_functions"
+. "$BASE_PATH/tools/tool_install.include"
 
 # To store needed cpu bit size, e.g. defined from script options or if not
 # set selected from user.
 # Only be used on 64bit systems
-arch=
 include_update=
-distname=
 
 function usage() {
-  echo "usage: ${0##*/} [-m mirror] [-g group,...] [-s] [-c] [-t bits] [-d distname] [-u]"
+  echo "usage: ${0##*/} [-m mirror] [-g group,...] [-s] [-c] [-t bits] [-u]"
   echo "-b dir       additional directories that should be bind mounted,"
   echo '             or "NONE".'
   echo "             Default: if local filesystems present, ask user for help"
@@ -41,13 +39,7 @@ function usage() {
   echo "             Default: '${admin}' and current user's group ('$(id -gn)')"
   echo "-m mirror    an alternate repository mirror for package downloads"
   echo "-s           configure default deb-srcs"
-  echo "-l file      store log messages"
   echo "-c           always copy 64bit helper binaries to 32bit chroot"
-  echo "-t bits      bit size of used CPU, allowed are '32' or '64', usable only"
-  echo "             on 64 bit system"
-  echo "-d distname  distribution name to use for chromium, usable here are"
-  echo "             'precise' and 'utopic', more are available and possible"
-  echo "             to select by hand if value left empty"
   echo "-u           to add updates and security to the chroot's sources.list"
   echo "-n           no install of build dependencies now"
   echo "-f           if set install is related to a flow and several messages becomes not used"
@@ -57,7 +49,7 @@ function usage() {
 function process_opts()
 {
   local OPTNAME OPTIND OPTERR OPTARG
-  while getopts ":b:g:m:scht:d:unfr" OPTNAME; do
+  while getopts ":b:g:m:schunfr" OPTNAME; do
   {
     case "$OPTNAME" in
       b)
@@ -93,18 +85,6 @@ ${OPTARG} ${OPTARG} none rw,bind 0 0"
         ;;
       c)
         copy_64="y"
-        ;;
-      t)
-        if [ "${OPTARG}" == 32 -o "${OPTARG}" == 64 ];then
-          arch="${OPTARG}bit"
-        else
-        {
-          echo "Invalid -t option"
-          usage
-        } fi
-        ;;
-      d)
-        distname="$OPTARG"
         ;;
       u)
         include_update="TRUE"
@@ -203,17 +183,17 @@ function system_update()
   local target="${arch%bit}"
 
   extra_list=
-  if [ "$target" == "32" ] && [ "$USE_LINUX_RPBI" == "TRUE" ];then
-  {
-    # arm cross toolchain packages needed to build chrome on armhf
-    extra_list="libc6-dev-armhf-cross linux-libc-dev-armhf-cross g++-arm-linux-gnueabihf";
-
-    # Work around for dependency issue Ubuntu/Trusty: http://crbug.com/435056
-    if [ "$distname" = "trusty" ]; then
-    {
-      extra_list+=" g++-4.8-multilib-arm-linux-gnueabihf gcc-4.8-multilib-arm-linux-gnueabihf";
-    } fi
-  } fi
+#  if [ "$target" == "32" ] && [ "$USE_LINUX_RPBI" == "TRUE" ];then
+#  {
+#    # arm cross toolchain packages needed to build chrome on armhf
+#    extra_list="libc6-dev-armhf-cross linux-libc-dev-armhf-cross g++-arm-linux-gnueabihf";
+#
+#    # Work around for dependency issue Ubuntu/Trusty: http://crbug.com/435056
+#    if [ "$distname" = "trusty" ]; then
+#    {
+#      extra_list+=" g++-4.8-multilib-arm-linux-gnueabihf gcc-4.8-multilib-arm-linux-gnueabihf";
+#    } fi
+#  } fi
   if [ "$target" == "64" ];then
   {
     if [ "$USE_ANDROID_X86" == "TRUE" ] || [ "$USE_ANDROID_ARM" == "TRUE" ];then
@@ -945,6 +925,13 @@ If removed continue with yes, no cancel build.";
   } fi
 }
 
+# Checks whether a particular package is available in the repos.
+# USAGE: $ package_exists <package name>
+package_exists()
+{
+  apt-cache pkgnames | grep -x "$1" > /dev/null 2>&1
+}
+
 ###-------------------------------------------------------------------------###
 #                                                                             #
 #                            Start of process points                          #
@@ -991,12 +978,12 @@ if [ -f "$HOME/.mupel/mupel.conf" ];then
 # introduce a hard dependency on things such as dchroot and debootstrap.
 packages=
 for i in dchroot debootstrap libwww-perl; do
-  [ -d /usr/share/doc/"$i" ] || packages="$packages $i";done
+  [[ -d /usr/share/doc/"$i" ]] || packages="$packages $i";done
 
 which schroot >/dev/null;
 [ "$?" != "0" ] && packages="$packages schroot";
 
-if  [ ! -z $packages ];then
+if  [[ ! -z $packages ]];then
 {
   (
     touch ${TEMP_DIR}/build_active
@@ -1058,44 +1045,147 @@ else
   way_selection="Update selected distribution\!Overwrite selected distribution\!Install new distribution\!Uninstall selected distribution"
 fi
 
+function parse_values
+{
+  local id=$1
+  local value="$2"
+
+  if [ $id = 4 ];then
+  {
+    if   [[ $value = "Update selected distribution|" ]];then
+      echo "#> msg field 7:enable 1;"
+      echo "#> msg field 10:enable 0;"
+      echo "#> msg field 11:enable 0;"
+      echo "#> msg field 13:enable 1;"
+      echo "#> msg field 14:enable 1;"
+      echo "#> msg field 15:enable 1;"
+      echo "#> msg field 16:enable 1;"
+      echo "#> msg field 17:enable 1;"
+    elif [[ $value = "Overwrite selected distribution|" ]];then
+      echo "#> msg field 7:enable 1;"
+      echo "#> msg field 10:enable 0;"
+      echo "#> msg field 11:enable 0;"
+      echo "#> msg field 13:enable 1;"
+      echo "#> msg field 14:enable 1;"
+      echo "#> msg field 15:enable 1;"
+      echo "#> msg field 16:enable 1;"
+      echo "#> msg field 17:enable 1;"
+    elif [[ $value = "Install new distribution|" ]];then
+      echo "#> msg field 7:enable 0;"
+      echo "#> msg field 10:enable 1;"
+      echo "#> msg field 11:enable 1;"
+      echo "#> msg field 13:enable 1;"
+      echo "#> msg field 14:enable 1;"
+      echo "#> msg field 15:enable 1;"
+      echo "#> msg field 16:enable 1;"
+      echo "#> msg field 17:enable 1;"
+    elif [[ $value = "Uninstall selected distribution|" ]];then
+      echo "#> msg field 7:enable 1;"
+      echo "#> msg field 10:enable 0;"
+      echo "#> msg field 11:enable 0;"
+      echo "#> msg field 13:enable 0;"
+      echo "#> msg field 14:enable 0;"
+      echo "#> msg field 15:enable 0;"
+      echo "#> msg field 16:enable 0;"
+      echo "#> msg field 17:enable 0;"
+    fi
+  } fi
+}
+
 while :; do
 {
-  install_values=$(showdialog --form --title="Linux system installer" \
-                              --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" \
-                              --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
-                              --field="<i><span size=\"large\">Ubuntu distribution system update / installation</span></i>:LBL" "" \
-                              --field=":LBL" "" \
-                              --field="\
+  thread1_in=${TEMP_DIR}/thread1_in
+  touch ${TEMP_DIR}/thread1_in
+  install_values=$(
+  (
+    echo "#> msg field 10:enable 0;"
+    echo "#> msg field 11:enable 0;"
+
+    # Main loop
+    while :;do
+    {
+      if [ ! -f "$thread1_in" ] ||
+         [ -z `ps -h | grep "Linux system installer" | grep -v "grep" | awk -F ' ' '{print $1}'` ];then
+        exit 0;fi
+      proc=$(cat "$thread1_in")
+      echo -n "" > "$thread1_in";
+      IFS=$'\n';
+      for line in ${proc}; do
+      {
+        if [[ "$line" == "#< msg"* ]];then
+        {
+          if [[ "$line" = *"field"* ]];then
+          {
+            IFS=$'\n'; for p in ${line}; do
+              id=$(echo ${p} | awk -F ' ' '{print $4}' | awk -F ':' '{print $1}')
+              value=$(echo ${p#*:} | awk -F ';' '{print $1}')
+              IFS=$'|';
+              if [[ "$id" -ge "0" ]];then
+                parse_values $id "$value" >> "$thread1_in"
+              else
+                id2=0
+                IFS=$'|';
+                for value2 in ${value}; do
+                {
+                  parse_values $id2 "$value2" >> "$thread1_in"
+                  ((id2++))
+                } done;
+              fi; IFS=$'\n';
+            done; unset IFS;
+          }
+          else
+          {
+            echo "Wrong command! $line" > /dev/stderr
+          } fi
+        }
+        else
+        {
+          echo "$line"
+        } fi
+      } done
+      sleep 0.5;
+    } done
+  ) | \
+  showdialog --form --title="Linux system installer" \
+            --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" \
+            --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
+            --xcom-log=$thread1_in \
+            --field="<i><span size=\"large\">Ubuntu distribution system update / installation</span></i>:LBL" "" \
+            --field=":LBL" "" \
+            --field="\
    This script will help you through the process of installing
    a Debian or Ubuntu distribution in a chroot environment.
 
    You will have to provide your \"sudo\" password when
    requested.:LBL" "" \
-                              --field=":LBL" "" \
-                              --field="Select what you want to do:CB" "$way_selection" \
-                              --field=":LBL" "" \
-                              --field="<b>Reconfigure existing:</b>:LBL" "" \
-                              --field="Distribution:CB" "$dist_installed" \
-                              --field=":LBL" "" \
-                              --field="<b>Install new:</b>:LBL" "" \
-                              --field="Select which new distribution to install:CB" "$dist_available" \
-                              --field="Use as default?:CHK" "FALSE" \
-                              --field=":LBL" "" \
-                              --field="Would you like to add updates and security to the chroot's sources list:CHK" "TRUE" \
-                              --field="Include also 32 bit distribution:CHK" "TRUE" \
-                              --field="Include Kodi build depends (for build without use of ./tools/buildsteps):CHK" "TRUE" \
-                              --field="Use Kodi depends from team-xbmc 'devel' distribution:CHK" "FALSE" \
-                              --field="Include CEF build depends (without is CEF not supported):CHK" "TRUE" \
-                              --field=":LBL" "" \
-                              --field="\
+            --field=":LBL" "" \
+            --field="Select what you want to do:CB" "$way_selection" \
+            --field=":LBL" "" \
+            --field="<b>Reconfigure existing:</b>:LBL" "" \
+            --field="Distribution:CB" "$dist_installed" \
+            --field=":LBL" "" \
+            --field="<b>Install new:</b>:LBL" "" \
+            --field="Select which new distribution to install:CB" "$dist_available" \
+            --field="Use as default?:CHK" "FALSE" \
+            --field=":LBL" "" \
+            --field="Would you like to add updates and security to the chroot's sources list:CHK" "TRUE" \
+            --field="Include also 32 bit distribution:CHK" "TRUE" \
+            --field="Include Kodi build depends (for build without use of ./tools/buildsteps):CHK" "TRUE" \
+            --field="Use Kodi depends from team-xbmc 'devel' distribution:CHK" "FALSE" \
+            --field="Include CEF build depends (without is CEF not supported):CHK" "TRUE" \
+            --field=":LBL" "" \
+            --field="\
    Copyright (C) 2015 Team KODI
    http://kodi.tv
 
    GNU General Public License, Version 3
    see http://www.gnu.org/licenses/:LBL" "" \
                               --field=":LBL" "" \
+                              --field=":XTALK" '' \
                               --center 2> /dev/null);
-  if [ $? != 0 ];then
+  ret=$?
+  rm -f "$thread1_in"
+  if [ $ret != 0 ];then
   {
     showWarningDialog_YesNo "Are you sure to exit install?"
     [ $? = 0 ] && exit_build 1
@@ -1142,8 +1232,12 @@ if [[ $install_way = "Update selected distribution" ]];then
      <i><span size=\"large\">Successfully updated ${udpate_dist}</span></i>
 _________________________________________________________________________________________
 
-     The distribubtion $udpate_dist is updated which stored on
+     The distribution $udpate_dist is updated which stored on
      <b>$([[ $include_32bit = TRUE ]] && echo "/usr/local/bin/${udpate_dist}32</b> and <b>")/usr/local/bin/${udpate_dist}64\"</b>.</tt>" 2> /dev/null
+
+  [ $include_32bit = "TRUE" ] && LINUX_X86_32_INSTALLED=TRUE
+  LINUX_X86_64_INSTALLED=TRUE
+  saveConfigFile
 }
 elif [[ $install_way = "Overwrite selected distribution" ]];then
 {
@@ -1173,8 +1267,12 @@ Distribution becomes reseted to new.
      <i><span size=\"large\">Successfully overwrited ${udpate_dist}</span></i>
 _________________________________________________________________________________________
 
-     The distribubtion $udpate_dist overwrite is done which stored on
+     The distribution $udpate_dist overwrite is done which stored on
      <b>$([[ $include_32bit = TRUE ]] && echo "/usr/local/bin/${udpate_dist}32</b> and <b>")/usr/local/bin/${udpate_dist}64\"</b>.</tt>" 2> /dev/null
+
+  [ $include_32bit = "TRUE" ] && LINUX_X86_32_INSTALLED=TRUE
+  LINUX_X86_64_INSTALLED=TRUE
+  saveConfigFile
 }
 elif [[ $install_way = "Install new distribution" ]];then
 {
@@ -1202,7 +1300,7 @@ elif [[ $install_way = "Install new distribution" ]];then
              --width=830 --show-uri --editable \
              --text-info \
              --text="<tt>
-     <i><span size=\"large\">Successfully installed ${distname}</span></i>
+     <i><span size=\"large\">Successfully installed ${install_dist}</span></i>
 _________________________________________________________________________________________
 
      You can run programs inside of the chroot by invoking the
@@ -1229,6 +1327,9 @@ ________________________________________________________________________________
      outside of the chroot to inside of the chroot. But you will find that you
      don\'t have to repeatedly erase and then completely rebuild all your object
      and binary files.</tt>" 2> /dev/null
+     [ $include_32bit = "TRUE" ] && LINUX_X86_32_INSTALLED=TRUE
+     LINUX_X86_64_INSTALLED=TRUE
+     saveConfigFile
   } fi
 }
 elif [[ $install_way = "Uninstall selected distribution" ]];then
@@ -1258,7 +1359,7 @@ elif [[ $install_way = "Uninstall selected distribution" ]];then
      <i><span size=\"large\">Successfully uninstalled ${udpate_dist}</span></i>
 _________________________________________________________________________________________
 
-     The distribubtion $udpate_dist is removed which was stored on
+     The distribution $udpate_dist is removed which was stored on
      <b>$([[ $include_32bit = TRUE ]] && echo "/usr/local/bin/${udpate_dist}32</b> and <b>")/usr/local/bin/${udpate_dist}64\"</b>.</tt>" 2> /dev/null
 }
 else

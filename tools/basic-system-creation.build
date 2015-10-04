@@ -2,12 +2,12 @@
 
 BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
 
-TEMP_DIR=
+TEMP_DIR=$BASE_PATH/build/.tmp;
 DO_CLEAN=0
 
 . "$HOME/.mupel/mupel.conf";
 . "$BASE_PATH/tools/tool_functions";
-. "$BASE_PATH/tools/tool_cef_functions";
+. "$BASE_PATH/tools/tool_cef.include";
 
 ###############################################################################
 # Sub functions
@@ -21,11 +21,13 @@ DO_CLEAN=0
 # values:
 # error_value = The error to check, 0 = OK
 # process     = The name of related process
-function check_retval() {
+function check_retval
+{
   local error_value="${1}";
   local process="${2}";
 
-  if [ ${error_value} != 0 ]; then {
+  if [ ${error_value} != 0 ];then
+  {
     log_failure_msg;
     touch "$TEMP_DIR/${process}_failed.txt";
     rm -f "$TEMP_DIR/${process}.pid";
@@ -36,12 +38,10 @@ function check_retval() {
 
 ##
 # Usage help function return as string the available values
-function usage()
+function usage
 {
   echo "Usage: $0 [--options]"
   echo "Options:"
-  echo "--temp-dir    the temporary directory to store parts, if not set becomes new"
-  echo "              created. This value is used from 'mupel' to have same dir."
   echo "--help        this help message"
   echo "Script will prompt interactively for other values."
   exit 1
@@ -49,24 +49,13 @@ function usage()
 
 ##
 # Function to process given input variables
-function process_opts()
+function process_opts
 {
   while test "$1" != "" ; do
     case "$1" in
-      --temp-dir)
-        case "$2" in
-            "")
-              echo "Option '--temp-dir', no argument"
-              shift
-              ;;
-            *)
-              TEMP_DIR="$2"
-              shift
-              ;;
-        esac ;;
       --help)                   usage;;
       *)
-        echo "invalid command-line option: $OPTARG"
+        echo "invalid command-line option: $1"
         usage
         ;;
     esac
@@ -120,10 +109,8 @@ printf "\n${WHITE}${BRIGHT}System info:${NORMAL}\n"
 printf "${WHITE} - Build start time :\t$START_TIME${NORMAL}\n"
 printf "${WHITE} - Linux version :\t$(uname -r)${NORMAL}\n"
 printf "${WHITE} - Used distribution :\t%s${NORMAL}\n" "$USE_LINUX_X86_DISTR"
-memory=`grep MemTotal /proc/meminfo | awk '{print $2}'`
-memory=`expr $memory / 1024`
-printf "${WHITE} - Memory size :\t%s MByte${NORMAL}\n" "$memory"
-printf "${WHITE} - Free Disk size :\t%s GByte\n${NORMAL}\n" `expr $FREE_INITIAL_DISK_SPACE / 1024 / 1024`
+printf "${WHITE} - Memory size :\t%s MByte${NORMAL}\n" $(expr `grep MemTotal /proc/meminfo | awk '{print $2}'` / 1024)
+printf "${WHITE} - Free Disk size :\t%s GByte\n${NORMAL}\n" $(expr `df  . | tail -1 | tr -s ' ' | cut -d' ' -f4` / 1024 / 1024)
 
 printf "${WHITE}${BRIGHT}|-----------------------------------------------------------------------------|${NORMAL}\n\n"
 
@@ -148,7 +135,7 @@ trap 'touch $TEMP_DIR/basic-system-creation.failed; trapError ${LINENO};' ERR
 if [ ! -d "${BASE_PATH}/build/depot_tools" ];then
 {
   printf "\n${WHITE}${BRIGHT}Download Chromium depot tools${NORMAL} ...\n";
-  handleGITLoad "$BASE_PATH/build" depot_tools $DEPOT_TOOLS_URL master "build_thread_1_general";
+  handleGITLoad "$BASE_PATH/build" depot_tools $DEPOT_TOOLS_URL master;
 }
 else
 {
@@ -162,224 +149,16 @@ else
 # Handle kodi related parts from here
 printf "\n${WHITE}${BRIGHT}Handle kodi related parts${NORMAL} ...\n";
 [ ! -d "$BASE_PATH/build/kodi-$GIT_USER" ] && mkdir -p "$BASE_PATH/build/kodi-$GIT_USER"
-handleGITLoad "$BASE_PATH/build/kodi-$GIT_USER" kodi $KODI_SOURCE_URL $KODI_SOURCE_BRANCH "build_thread_1_general";
+handleGITLoad "$BASE_PATH/build/kodi-$GIT_USER" kodi $KODI_SOURCE_URL $KODI_SOURCE_BRANCH;
 if [[ $GIT_USER != xbmc ]] && [ -z `git -C $BASE_PATH/build/kodi-$GIT_USER/kodi remote | grep upstream` ];then
 {
   git -C $BASE_PATH/build/kodi-$GIT_USER/kodi remote add upstream https://github.com/xbmc/xbmc.git
   git -C $BASE_PATH/build/kodi-$GIT_USER/kodi fetch upstream
 } fi
-#
-###
-## Start CEF source code load here
-#if [ $INCLUDE_CEF != 0 ];then
-#{
-#  printf "\n${WHITE}${BRIGHT}Handle CEF related parts${NORMAL} ...\n";
-#
-#  [ ! -d "$BASE_PATH/build/cef-$GIT_CEF_USER" ] && mkdir -p "$BASE_PATH/build/cef-$GIT_CEF_USER"
-#  handleGITLoad "$BASE_PATH/build/cef-$GIT_CEF_USER" cef $CEF_SOURCE_URL $CEF_SOURCE_BRANCH "build_thread_1_general"
-#
-#  printf "\
-#${WHITE}${BRIGHT}Create gclient configuration file${NORMAL} ...
-# > '$BASE_PATH/build/cef-$GIT_CEF_USER/.gclient' ...";
-#  if [ ! -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.gclient" ] || [[ $DO_CLEAN != 0 ]];then
-#  {
-#    createCEF_gclient "$BASE_PATH/build/cef-$GIT_CEF_USER/.gclient";
-#    evaluateReturnValue $?;
-#  }
-#  else
-#    log_skip_msg;fi
-#
-#  ##
-#  # Initial Chromium checkout.
-#  #
-#  printf "\n${WHITE}${BRIGHT}Download chromium source code${NORMAL} ...";
-#  if [ ! -d "${BASE_PATH}/build/cef-$GIT_CEF_USER/src" ];then
-#  {
-#    printf "\n${RED}${BRIGHT}WARNING: ${WHITE}Download takes a very long time ${UNDERLINE}(more as 12 hours possible)${NORMAL}\n";
-#    cd "$BASE_PATH/build/cef-$GIT_CEF_USER";
-#    CHROMIUM_CHECKOUT_NEW=1;
-#    [ -f "$BASE_PATH/build/chromium-load.log" ] && mv -f "$BASE_PATH/build/chromium-load.log" "$BASE_PATH/build/chromium-load.old.log";
-#    touch "$BASE_PATH/build/chromium-load.log";
-#    touch "$TEMP_DIR/.tempLoggerActive";
-#    (
-#      position=0;
-#      empty_size=`du -s | awk -F ' ' '{print $1}' 2> /dev/null`;
-#      printf "In progress, for details see $BASE_PATH/build/chromium-load.log\n";
-#      while [ -f "$TEMP_DIR/.tempLoggerActive" ]; do
-#      {
-#        progress="";
-#        counter=0;
-#        while [ $counter -lt 52 ];do
-#        {
-#          let counter=counter+1;
-#          if [[ $position == $counter ]];then
-#            progress=${progress}$BRIGHT$GREEN"|"$NORMAL;
-#          else
-#            progress=${progress}".";fi
-#        } done
-#        let position=position+1;
-#        if [ $position -ge 52 ];then
-#          position=0;fi
-#
-#        used_size=$(expr `expr $(du -s | awk -F ' ' '{print $1}' 2> /dev/null) - $empty_size` / 1024 2> /dev/null);
-#        label=`tail -1 "$BASE_PATH/build/chromium-load.log" | cut -d' ' -f1 | cut -c-17`;
-#        printf "\r$WHITE[$NORMAL $progress $WHITE] $label - $used_size MByte$NORMAL";
-#
-#        sleep 1;
-#      } done
-#    ) &
-#    tailPID=$!
-#    echo "Initial Chromium checkout:" >> "$BASE_PATH/build/chromium-load.log";
-#    echo "started" >> "$BASE_PATH/build/chromium-load.log";
-#    gclient sync --nohooks --with_branch_heads --jobs 16 >> "$BASE_PATH/build/chromium-load.log" 2>&1
-#    error_value="${?}";
-#    rm -f "$TEMP_DIR/.tempLoggerActive";
-#    if [[ ! -z `ps --no-headers -p $tailPID` ]]; then
-#    {
-#      kill $tailPID;
-#    } fi
-#    echo ""
-#    evaluateReturnValue $error_value;
-#  }
-#  else
-#  {
-#    CHROMIUM_CHECKOUT_NEW=0;
-#    log_done_msg;
-#  } fi
-#  echo "";
-#
-#  ##
-#  # Determine if the Chromium checkout needs to change.
-#  #
-#  CHROMIUM_CHECKOUT=`cat "$BASE_PATH/build/cef-$GIT_CEF_USER/cef/CHROMIUM_BUILD_COMPATIBILITY.txt" | tail -2 | cut -d' ' -f4 | cut -d "'" -f2 | head -1`;
-#  if [ -d "${BASE_PATH}/build/cef-$GIT_CEF_USER/src" ];then
-#  {
-#    CHROMIUM_CURRENT_HASH=`git -C "${BASE_PATH}/build/cef-$GIT_CEF_USER/src" rev-parse "HEAD"`;
-#    CHROMIUM_DESIRED_HASH=`git -C "${BASE_PATH}/build/cef-$GIT_CEF_USER/src" rev-parse "$CHROMIUM_CHECKOUT"`;
-#    if [[ "$CHROMIUM_CHECKOUT_NEW" != 0 ]] || [[ "$CHROMIUM_CURRENT_HASH" != "$CHROMIUM_DESIRED_HASH" ]];then
-#      CHROMIUM_CHECKOUT_CHANGED=1;
-#    else
-#      CHROMIUM_CHECKOUT_CHANGED=0;fi
-#    printf "${WHITE}${BRIGHT}Checking version of 'Chromium'${NORMAL}\n";
-#    printf "${WHITE}${BRIGHT} - Chromium Current Checkout:${NORMAL} $CHROMIUM_CURRENT_HASH\n";
-#    printf "${WHITE}${BRIGHT} - Chromium Desired Checkout:${NORMAL} $CHROMIUM_DESIRED_HASH\n                              ($CHROMIUM_CHECKOUT)\n";
-#  } fi
-#
-#  ##
-#  # Determine if the CEF checkout needs to change.
-#  #
-#  if [ -d "${BASE_PATH}/build/cef-$GIT_CEF_USER/src/cef" ];then
-#  {
-#    CEF_CURRENT_HASH=`git -C "${BASE_PATH}/build/cef-$GIT_CEF_USER/src/cef" rev-parse "HEAD"`;
-#    CEF_DESIRED_HASH=`git -C "${BASE_PATH}/build/cef-$GIT_CEF_USER/cef" rev-parse "HEAD"`;
-#    if [[ "$CEF_CURRENT_HASH" != "$CEF_DESIRED_HASH" ]];then
-#    {
-#      CEF_CHECKOUT_CHANGED=1;
-#      printf "${WHITE}${BRIGHT}Checking version of 'CEF'${NORMAL}\n";
-#      printf "${WHITE}${BRIGHT} - CEF Current Checkout:${NORMAL} $CEF_CURRENT_HASH\n";
-#      printf "${WHITE}${BRIGHT} - CEF Desired Checkout:${NORMAL} $CEF_DESIRED_HASH\n";
-#    }
-#    else
-#      CEF_CHECKOUT_CHANGED=0;fi
-#  } fi
-#
-#  if [[ $CHROMIUM_CHECKOUT_CHANGED != 0 ]] || [[ $CEF_CHECKOUT_CHANGED != 0 ]];then
-#    rm -fr "$BASE_PATH/build/cef-$GIT_CEF_USER/src/cef";fi
-#
-#  ##
-#  # Update the Chromium checkout.
-#  #
-#  old_dir=`pwd`
-#  cd "$BASE_PATH/build/cef-$GIT_CEF_USER/src";
-#  printf "${WHITE}${BRIGHT}Update the Chromium checkout to needed source${NORMAL} ...";
-#  if [ $CHROMIUM_CHECKOUT_CHANGED != 0 ];then
-#  {
-#    printf "\n"
-#    if [ $CHROMIUM_CHECKOUT_NEW != 0 ];then
-#    {
-#      if [ $DO_CLEAN != 0 ];then
-#      {
-#        # Remove all local changes including third-party git checkouts managed by
-#        # gclient.
-#        git clean -dffx;
-#      }
-#      else
-#      {
-#        # Revert all changes in the Chromium checkout.
-#        gclient revert --nohooks;
-#      } fi
-#      check_retval $?;
-#    } fi
-#    # Fetch new sources.
-#    git fetch;
-#    check_retval $?;
-#    # Also fetch tags, which are required for release branch builds.
-#    git fetch --tags;
-#    check_retval $?;
-#
-#    # Checkout the requested branch.
-#    if [ $DO_CLEAN = 0 ];then
-#    {
-#      git checkout $CHROMIUM_CHECKOUT;
-#      if [ ${?} != 0 ];then
-#        DO_CLEAN=1;fi
-#    } fi
-#    if [ $DO_CLEAN != 0 ];then
-#      git checkout --force $CHROMIUM_CHECKOUT;fi
-#    check_retval $?;
-#
-#    # Patch the Chromium DEPS file if necessary.
-#    if [ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef/patch/patches/.DEPS.git.patch" ] &&
-#       [[ -z `patch --dry-run -Np0 -i "$BASE_PATH/build/cef-$GIT_CEF_USER/cef/patch/patches/.DEPS.git.patch"` ]];then
-#      patch -Np0 -i "$BASE_PATH/build/cef-$GIT_CEF_USER/cef/patch/patches/.DEPS.git.patch";fi;
-#
-#    # Set the GYP_CHROMIUM_NO_ACTION value temporarily so that `gclient sync` does
-#    # not run gyp.
-#    set GYP_CHROMIUM_NO_ACTION 1;
-#
-#    # Update third-party dependencies including branch/tag information.
-#    if [ DO_CLEAN != 0 ];then
-#      gclient sync --reset --nohooks --with_branch_heads --jobs 16;
-#    else
-#      gclient sync --nohooks --with_branch_heads --jobs 16;fi
-#
-#    # Clear the GYP_CHROMIUM_NO_ACTION value.
-#    unset GYP_CHROMIUM_NO_ACTION;
-#
-#    # Delete the src/out directory created by `gclient sync`.
-#    rm -fr "$BASE_PATH/build/cef-$GIT_CEF_USER/src/out";
-#    printf $CURS_UP
-#    log_success_msg;
-#  }
-#  else
-#    log_skip_msg;fi
-#
-#  # Copy CEF to chromium source folder
-#  printf "${WHITE}${BRIGHT}Transfering CEF source code to chromium${NORMAL}";
-#  if [ ! -d "$BASE_PATH/build/cef-$GIT_CEF_USER/src/cef" ];then
-#  {
-#    cp -fR "$BASE_PATH/build/cef-$GIT_CEF_USER/cef" "$BASE_PATH/build/cef-$GIT_CEF_USER/src";
-#    evaluateReturnValue $?;
-#  }
-#  else
-#    log_skip_msg;fi
-#
-##  cd ${BASE_PATH}/build/cef-$GIT_CEF_USER/src/cef
-##  ./cef_create_projects.sh
-#
-#  cd "$old_dir";
-#} fi
 
 trap '' ERR
 
 rm -f $TEMP_DIR/creation-general.failed
 
 sleep 2
-
 exit 0
-
-
-
-
-
-

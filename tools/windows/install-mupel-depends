@@ -30,7 +30,7 @@ MUPEL_PATH=c:\\mupel
 . "z:/home/.mupel/mupel.conf";
 . "z:/home/.mupel/windows.conf"
 . "$BASE_PATH/tools/tool_functions"
-. "$BASE_PATH/tools/tool_install_functions"
+. "$BASE_PATH/tools/tool_install.include"
 
 # Install needed 'apt-cyg' if not present
 which apt-cyg > /dev/null 2>1

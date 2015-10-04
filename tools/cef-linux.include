@@ -23,7 +23,7 @@ BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
 
 . "$HOME/.mupel/mupel.conf";
 . "$BASE_PATH/tools/tool_functions";
-. "$BASE_PATH/tools/tool_cef_functions";
+. "$BASE_PATH/tools/tool_cef.include";
 
 TEMP_DIR=$BASE_PATH/build/.tmp;
 
@@ -45,7 +45,7 @@ processOptsCEF "$@"
 if [[ -n $FORCECLEAN ]] || [[ -n $FORCEUPDATE ]];then
   FORCE_CHANGE=1;fi
 
-initBuildScript_CEF;
+ißnitBuildScript_CEF;
 
 trap exitBuild EXIT
 
@@ -127,7 +127,7 @@ export GYP_GENERATORS=ninja
 
   # If direct build is requested in build before was on other system a complete
 # build becomes forced
-if [ ! -f "$TEMP_DIR/cef-$GIT_CEF_USER-linux-x86_${BIT_SIZE}.active" ] && [[ ! -z $DIRECT_CEF_BUILD ]];then
+if [ ! -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-linux-x86_${BIT_SIZE}.active" ] && [[ ! -z $DIRECT_CEF_BUILD ]];then
 {
   printf "${RED}${BRIGHT}WARNING: ${WHITE}Needed CEF code for direct build not present and complete build becomes done${NORMAL}\n";
   unset DIRECT_CEF_BUILD;
@@ -135,7 +135,7 @@ if [ ! -f "$TEMP_DIR/cef-$GIT_CEF_USER-linux-x86_${BIT_SIZE}.active" ] && [[ ! -
 
 if [[ -z $DIRECT_CEF_BUILD ]];then
 {
-  rm -f "$TEMP_DIR/cef-$GIT_CEF_USER-*.active"
+  rm -f $BASE_PATH/build/cef-$GIT_CEF_USER/cef-*-linux-*.active
 
   ##
   # Initial Chromium checkout.
@@ -175,7 +175,8 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
         if [ $position -ge 52 ];then
           position=0;fi
 
-        used_size=$(expr `expr $(du -s 2> /dev/null | awk -F ' ' '{print $1}' 2> /dev/null) - $empty_size` / 1024 2> /dev/null);
+        used_size=$(($(du -s $MUPEL_PATH/cef-$GIT_CEF_USER 2> /dev/null | awk -F ' ' '{print $1}' 2> /dev/null) - $empty_size));
+        used_size=$(($used_size / 1024));
         label=`tail -1 "$BASE_PATH/build/chromium-load.log" | cut -d' ' -f1 | cut -c-17`;
         printf "\r$WHITE[$NORMAL $progress $WHITE] $label - $used_size MByte$NORMAL";
 
@@ -351,13 +352,21 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
   log_success_msg
   cd $BASE_PATH/build/cef-$GIT_CEF_USER
 
+  printf "${WHITE}${BRIGHT}Update chromium clang scripts ...${NORMAL}\n"
+  python $BASE_PATH/build/cef-$GIT_CEF_USER/src/tools/clang/scripts/update.py --if-needed
+  log_success_msg
+
   printf "${BRIGHT}${WHITE}Set last change flags ...${NORMAL}\n"
   python $BASE_PATH/build/cef-$GIT_CEF_USER/src/build/util/lastchange.py -o src/build/util/LASTCHANGE
   python $BASE_PATH/build/cef-$GIT_CEF_USER/src/build/util/lastchange.py -s src/third_party/WebKit -o src/build/util/LASTCHANGE.blink
   printf $CURS_UP
   log_success_msg
 
-  touch "$TEMP_DIR/cef-$GIT_CEF_USER-linux-x86_${BIT_SIZE}.active"
+  printf "${WHITE}${BRIGHT}Download third party binutils ...${NORMAL}\n"
+  python $BASE_PATH/build/cef-$GIT_CEF_USER/src/third_party/binutils/download.py
+  log_success_msg
+
+  touch "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-linux-x86_${BIT_SIZE}.active"
 } fi
 
 cd $BASE_PATH/build/cef-$GIT_CEF_USER

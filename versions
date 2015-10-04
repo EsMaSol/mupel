@@ -4,3 +4,5 @@ WINDOWS_GYP=https://chromium.googlesource.com/external/gyp
 REACTOS_IMAGE_SRC_URL=http://downloads.sourceforge.net/project/reactos/ReactOS/0.3.17/ReactOS-0.3.17-REL-QEMU.zip
 ANDROID_SDK_ADDITIONAL_VERSION=21
 ANDROID_NDK_ADDITIONAL_VERSION=10e
+KODI_SOURCE_URL_BASE="https://github.com/xbmc/xbmc"
+CEF_SOURCE_URL_BASE="https://bitbucket.org/chromiumembedded/cef"

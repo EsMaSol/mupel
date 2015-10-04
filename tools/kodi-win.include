@@ -1,0 +1,151 @@
+#!/bin/bash
+###############################################################################
+#                                                                             #
+#     Copyright (C) 2015 Team KODI                                            #
+#     http://kodi.tv                                                          #
+#                                                                             #
+#  This program is free software: you can redistribute it and/or modify       #
+#  it under the terms of the GNU General Public License as published by       #
+#  the Free Software Foundation, either version 3 of the License, or          #
+#  (at your option) any later version.                                        #
+#                                                                             #
+#  This program is distributed in the hope that it will be useful,            #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of             #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              #
+#  GNU General Public License for more details.                               #
+#                                                                             #
+#  You should have received a copy of the GNU General Public License          #
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.      #
+#                                                                             #
+###############################################################################
+
+BASE_PATH="//10.0.2.4/qemu/build"
+
+. "//10.0.2.4/qemu/home/.mupel/mupel.conf";
+. "$BASE_PATH/tools/tool_functions";
+. "$BASE_PATH/tools/tool_kodi.include";
+
+TEMP_DIR=$BASE_PATH/build/.tmp;
+BUILD_SYSTEM="win${BIT_SIZE}"
+
+function exitBuild
+{
+  rm -f $TEMP_DIR/build_thread-kodi_active-$BUILD_SYSTEM;
+  rm -f $TEMP_DIR/build_thread-kodi_active;
+}
+
+###############################################################################
+# Start of main process
+
+[ ! -d $TEMP_DIR ] && mkdir -p $TEMP_DIR;
+
+INSTALL_DIR_TYPE="Release";
+processOptsKodi "$@";
+
+initBuildScript_Kodi;
+
+KODI_SOURCE_CYG_PATH=/cygdrive/c/mupel/kodi-$GIT_USER
+
+# Set error return
+trap 'trapError ${LINENO};' ERR;
+trap exitBuild EXIT;
+
+touch $TEMP_DIR/kodi-windows-x86_${BIT_SIZE}.failed;
+
+. "$BASE_PATH/versions";
+
+# Load or update kodi
+loadKodiBuildDir $BUILD_SYSTEM "Windows x86-${BIT_SIZE}bit" "c:/mupel/kodi-$GIT_USER/";
+
+export Configuration=$INSTALL_DIR_TYPE;
+export TARBALLS=$BASE_PATH/build/kodi-tarballs;
+export BUILDTHREADS=$CPU_PROC_JOBS;
+export XBMC_PLATFORM_DIR="win${BIT_SIZE}";
+export WORKSPACE="c:/mupel/kodi-$GIT_USER/kodi-$BUILD_SYSTEM";
+export XBMC_DEPENDS_ROOT=$BASE_PATH/build/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE/kodi;
+
+if [ ! -z $SELECTED_BUILD ];then
+  KODI_BUILD="Single selection build of '$SELECTED_BUILD'"
+elif [ ! -z $ADDON_BUILD ];then
+  KODI_BUILD="$ADDON_BUILD add-on only";
+elif [ -z $DIRECT_KODI_BUILD ];then
+  KODI_BUILD="complete";
+else
+  KODI_BUILD="direct";fi
+
+printf "
+/------------------------------------------------------------------------------
+|
+|  Kodi build Windows x86 ${BIT_SIZE}bit
+| ==============================
+|
+|  Build type :        $KODI_BUILD
+|  Build add-ons :     $([[ $INCLUDE_KODI_ADDONS = "TRUE" ]] && echo "yes" || echo "no")
+|  Test run :          $([[ $KODI_RUN_TESTS = "TRUE" ]] && echo "yes" || echo "no")
+|  Configuration :     $Configuration
+|
+|  TARBALLS :          $TARBALLS
+|  BUILDTHREADS :      $BUILDTHREADS
+|  XBMC_PLATFORM_DIR : $XBMC_PLATFORM_DIR
+|  XBMC_DEPENDS_ROOT : $XBMC_DEPENDS_ROOT
+|  WORKSPACE :         $WORKSPACE
+|
+|  Free Disk size :    $(df -h . | tail -1 | tr -s ' ' | cut -d' ' -f4 | awk -F 'Gi' '{print $1}') GByte
+|
+\\-------------------------------------------------------------------------------
+"
+
+mkdir -p $MUPEL_PATH
+
+chmod 777 -R $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}
+
+cd $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}
+
+# clean the BUILD_WIN${BIT_SIZE} at first to avoid problems with possible git files in there
+if [ -d $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/Win${BIT_SIZE}BuildSetup/BUILD_WIN${BIT_SIZE} ];then
+  rm -r $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/Win${BIT_SIZE}BuildSetup/BUILD_WIN${BIT_SIZE};fi
+
+# we assume git in path as this is a requirement
+# git clean the untracked files and directories
+# but keep the downloaded dependencies
+echo running git clean -xfd -e "project/BuildDependencies/downloads" -e "project/BuildDependencies/downloads2"
+git clean -xfd -e "project/BuildDependencies/downloads" -e "project/BuildDependencies/downloads2"
+
+# cleaning additional directories
+echo delete build directories
+if [ -d $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/Win${BIT_SIZE}BuildSetup/dependencies ];then
+  rm -r $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/Win${BIT_SIZE}BuildSetup/dependencies;fi
+
+if [ -d $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/BuildDependencies/include ];then
+  rm -r $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/BuildDependencies/include;fi
+if [ -d $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/BuildDependencies/lib ];then
+  rm -r $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/BuildDependencies/lib;fi
+if [ -d $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/BuildDependencies/msys ];then
+  rm -r $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/BuildDependencies/msys;fi
+if [ -d $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/VS2010Express/XBMC ];then
+  rm -r $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/VS2010Express/XBMC;fi
+if [ -d $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/VS2010Express/objs ];then
+  rm -r $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/VS2010Express/objs;fi
+if [ -d $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/VS2010Express/libs ];then
+  rm -r $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/VS2010Express/libs;fi
+
+# fetch submodules
+if [ -d $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/addons/skin.re-touched ];then
+  rm -r $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/addons/skin.re-touched;fi
+git submodule update --init "./addons/skin.re-touched"
+
+cd $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/BuildDependencies
+./DownloadBuildDeps.bat
+./DownloadMingwBuildEnv.bat
+
+cd $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/Win${BIT_SIZE}BuildSetup
+./BuildSetup.bat noprompt noclean sh
+
+trap '' ERR
+
+printf "\n \
+${BRIGHT}${WHITE}All steps successfully performed and test build present on:${NORMAL}
+ - ${BRIGHT}${BLUE}${UNDERLINE}${BASE_PATH}/build/kodi-${BUILD_SYSTEM}/project/Win${BIT_SIZE}BuildSetup/BUILD_WIN${BIT_SIZE}/application${NORMAL}\n"
+
+rm -f $TEMP_DIR/kodi-$BUILD_SYSTEM.failed;
+exit 0

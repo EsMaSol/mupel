@@ -29,9 +29,10 @@ BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/../.. ; pwd -P)}
 
 . "$HOME/.mupel/mupel.conf"
 . "$BASE_PATH/tools/tool_functions"
-. "$BASE_PATH/tools/tool_install_functions"
+. "$BASE_PATH/tools/tool_install.include"
 
 INSTALL_PREFIX="$HOME/.mupel"
+EMU_INSTALL_PREFIX=${EMU_INSTALL_PREFIX:-$INSTALL_PREFIX/systems}
 
 RPI_IMAGE_SRC_URL="http://downloads.raspberrypi.org/raspbian/images/raspbian-2015-05-07/2015-05-05-raspbian-wheezy.zip"
 RPI_IMAGE_SHA1="cb799af077930ff7cbcfaa251b4c6e25b11483de"
@@ -209,7 +210,7 @@ if [[ ! -z $packages ]];then
 
     tail -f --pid=$pid ${main_msg_tmp} |
       showdialog --title="Install" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress --width=600 \
-                 --text="Install needed packages for windows emulation and usage ..." \
+                 --text="Install needed packages for Rasperry PI build, emulation and usage ..." \
                  --pulsate --enable-log --log-height=300 --button=gtk-cancel:1 \
                  --auto-close 2> /dev/null;
     ret=$?;
@@ -248,7 +249,7 @@ ________________________________________________________________________________
 trap 'evaluate_ret_error 1; exit_build 1' INT TERM QUIT HUP
 trap 'sudo -A -- apt-get clean; tput bel; echo; echo Failed' EXIT
 
-MOUNTPOINT="$INSTALL_PREFIX/systems/data_share/base"
+MOUNTPOINT="$EMU_INSTALL_PREFIX/data_share/base"
 
 if [ -z $RASPBERRY_DESKTOP_ICON_PATH ];then
   RASPBERRY_DESKTOP_ICON_PATH=$DESKTOP_DIR;fi
@@ -332,7 +333,7 @@ while :; do
     sudo -A -- apt-get -y install $dep schroot;
 
     # Don't accidentally overwrite an existing installation
-    [ -d $INSTALL_PREFIX/systems/"${target}" ] &&
+    [ -d $EMU_INSTALL_PREFIX/"${target}" ] &&
     {
       while :; do
         label="This chroot already exists on your machine."
@@ -372,10 +373,10 @@ while :; do
         case "${choice}" in
           "Abort|") exit_build 1;;
           "Overwrite|")
-               sudo -A -- rm -rf $INSTALL_PREFIX/systems/${target};
+               sudo -A -- rm -rf $EMU_INSTALL_PREFIX/${target};
                break;;
           "Delete|")
-               sudo -A -- rm -rf $INSTALL_PREFIX/systems/${target}      \
+               sudo -A -- rm -rf $EMU_INSTALL_PREFIX/${target}      \
                                     /usr/local/bin/${target}   \
                                     /etc/schroot/mount-${target}   \
                                     /etc/schroot/script-${target}  \
@@ -391,9 +392,9 @@ while :; do
         esac
       done
     }
-    mkdir -p $INSTALL_PREFIX/systems/${target}/mount
-    mkdir -p $INSTALL_PREFIX/systems/data_share/base
-    mkdir -p $INSTALL_PREFIX/systems/data_share/mount
+    mkdir -p $EMU_INSTALL_PREFIX/${target}/mount
+    mkdir -p $EMU_INSTALL_PREFIX/data_share/base
+    mkdir -p $EMU_INSTALL_PREFIX/data_share/mount
 
     [[ "x`cat /proc/mounts | grep ${MOUNTPOINT}/boot`" != "x" ]] && sudo -A -- umount -l "${MOUNTPOINT}/boot"
     [[ "x`cat /proc/mounts | grep ${MOUNTPOINT}/dev/pts`" != "x" ]] && sudo -A -- umount -l "${MOUNTPOINT}/dev/pts"
@@ -453,7 +454,7 @@ while :; do
 [ ! -d "$HOME/Downloads" ] && mkdir "$HOME/Downloads"
 IMAGE_ARCHIVE_FILE="$HOME/Downloads/${RPI_IMAGE_SRC_URL##*/}"
 IMAGE_FILE="${IMAGE_ARCHIVE_FILE%.*}.img"
-GPI_IMAGE="$INSTALL_PREFIX/systems/${target}/rpi-tmpl.img"
+GPI_IMAGE="$EMU_INSTALL_PREFIX/${target}/rpi-tmpl.img"
 
 # Download Image. This takes some time
 if [ ! -f "${IMAGE_FILE}" ]; then
@@ -654,7 +655,7 @@ EOF
 
       #sudo -A -- chmod 777 "${GPI_IMAGE}"; [ $? != 0 ] && exit 1;
       #sudo -A -- chown root:root "${GPI_IMAGE}"; [ $? != 0 ] && exit 1;
-      install ${RPI_KERNEL} $INSTALL_PREFIX/systems/raspberry/kernel-qemu-raspberry.bin; [ $? != 0 ] && exit 1;
+      install ${RPI_KERNEL} $EMU_INSTALL_PREFIX/raspberry/kernel-qemu-raspberry.bin; [ $? != 0 ] && exit 1;
 
       sleep 3
 
@@ -676,7 +677,7 @@ EOF
 [${target}]
 description=Raspberry Kodi Environment
 type=directory
-directory=$INSTALL_PREFIX/systems/${target}/mount
+directory=$EMU_INSTALL_PREFIX/${target}/mount
 users=root
 groups=${chroot_groups}
 root-groups=${chroot_groups}
@@ -736,12 +737,12 @@ EOF
 #!/bin/bash
 
 qemu-system-arm \\
-  -kernel $INSTALL_PREFIX/systems/${target}/kernel-qemu-raspberry.bin \\
+  -kernel $EMU_INSTALL_PREFIX/${target}/kernel-qemu-raspberry.bin \\
   -cpu arm1176 \\
   -m 256 \\
   -M versatilepb \\
   -append "root=/dev/sda2 panic=1 rw" \\
-  -hda $INSTALL_PREFIX/systems/${target}/rpi-tmpl.img \\
+  -hda $EMU_INSTALL_PREFIX/${target}/rpi-tmpl.img \\
   -net nic \\
   -net user \\
   -sdl \\
@@ -1000,6 +1001,7 @@ EOF
     TMP_DIR=`mktemp --directory`
     DESKTOP_FILE=$TMP_DIR/qemu-raspberry-pi.desktop
     cat > $DESKTOP_FILE << EOF
+#!/usr/bin/xdg-open
 [Desktop Entry]
 Comment[de_DE]=Start Raspberry PI emulation
 Comment=Start Raspberry PI emulation
@@ -1021,6 +1023,7 @@ X-KDE-SubstituteUID=false
 X-KDE-Username=
 X-MultipleArgs=false
 EOF
+chmod 755 $DESKTOP_FILE
 
     xdg-desktop-menu  install --novendor --noupdate $DESKTOP_FILE
     xdg-icon-resource install --novendor --size  32 "$BASE_PATH/icons/icon-raspberry-pi-32x32.png"   $ICON_NAME
@@ -1105,5 +1108,8 @@ ________________________________________________________________________________
 
      GNU General Public License, Version 3
      see <u><span foreground=\"blue\">http://www.gnu.org/licenses/</span></u></tt>" 2> /dev/null
+
+LINUX_RPBI_INSTALLED=TRUE
+saveConfigFile
 
 exit_build 0

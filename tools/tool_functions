@@ -99,43 +99,43 @@ CURS_UP="\033[1A"            # Up one line, at the 0'th char
 CURS_ZERO="\\033[0G"
 
 basic_dialog="yad-mupel-$(uname -m)"
-function showdialog() {
+function showdialog {
   $basic_dialog --center --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" "$@"
 }
 ##
 #####
 
-function log_success_msg()
+function log_success_msg
 {
   printf "${CURS_ZERO}${SET_COL}${SUCCESS_SUFFIX}\n"
 }
 
-function log_no_msg()
+function log_no_msg
 {
   printf "${CURS_ZERO}${SET_COL}${NO_SUFFIX}\n"
 }
 
-function log_failure_msg()
+function log_failure_msg
 {
   printf "${CURS_ZERO}${SET_COL}${FAILURE_SUFFIX}\n"
 }
 
-function log_warning_msg()
+function log_warning_msg
 {
   printf "${CURS_ZERO}${SET_COL}${WARNING_SUFFIX}\n"
 }
 
-function log_skip_msg()
+function log_skip_msg
 {
   printf "${CURS_ZERO}${SET_COL}${SKIP_SUFFIX}\n"
 }
 
-function log_done_msg()
+function log_done_msg
 {
   printf "${CURS_ZERO}${SET_COL}${DONE_SUFFIX}\n"
 }
 
-function log_ingnore_msg()
+function log_ingnore_msg
 {
   printf "${CURS_ZERO}${SET_COL}${IGNORE_SUFFIX}\n"
 }
@@ -148,7 +148,7 @@ function log_ingnore_msg()
 # value 4: user name
 # value 5: pass word
 # Return sets the global variables on OK
-function select_ssh_access_data()
+function select_ssh_access_data
 {
   ssh_url="${2}"
   ssh_port="${3}"
@@ -195,7 +195,7 @@ function select_ssh_access_data()
   return $ret
 }
 
-function killtree()
+function killtree
 {
   local _pid=$1
   local _sig=${2:--TERM}
@@ -207,7 +207,7 @@ function killtree()
   kill -${_sig} ${_pid}
 }
 
-function clean_schroot()
+function clean_schroot
 {
   local s t rc
   rc=0
@@ -228,13 +228,13 @@ function clean_schroot()
 }
 
 ##
-# handleErrorsCodes()
+# handleErrorsCodes
 # To open about error value the right dialog
 # values:
 #  - code   = The error code to check
 #  - source = source app of fault
 #  - label  = additional label to add in message
-function handleErrorsCodes()
+function handleErrorsCodes
 {
   local code=$1
   local source=$2
@@ -324,7 +324,7 @@ broken zipfiles created by other archivers have simple work-arounds.${endString}
     elif [[ $code = 6 ]];then
       error="${startString}Host public key for '$label' is unknown. exits without confirming the new key.${endString}"
     elif [[ $code = 255 ]];then
-      error="\${startString}
+      error="${startString}
 Connection to '$label' was not possible!
 
 Is the related source running and have SSH access enabled?${endString}"
@@ -337,6 +337,18 @@ Could not read from remote repository.
 
 Please make sure you have the correct access rights
 and the repository exists.${endString}"
+    fi
+  elif [[ $source = xdg-icon-resource ]];then
+    if [[ $code = 1 ]];then
+      error="${startString}The '$label' have error in command line syntax.${endString}"
+    elif [[ $code = 2 ]];then
+      error="${startString}On '$label' one of the files passed on the command line did not exist.${endString}"
+    elif [[ $code = 3 ]];then
+      error="${startString}On '$label' a required tool could not be found.${endString}"
+    elif [[ $code = 4 ]];then
+      error="${startString}The '$label' action failed.${endString}"
+    elif [[ $code = 5 ]];then
+      error="${startString}The '$label' have no permission to read one of the files passed on the command line.${endString}"
     fi
   fi
 
@@ -358,7 +370,7 @@ and the repository exists.${endString}"
 # values:
 # error_value = The error to check, 0 = OK
 # process     = The name of related process
-function evaluateReturnValue()
+function evaluateReturnValue
 {
   local error_value="${1}";
 #  printf $CURS_UP
@@ -378,7 +390,7 @@ function evaluateReturnValue()
 # Open dialog for error and exit
 # value 1: error value
 # value 2: error string if needed
-function evaluate_ret_error()
+function evaluate_ret_error
 {
   local error_value="${1}"
   if [[ ${error_value} != 0 ]]; then
@@ -400,7 +412,7 @@ function evaluate_ret_error()
 # Function copy additional parts to kodi build folder
 # @todo: Make better way
 #
-function installAdditionalKodiDepends()
+function installAdditionalKodiDepends
 {
   local sys_name;
   local install_path=$1
@@ -533,7 +545,7 @@ function installAdditionalKodiDepends()
 ##
 
 ##
-# trapError()
+# trapError
 # Function becomes used by set with "trap 'trapError ${LINENO}' ERR"
 # values:
 #  - parent_lineno = The line number where it failed
@@ -541,7 +553,7 @@ function installAdditionalKodiDepends()
 #  - code          = Error code
 # return:
 #  - exit script with error code
-function trapError()
+function trapError
 {
   local parent_lineno="$1"
   local message="$2"
@@ -560,7 +572,7 @@ function trapError()
 ##
 # Open dialog to show system info
 # value 1: The title on dialog
-function showSystemInfoDialog()
+function showSystemInfoDialog
 {
   local title="${1}"
   showdialog --skip-taskbar --on-top \
@@ -568,7 +580,7 @@ function showSystemInfoDialog()
              --image="$BASE_PATH/icons/icon-info-128x128.png" \
              --image-on-top --form \
              --button=gtk-ok:0 \
-             --width=830 --show-uri --editable \
+             --width=1024 --show-uri --editable \
              --text-info \
              --text="<tt>
      <i><span size=\"large\">$title, Version: $MUPEL_VERSION</span></i>
@@ -584,13 +596,14 @@ ________________________________________________________________________________
       - Windows x86-32 and x86-64
       - Mac OS X
       - IOS-ATV2 (TODO)
-      - Android x86 and ARM (TODO)
+      - Android x86 and ARM
 
      <b>System info:</b>
       - Depot tools :    $DEPOT_TOOLS_URL
       - Linux version :  `uname -r`
       - Memory size :    $memory MByte
-      - Free Disk size : `expr $FREE_INITIAL_DISK_SPACE / 1024 / 1024` GByte
+      - Free Disk size : `expr $FREE_INITIAL_DISK_SPACE / 1024 / 1024` GByte (on install)
+                         `expr $(df  . | tail -1 | tr -s ' ' | cut -d' ' -f4) / 1024 / 1024` GByte (now)
 
      <i>NOTE:</i> Formats other as linux must be handled from connected systems over ssh.
 _________________________________________________________________________________________
@@ -606,7 +619,7 @@ ________________________________________________________________________________
 # Open dialog for info
 # value 1: info value
 # value 2: time out if needed
-function showInfoDialog()
+function showInfoDialog
 {
   local text="${1}"
   local timeout=
@@ -627,7 +640,7 @@ function showInfoDialog()
 # Open dialog for warning
 # value 1: warning value
 # value 2: warning string if needed
-function showWarningDialog()
+function showWarningDialog
 {
   local text="${1}"
   showdialog \
@@ -644,7 +657,7 @@ function showWarningDialog()
 # Open dialog for warning
 # value 1: warning value
 # value 2: warning string if needed
-function showWarningDialog_QuitOK()
+function showWarningDialog_QuitOK
 {
   local text="${1}"
   showdialog \
@@ -662,7 +675,7 @@ function showWarningDialog_QuitOK()
 # Open dialog for warning
 # value 1: warning value
 # value 2: warning string if needed
-function showWarningDialog_YesNo()
+function showWarningDialog_YesNo
 {
   local text="${1}"
   showdialog \
@@ -680,7 +693,7 @@ function showWarningDialog_YesNo()
 # Open dialog for error
 # value 1: error value
 # value 2: error string if needed
-function showErrorDialog()
+function showErrorDialog
 {
   local text="${1}"
   showdialog \
@@ -697,7 +710,7 @@ function showErrorDialog()
 # Open dialog for error
 # value 1: error value
 # value 2: error string if needed
-function showErrorDialog_YesNo()
+function showErrorDialog_YesNo
 {
   local text="${1}"
   showdialog \
@@ -714,7 +727,7 @@ function showErrorDialog_YesNo()
 # Open dialog for question
 # value 1: question value
 # value 2: question string if needed
-function showQuestionDialog()
+function showQuestionDialog
 {
   local text="${1}"
   showdialog \
@@ -728,7 +741,7 @@ function showQuestionDialog()
 ##
 
 lockdir_BaseBuild=/tmp/Mupel_mutexLock_BaseBuild.lock
-mutexLock_BaseBuild()
+function mutexLock_BaseBuild
 {
   local ret=0;
   while :; do
@@ -747,17 +760,17 @@ mutexLock_BaseBuild()
   return $ret;
 }
 
-mutexUnlock_BaseBuild()
+function mutexUnlock_BaseBuild
 {
   rm -rf "$lockdir_BaseBuild"
 }
 
 ##
-# saveConfigFile()
+# saveConfigFile
 # Write configuration file about available options
 
 lockdir_saveConfigFile=/tmp/Mupel_mutexLock_ConfigFile.lock
-mutexLock_ConfigFile()
+function mutexLock_ConfigFile()
 {
   while :; do
   {
@@ -771,7 +784,7 @@ mutexLock_ConfigFile()
   } done
 }
 
-mutexUnlock_ConfigFile()
+function mutexUnlock_ConfigFile()
 {
   rm -rf "$lockdir_saveConfigFile"
 }
@@ -790,12 +803,33 @@ function loadConfigFile()
 
   if [ $COUNTER -lt 10 ];then
   {
-    . "$HOME/.mupel/mupel.conf";
+    . $HOME/.mupel/mupel.conf;
+    . $HOME/.mupel/android.conf
+    . $HOME/.mupel/windows.conf
+    . $HOME/.mupel/mac-osx.conf
+    . "$BASE_PATH/versions";
     GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
     GIT_CEF_USER=$(echo $CEF_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
     export KODI_SEL_ADDON;
     export GIT_USER;
     export GIT_CEF_USER;
+    export USE_LINUX_X86_DISTR;
+    export LINUX_BUILD_TYPE;
+    export WINDOWS_DEFAULT_RUN;
+    export WINDOWS_SSH_USERNAME;
+    export WINDOWS_SSH_PASSWORD;
+    export WINDOWS_SSH_IP;
+    export WINDOWS_SSH_PORT;
+    export WINDOWS_BUILD_TYPE;
+    export MAC_OS_X_DEFAULT_RUN;
+    export MAC_OS_X_SSH_USERNAME;
+    export MAC_OS_X_SSH_PASSWORD;
+    export MAC_OS_X_SSH_IP;
+    export MAC_OS_X_SSH_PORT;
+    export IOS_ATV2_BUILD_TYPE;
+    export ANDROID_BUILD_TYPE;
+    export ANDROID_SEL_TARGET;
+
   }
   else
     printf "${RED}${BRIGHT}ERROR: ${WHITE}Needed Mupel config file '$HOME/.mupel/mupel.conf' not present${NORMAL}\n";fi
@@ -849,6 +883,18 @@ USE_ANDROID_ARM=$USE_ANDROID_ARM
 USE_ANDROID_X86=$USE_ANDROID_X86
 USE_IOS_ATV2=$USE_IOS_ATV2
 
+LINUX_X86_32_INSTALLED=$LINUX_X86_32_INSTALLED
+LINUX_X86_64_INSTALLED=$LINUX_X86_64_INSTALLED
+LINUX_RPBI_INSTALLED=$LINUX_RPBI_INSTALLED
+MS_WINDOWS_32_INSTALLED=$MS_WINDOWS_32_INSTALLED
+MS_WINDOWS_64_INSTALLED=$MS_WINDOWS_64_INSTALLED
+MAC_OS_X_64_INSTALLED=$MAC_OS_X_64_INSTALLED
+ANDROID_ARM_INSTALLED=$ANDROID_ARM_INSTALLED
+ANDROID_X86_INSTALLED=$ANDROID_X86_INSTALLED
+IOS_ATV2_INSTALLED=$IOS_ATV2_INSTALLED
+
+EMU_INSTALL_PREFIX=$EMU_INSTALL_PREFIX
+
 RELEASE_BUILD=$RELEASE_BUILD
 DEBUG_BUILD=$DEBUG_BUILD
 
@@ -873,7 +919,6 @@ CEF_FORCE_CLEAN=$CEF_FORCE_CLEAN
 CEF_FORCE_CLEAN_DEPS=$CEF_FORCE_CLEAN_DEPS
 CEF_BUILD_TESTS=$CEF_BUILD_TESTS
 CEF_VERBOSE_BUILD=$CEF_VERBOSE_BUILD
-CEF_KODI_BINARY_VERSION=$CEF_KODI_BINARY_VERSION
 DEPOT_TOOLS_URL=$DEPOT_TOOLS_URL
 
 INCLUDE_KODI=$INCLUDE_KODI
@@ -890,15 +935,94 @@ TEXT_VIEVER=$TEXT_VIEVER
 FREE_INITIAL_DISK_SPACE=$FREE_INITIAL_DISK_SPACE
 
 CPU_PROC_JOBS=$CPU_PROC_JOBS
-
+INCLUDE_OPEN_PULL_REQUESTS=$INCLUDE_OPEN_PULL_REQUESTS
 EOF
+
+  saveAndroidConfigFile
+  saveWindowsConfigFile
+  saveMacOSXConfigFile
 
   mutexUnlock_ConfigFile
 }
 ##
 
 ##
-function saveAndroidConfigFile()
+# saveGitConfigFile
+# Write configuration file about available options
+
+lockdir_saveGitConfigFile=/tmp/Mupel_mutexLock_GitConfigFile.lock
+function mutexLock_GitConfigFile()
+{
+  while :; do
+  {
+    if mkdir "$lockdir_saveGitConfigFile" 2>/dev/null;then # directory did not exist, but was created successfully
+    {
+      trap 'rm -rf "$lockdir_saveGitConfigFile"' 0;        # remove directory when script finishes
+      break;                                            # continue with script
+    }
+    else
+      sleep 0.05;fi                                     # sleep for 0.05 seconds and try again
+  } done
+}
+
+function mutexUnlock_GitConfigFile()
+{
+  rm -rf "$lockdir_saveGitConfigFile"
+}
+
+function loadGitConfigFile()
+{
+  local noOutLock="${1}"
+
+  mutexLock_GitConfigFile
+
+  local COUNTER=0;
+  while [ ! -f "$HOME/.mupel/mupel-git.conf" ] && [ $COUNTER -lt 10 ]; do
+  {
+    let COUNTER=COUNTER+1;
+  } done
+
+  if [ $COUNTER -lt 10 ];then
+    . "$HOME/.mupel/mupel-git.conf";
+  else
+    printf "${RED}${BRIGHT}ERROR: ${WHITE}Needed Mupel config file '$HOME/.mupel/mupel-git.conf' not present${NORMAL}\n";fi
+
+  local_GIT_KODI_LIST_REQ_OWN=$GIT_KODI_LIST_REQ_OWN
+  local_GIT_KODI_LIST_REQ_BASE=$GIT_KODI_LIST_REQ_BASE
+  local_GIT_CEF_LIST_REQ_OWN=$GIT_CEF_LIST_REQ_OWN
+  local_GIT_CEF_LIST_REQ_BASE=$GIT_CEF_LIST_REQ_BASE
+
+  if [ -z $noOutLock ];then
+    mutexUnlock_GitConfigFile;fi
+}
+
+function saveGitConfigFile()
+{
+  local noInLock="${1}"
+
+  if [ -z $noInLock ];then
+    mutexLock_GitConfigFile;fi
+
+  cat > "$HOME/.mupel/mupel-git.conf" << EOF
+##
+# Mupel - Multiplatform build configuration for Kodi on Linux settings
+# Note: Do not delete this file! If removed all information about settings and
+# supported systems becomes losed.
+# Do not edit by hand if you not know what you do.
+
+NEXT_UPDATE_TIME=$NEXT_UPDATE_TIME
+GIT_KODI_LIST_REQ_OWN=$GIT_KODI_LIST_REQ_OWN
+GIT_KODI_LIST_REQ_BASE=$GIT_KODI_LIST_REQ_BASE
+GIT_CEF_LIST_REQ_OWN=$GIT_CEF_LIST_REQ_OWN
+GIT_CEF_LIST_REQ_BASE=$GIT_CEF_LIST_REQ_BASE
+EOF
+
+  mutexUnlock_GitConfigFile
+}
+##
+
+##
+function saveAndroidConfigFile
 {
   cat > $HOME/.mupel/android.conf << EOF
 ##
@@ -921,7 +1045,7 @@ EOF
 ##
 
 ##
-function saveWindowsConfigFile()
+function saveWindowsConfigFile
 {
   cat > $HOME/.mupel/windows.conf << EOF
 ##
@@ -947,7 +1071,7 @@ EOF
 ##
 
 ##
-function saveMacOSXConfigFile()
+function saveMacOSXConfigFile
 {
   cat > $HOME/.mupel/mac-osx.conf << EOF
 ##
@@ -972,13 +1096,13 @@ EOF
 ##
 
 ##
-# getGITBranchName()
+# getGITBranchName
 # Function to give name of active git branch
 # values:
 #  - directory = git directory to check
 # return:
 #  - String with branch name
-function getGITBranchName()
+function getGITBranchName
 {
   local directory=$1;
   local branchName=`git -C "$directory" symbolic-ref HEAD 2>/dev/null || echo detached`;
@@ -1014,13 +1138,13 @@ function getGITBranchName()
 ##
 
 ##
-# getBuildRevDateStr()
+# getBuildRevDateStr
 # Function to give name of active git branch
 # values:
 #  - directory = git directory to check
 # return:
 #  - String with revision date and branch name (e.g. 20150714-cd2207c-master)
-function getBuildRevDateStr()
+function getBuildRevDateStr
 {
   local directory=$1;
   local revStr=`git -C "$directory" --no-pager log --abbrev=7 -n 1 --pretty=format:"%h %ci" HEAD | awk '{gsub("-", "");print $2"-"$1}' 2>/dev/null`
@@ -1047,25 +1171,23 @@ function getBuildRevDateStr()
 # out_name     = The used folder name to store
 # url          = The source from where to load
 # branch       = The branch name to have
-# process      = The name of related process
-function handleGITLoad()
+function handleGITLoad
 {
   local to_dir=$1;
   local out_name=$2;
   local url=$3;
-  local branch=$4;
-  local process=$5;
+  local used_branch=$([[ $4 = *refs/pull* ]] && echo pull-master || echo $4);
 
   if [ -z $to_dir ] || [ -z $out_name ];then
     return;fi
 
   if [ ! -d "${to_dir}/${out_name}" ];then
   {
-    echo "Git Download: $url - branch: $branch";
+    echo "Git Download: $url - branch: $4";
     git -C $to_dir clone --progress $url $out_name > /dev/stdout 2>&1
-    # Allow locaö clones to push here
+    # Allow local clones to push here
     git -C $to_dir/$out_name config receive.denyCurrentBranch ignore > /dev/stdout 2>&1
-    git -C $to_dir/$out_name checkout $branch > /dev/stdout 2>&1
+    git -C $to_dir/$out_name checkout $used_branch > /dev/stdout 2>&1
     if [[ $out_name = kodi ]] && [[ $GIT_USER != xbmc ]];then
     {
       git -C $to_dir/kodi remote add upstream https://github.com/xbmc/xbmc.git > /dev/stdout 2>&1
@@ -1074,8 +1196,8 @@ function handleGITLoad()
   }
   else
   {
-    echo "Git Update: $url - branch: $branch";
-    git -C $to_dir/${out_name} checkout $branch > /dev/stdout 2>&1
+    echo "Git Update: $url - branch: $4";
+    git -C $to_dir/${out_name} checkout $used_branch > /dev/stdout 2>&1
     git -C $to_dir/${out_name} pull > /dev/stdout 2>&1
     if [[ $out_name = kodi ]] && [[ $GIT_USER != xbmc ]];then
     {
@@ -1087,10 +1209,10 @@ function handleGITLoad()
   if [[ $ret = 0 ]];then
   {
     local current_branch=$(getGITBranchName "${to_dir}/${out_name}")
-    if [[ $current_branch != $branch ]];then
+    if [[ $current_branch != $used_branch ]];then
     {
       git -C ${to_dir}/${out_name} clean -dffx;
-      git -C ${to_dir}/${out_name} checkout $branch
+      git -C ${to_dir}/${out_name} checkout $used_branch
       ret=$?;
     } fi
   } fi
@@ -1102,7 +1224,7 @@ function handleGITLoad()
 ##
 
 ##
-function validateUrl()
+function validateUrl
 {
   if [[ `wget -S --spider $1  2>&1 | grep 'HTTP/1.1 200 OK'` ]]; then echo "true"; fi
 }
@@ -1114,7 +1236,7 @@ function validateUrl()
 #  - source = The source to check
 # return:
 #  - true if network
-function isNetworkDrive()
+function isNetworkDrive
 {
   local source=$1;
   stat -c %T -f "$source/" 2>/dev/null | egrep -qs '^nfs|cifs|smbfs'
@@ -1122,7 +1244,7 @@ function isNetworkDrive()
 ##
 
 ##
-function initBuildScript_Kodi()
+function initBuildScript_Kodi
 {
   GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
   if [ -z $GIT_USER ];then
@@ -1152,7 +1274,7 @@ ${BRIGHT}${WHITE}for build not present!${NORMAL}\n";
 ##
 
 ##
-function loadKodiBuildDir()
+function loadKodiBuildDir
 {
   local BUILD_SYSTEM=$1;
   local REAL_NAME="$2";
@@ -1161,6 +1283,7 @@ function loadKodiBuildDir()
 
   local GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
   local SOURCE=$BASE_PATH/build/kodi-$GIT_USER/kodi
+  local used_branch=$([[ $KODI_SOURCE_BRANCH = *refs/pull* ]] && echo pull-master || echo $KODI_SOURCE_BRANCH);
   if [[ -z $DEST ]];then
     DEST=$BASE_PATH/build/kodi-$GIT_USER/;fi
   if [[ ! -d $DEST ]];then
@@ -1177,7 +1300,7 @@ function loadKodiBuildDir()
     git -C $DEST clone \
       --progress \
       $SOURCE \
-      --branch $KODI_SOURCE_BRANCH \
+      --branch $used_branch \
       kodi-$BUILD_SYSTEM
   }
   else
@@ -1254,9 +1377,21 @@ function loadKodiBuildDir()
     {
       if [[ $KODI_DEP_CLEAN = TRUE ]];then
         git -C $directory clean -dffx;fi
-      git -C $directory checkout $KODI_SOURCE_BRANCH
+      git -C $directory checkout $used_branch
     } fi
     echo "   Branch name:      $KODI_SOURCE_BRANCH"
   } fi
 }
 ##
+
+function openWebsite
+{
+  local website=$1
+  if which xdg-open > /dev/null; then
+    xdg-open "$website"
+  elif which gnome-open > /dev/null; then
+    gnome-open "$website"
+  else
+    showErrorDialog "Could not detect the web browser to use."
+  fi
+}

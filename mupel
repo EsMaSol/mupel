@@ -85,6 +85,8 @@ WAIT_TIMEOUT=30;
 OS_START_TIMEOUT=90;
 REQUEST_UPDATE_TIMEOUT=1800 # 30 minutes
 
+INCLUDE_OPEN_PULL_REQUESTS=FALSE
+
 NET_CONNECTION=eth0 #<TODO
 
 ##
@@ -123,8 +125,8 @@ GEN__BTN_______STOP_BUILD_ALL=1
 GEN__BTN____CREATE_INST_MUPEL=2
 GEN__BTN______________DUMMY_1=3
 GEN__BTN______DOWNLOAD_UPDATE=4
-GEN__BTN____CREATE_NEW_BRANCH=5
-GEN__BTN______PREPARE_PATCHES=6
+GEN__BTN______________DUMMY_3=5
+GEN__BTN______________DUMMY_4=6
 GEN__BTN____DEL_OLD_LOG_FILES=7
 GEN__BTN____________CLEAR_LOG=8
 GEN_____________________SEP__=9
@@ -138,10 +140,17 @@ GEN__TERMPROC_______BUILD_LOG=14
 GIT_KODI______________LABEL__=0
 GIT_KODI________LIST_REQ__OWN=1
 GIT_KODI_______LIST_REQ__BASE=2
-GIT_CEF_________________SEP__=3
-GIT_CEF_______________LABEL__=4
-GIT_CEF_________LIST_REQ__OWN=5
-GIT_CEF________LIST_REQ__BASE=6
+GIT_KODI____CREATE_NEW_BRANCH=3
+GIT_KODI______PREPARE_PATCHES=4
+GIT_CEF_________________SEP__=5
+GIT_CEF_______________LABEL__=6
+GIT_CEF_________LIST_REQ__OWN=7
+GIT_CEF________LIST_REQ__BASE=8
+GIT_CEF_____CREATE_NEW_BRANCH=9
+GIT_CEF_______PREPARE_PATCHES=10
+GIT_____________________SEP__=11
+GIT___________________LABEL__=12
+GIT______________SHOW_SSH_KEY=13
 
 # Build control id's
 BUILD__BTN_____BUILD_COMPLETE=0
@@ -215,23 +224,27 @@ SET_ANDROID_________INSTALLER=53
 SET_ANDROID_______AVD_MANAGER=54
 SET_ANDROID____ARM_EMU_SOURCE=55
 SET_ANDROID____x86_EMU_SOURCE=56
-SET_VARIOUS_____________SEP__=57
-SET_VARIOUS_____CPU_PROC_JOBS=58
+SET_VAR_________________SEP__=57
+SET_VAR_________CPU_PROC_JOBS=58
+SET_VAR____EMU_INSTALL_PREFIX=59
+SET_VAR_INCLUDE_OPEN_REQUESTS=60
 
 ###############################################################################
 # Functions
 {
 
-function loadGitBranches()
+function loadGitBranches
 {
   local load_url=$1
   local selected_branch=$2
+  local repo_path=$3
 
   local git_entries=$(git ls-remote "$load_url")
   ret=$?
   if [[ $ret = 0 ]];then
   {
-    git_entries=$(echo "$git_entries"| grep "refs/heads" | awk -F '/' '{print $3}')
+    git_entries=$(echo "$git_entries" | grep "refs/heads" | awk -F '/' '{print $3}')
+
     local targets=
     local last=""
     for i in $git_entries; do
@@ -245,6 +258,18 @@ function loadGitBranches()
     } done
     targets+="!"
 
+    IFS_BU=$IFS;
+    IFS=$'\n'
+    if [[ $INCLUDE_OPEN_PULL_REQUESTS = TRUE ]];then
+    {
+      local git_requests=$(git -C $repo_path pulls list | tail -n +2)
+      for r in $git_requests; do
+      {
+        targets+="refs/pull/$(echo $r | awk -F ' ' '{print $1}')/head!"
+      } done
+    } fi
+    set IFS=$IFS_BU
+
     echo "$targets"
     return 0;
   }
@@ -255,7 +280,7 @@ function loadGitBranches()
   } fi
 }
 
-function parse_values()
+function parse_values
 {
   local field=$1
   local id=$2
@@ -314,7 +339,7 @@ function parse_values()
     { # handle 'kodi git url' change
       echo "#> msg field $SET_KODI________SOURCE_BRANCH:enable 0;"
 
-      local targets=$(loadGitBranches ${value%|} $KODI_SOURCE_BRANCH );
+      local targets=$(loadGitBranches ${value%|} $KODI_SOURCE_BRANCH $BASE_PATH/build/kodi-$GIT_USER/kodi);
       if [ $? = 0 ];then
       {
         KODI_SOURCE_URL=${value%|};
@@ -333,13 +358,14 @@ function parse_values()
       {
         KODI_SOURCE_URL_INACTIVE=$KODI_SOURCE_URL
         KODI_SOURCE_URL=$KODI_SOURCE_URL_BASE
+        GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
       }
       else
       {
         KODI_SOURCE_URL=$KODI_SOURCE_URL_INACTIVE
       } fi
 
-      local targets=$(loadGitBranches $KODI_SOURCE_URL $KODI_SOURCE_BRANCH );
+      local targets=$(loadGitBranches $KODI_SOURCE_URL $KODI_SOURCE_BRANCH $BASE_PATH/build/kodi-xbmc/kodi);
       if [ $? = 0 ];then
       {
         echo "#> msg field $SET_KODI________SOURCE_REPOSI:set ${KODI_SOURCE_URL};";
@@ -352,6 +378,14 @@ function parse_values()
     elif [[ $id = $SET_KODI________SOURCE_BRANCH ]];then
     {
       # Trigger for update
+      if [[ $KODI_SOURCE_BRANCH != ${value%|} ]] && [[ ${value%|} = "refs/pull"* ]];then
+      {
+        $BASE_PATH/tools/send-button-msg checkoutRequest $BASE_PATH/build/kodi-$GIT_USER/kodi $(echo ${value%|} | awk -F '/' '{print $3}')
+      }
+      else
+      {
+        git -C $BASE_PATH/build/kodi-$GIT_USER/kodi checkout ${value%|}
+      } fi
       KODI_SOURCE_BRANCH=${value%|}
     }
     elif [[ $id = $SET_KODI____________RUN_TESTS ]];then
@@ -372,7 +406,7 @@ function parse_values()
     {  # handle 'cef git url' change
       echo "#> msg field $SET_CEF_________SOURCE_BRANCH:enable 0;"
 
-      local targets=$(loadGitBranches ${value%|} $CEF_SOURCE_BRANCH );
+      local targets=$(loadGitBranches ${value%|} $CEF_SOURCE_BRANCH $BASE_PATH/build/cef-$GIT_CEF_USER/cef);
       if [ $? = 0 ];then
       {
         CEF_SOURCE_URL=${value%|};
@@ -391,15 +425,17 @@ function parse_values()
       {
         CEF_SOURCE_URL_INACTIVE=$CEF_SOURCE_URL
         CEF_SOURCE_URL=$CEF_SOURCE_URL_BASE
+        GIT_CEF_USER=$(echo $CEF_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
       }
       else
       {
         CEF_SOURCE_URL=$CEF_SOURCE_URL_INACTIVE
       } fi
 
-      local targets=$(loadGitBranches $CEF_SOURCE_URL $CEF_SOURCE_BRANCH );
+      local targets=$(loadGitBranches $CEF_SOURCE_URL $CEF_SOURCE_BRANCH $BASE_PATH/build/cef-chromiumembedded/cef);
       if [ $? = 0 ];then
       {
+        echo "#> msg field $SET_CEF_________SOURCE_REPOSI:set ${CEF_SOURCE_URL};"
         echo "#> msg field $SET_CEF_________SOURCE_REPOSI:set ${CEF_SOURCE_URL};";
         echo "#> msg field $SET_CEF_________SOURCE_BRANCH:set ${targets};";
         echo "#> msg field $SET_CEF_________SOURCE_BRANCH:enable 1;"
@@ -410,6 +446,14 @@ function parse_values()
     elif [[ $id = $SET_CEF_________SOURCE_BRANCH ]];then
     {
       # Trigger for update
+      if [[ $CEF_SOURCE_BRANCH != ${value%|} ]] && [[ ${value%|} = "refs/pull"* ]];then
+      {
+        $BASE_PATH/tools/send-button-msg checkoutRequest $BASE_PATH/build/cef-$GIT_CEF_USER/cef $(echo ${value%|} | awk -F '/' '{print $3}')
+      }
+      else
+      {
+        git -C $BASE_PATH/build/cef-$GIT_CEF_USER/cef checkout ${value%|}
+      } fi
       CEF_SOURCE_BRANCH=${value%|}
     }
     elif [[ $id = $SET_CEF_________________DEBUG ]];then
@@ -457,9 +501,8 @@ function parse_values()
     }
     elif [[ $id = $SET_LINUX__________BUILD_TYPE ]];then
     {
-      . $HOME/.mupel/windows.conf;
       LINUX_BUILD_TYPE=${value%|}
-      export LINUX_BUILD_TYPE
+      export LINUX_BUILD_TYPE;
     }
     #####
     # MS Windows
@@ -468,9 +511,7 @@ function parse_values()
       local use_it;
       local use_it_2;
 
-      . $HOME/.mupel/windows.conf;
       WINDOWS_DEFAULT_RUN=${value%|}
-      saveWindowsConfigFile
       export WINDOWS_DEFAULT_RUN
 
       [[ $WINDOWS_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
@@ -481,30 +522,22 @@ function parse_values()
     }
     elif [[ $id = $SET_WINDOWS______SSH_USERNAME ]];then
     {
-      . $HOME/.mupel/windows.conf;
       WINDOWS_SSH_USERNAME=${value%|}
-      saveWindowsConfigFile
       export WINDOWS_SSH_USERNAME
     }
     elif [[ $id = $SET_WINDOWS______SSH_PASSWORD ]];then
     {
-      . $HOME/.mupel/windows.conf;
       WINDOWS_SSH_PASSWORD=${value%|}
-      saveWindowsConfigFile
       export WINDOWS_SSH_PASSWORD
     }
     elif [[ $id = $SET_WINDOWS____________SSH_IP ]];then
     {
-      . $HOME/.mupel/windows.conf;
       WINDOWS_SSH_IP=${value%|}
-      saveWindowsConfigFile
       export WINDOWS_SSH_IP
     }
     elif [[ $id = $SET_WINDOWS__________SSH_PORT ]];then
     {
-      . $HOME/.mupel/windows.conf;
       WINDOWS_SSH_PORT=${value%|}
-      saveWindowsConfigFile
       export WINDOWS_SSH_PORT
     }
     elif [[ $id = $SET_WINDOWS______OPEN_CONTROL ]];then
@@ -525,9 +558,7 @@ function parse_values()
     }
     elif [[ $id = $SET_WINDOWS________BUILD_TYPE ]];then
     {
-      . $HOME/.mupel/windows.conf;
       WINDOWS_BUILD_TYPE=${value%|}
-      saveWindowsConfigFile
       export WINDOWS_BUILD_TYPE
     }
     #####
@@ -537,9 +568,7 @@ function parse_values()
       local use_it;
       local use_it_2;
 
-      . $HOME/.mupel/mac-osx.conf;
       MAC_OS_X_DEFAULT_RUN=${value%|}
-      saveMacOSXConfigFile
       export MAC_OS_X_DEFAULT_RUN
 
       [[ $MAC_OS_X_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
@@ -566,76 +595,73 @@ function parse_values()
     }
     elif [[ $id = $SET_MAC__________SSH_USERNAME ]];then
     {
-      . $HOME/.mupel/mac-osx.conf;
       MAC_OS_X_SSH_USERNAME=${value%|}
-      saveMacOSXConfigFile
       export MAC_OS_X_SSH_USERNAME
     }
     elif [[ $id = $SET_MAC__________SSH_PASSWORD ]];then
     {
-      . $HOME/.mupel/mac-osx.conf;
       MAC_OS_X_SSH_PASSWORD=${value%|}
-      saveMacOSXConfigFile
       export MAC_OS_X_SSH_PASSWORD
     }
     elif [[ $id = $SET_MAC________________SSH_IP ]];then
     {
-      . $HOME/.mupel/mac-osx.conf;
       MAC_OS_X_SSH_IP=${value%|}
-      saveMacOSXConfigFile
       export MAC_OS_X_SSH_IP
     }
     elif [[ $id = $SET_MAC______________SSH_PORT ]];then
     {
-      . $HOME/.mupel/mac-osx.conf;
       MAC_OS_X_SSH_PORT=${value%|}
-      saveMacOSXConfigFile
       export MAC_OS_X_SSH_PORT
     }
     elif [[ $id = $SET_MAC____IOS_ATV_BUILD_TYPE ]];then
     {
-      . $HOME/.mupel/mac-osx.conf;
       IOS_ATV2_BUILD_TYPE=$(echo ${value%|} | tr '[:upper:]' '[:lower:]');
-      saveMacOSXConfigFile
       export IOS_ATV2_BUILD_TYPE
     }
     #####
     # Android
     elif [[ $id = $SET_ANDROID________BUILD_TYPE ]];then
     {
-      . $HOME/.mupel/android.conf;
       ANDROID_BUILD_TYPE=${value%|}
-      saveAndroidConfigFile
       export ANDROID_BUILD_TYPE
     }
     elif [[ $id = $SET_ANDROID____ARM_EMU_SOURCE ]];then
     {
-      . $HOME/.mupel/android.conf;
       ANDROID_SEL_AVD_ARM=$(echo ${value%|} | awk -F 'Name: ' '{print $2}' | awk -F ' - ' '{print $1}');
-      saveAndroidConfigFile
     }
     elif [[ $id = $SET_ANDROID__BUILD_SYS_TARGET ]];then
     {
-      . $HOME/.mupel/android.conf;
       ANDROID_SEL_TARGET=${value%|}
-      saveAndroidConfigFile
+      export ANDROID_SEL_TARGET;
 
       echo "#> msg field $SET_ANDROID____ARM_EMU_SOURCE:set $(getAndroidAVDS arm);"
       echo "#> msg field $SET_ANDROID____x86_EMU_SOURCE:set $(getAndroidAVDS x86);"
     }
     elif [[ $id = $SET_ANDROID____x86_EMU_SOURCE ]];then
     {
-      . $HOME/.mupel/android.conf;
       ANDROID_SEL_AVD_X86=$(echo ${value%|} | awk -F 'Name: ' '{print $2}' | awk -F ' - ' '{print $1}');
-      saveAndroidConfigFile
     }
     #####
     # General
-    elif [[ $id = $SET_VARIOUS_____CPU_PROC_JOBS ]];then
+    elif [[ $id = $SET_VAR_________CPU_PROC_JOBS ]];then
     {
       value=${value%|}
       [ -z $value ] && value=8;
       CPU_PROC_JOBS=${value%,000000}
+    }
+    elif [[ $id = $SET_VAR____EMU_INSTALL_PREFIX ]];then
+    {
+      value=${value%|}
+      EMU_INSTALL_PREFIX=${value:-$INSTALL_PREFIX/systems}
+      echo "#> msg field $SET_MAC________________TARGET:set $(getMacOSXTargets x86);";
+      echo "#> msg field $SET_WINDOWS____________TARGET:set $(getWindowsTargets x86);";
+    }
+    elif [[ $id = $SET_VAR_INCLUDE_OPEN_REQUESTS ]];then
+    {
+      INCLUDE_OPEN_PULL_REQUESTS=${value%|}
+      echo "#> msg field $SET_KODI________SOURCE_REPOSI:set ${KODI_SOURCE_URL};";
+      echo "#> msg field $SET_CEF_________SOURCE_REPOSI:set ${CEF_SOURCE_URL};";
+
     } fi
     set IFS=$IFS_BU
   } fi
@@ -643,7 +669,7 @@ function parse_values()
   saveConfigFile noInLock;
 }
 
-function buildThreadBaseGeneralProcess()
+function buildThreadBaseGeneralProcess
 {
   local stand_alone=$1
 
@@ -651,7 +677,7 @@ function buildThreadBaseGeneralProcess()
     mv "$BASE_PATH/build/creation-general.log" "$BASE_PATH/build/creation-general-`date +%F_%H-%m`.old.log";fi
   touch "$BASE_PATH/build/creation-general.log"
 
-  bash "$BASE_PATH/tools/basic-system-creation.build" --temp-dir "$TEMP_DIR" >> "/dev/stdout" 2>&1 | \
+  bash "$BASE_PATH/tools/basic-system-creation.build" >> "/dev/stdout" 2>&1 | \
   tee "$BASE_PATH/build/creation-general.log"
 
   local error_value=${?}
@@ -672,7 +698,7 @@ Systems build stopped here." \
   } fi
 }
 
-function buildThreadBaseGeneral()
+function buildThreadBaseGeneral
 {
   (
     loadConfigFile
@@ -731,7 +757,14 @@ function buildThreadBaseGeneral()
   echo "Complete build of all installed systems started ...";
 }
 
-function buildThreadForOS()
+function exitBuildThreadForOS
+{
+  rm -f $TEMP_DIR/build_thread-cef_active;
+  rm -f $TEMP_DIR/build_thread-cef_active-$system;
+  rm -f $TEMP_DIR/build_thread-$system.pid;
+}
+
+function buildThreadForOS
 {
   local system="$1"
   local caller="$2"
@@ -778,8 +811,6 @@ function buildThreadForOS()
 
   if [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
   {
-    . $HOME/.mupel/mac-osx.conf;
-
     own_ip=$([[ $MAC_OS_X_SSH_IP != 127.0.0.1 ]] && [[ $MAC_OS_X_SSH_IP != localhost ]] && echo $own_ip || echo 10.0.2.4);
     ssh_name=$([[ $own_ip = 10.0.2.4 ]] && echo "$MAC_OS_X_DEFAULT_RUN" | tr '(' '_' | tr ')' '_' || echo $MAC_OS_X_SSH_IP);
     ssh_port=$([[ $own_ip = 10.0.2.4 ]] && echo 2223 || echo $MAC_OS_X_SSH_PORT);
@@ -794,9 +825,11 @@ function buildThreadForOS()
 
   (
     unset IFS;
-    trap 'rm -f $TEMP_DIR/build_thread-cef_active; rm -f $TEMP_DIR/build_thread-cef_active-$system; rm -f $TEMP_DIR/build_thread-$system.pid;' EXIT SIGHUP SIGINT SIGTERM;
+
     sleep 3
     loadConfigFile
+
+    trap 'exitBuildThreadForOS' EXIT SIGHUP SIGINT SIGTERM;
 
     if [[ $system = win* ]] || [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
     {
@@ -842,6 +875,8 @@ Checking ssh connection for independent OS build system (can take some seconds):
       buildThreadBaseGeneralProcess 0;fi
     mutexUnlock_BaseBuild
 
+    trap 'exitBuildThreadForOS' EXIT SIGHUP SIGINT SIGTERM;
+
     # Check CEF build really active and not related files only present after
     # a error, if not removed files and start new build.
     if [ -f $TEMP_DIR/build_thread-cef_active ];then
@@ -862,42 +897,53 @@ Checking ssh connection for independent OS build system (can take some seconds):
         {
           if [ ! -f "$TEMP_DIR/build_thread-cef_active" ];then
           {
-            local direct;
-            if [[ $direct_build_cef = 1 ]];then
-              direct="--build-direct";
-            else
-              direct="";fi
+            (
+              unset IFS;
+              trap 'rm -f $TEMP_DIR/build_thread-cef_active; rm -f $TEMP_DIR/build_thread-cef_active-$system;' EXIT SIGHUP SIGINT SIGTERM;
+              sleep 3
+              loadConfigFile
 
-            base_pid=$(cat "$TEMP_DIR/build_thread-$system.pid");
-            echo $base_pid > "$TEMP_DIR/build_thread-cef_active";
-            echo $base_pid > "$TEMP_DIR/build_thread-cef_active-$system";
+              if [[ $direct_build_cef = 1 ]];then
+                direct="--build-direct";
+              else
+                direct="";fi
 
-            if [[ $system = win* ]];then
-              sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $WINDOWS_SSH_USERNAME -- \
-                bash --login "//$own_ip/qemu/build/tools/cef-$system.build" $direct >> "$BASE_PATH/build/creation-cef-$system.log" 2>&1 &
-              chmod -f $BASE_PATH/build/cef-$GIT_CEF_USER/binary_distrib/*
-            elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
-              osx_proc=$(cat $BASE_PATH/tools/cef-$system.build | sed "s/10.0.2.4/$own_ip/g");
-              sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
-                bash --login "$osx_proc" >> "$BASE_PATH/build/creation-cef-$system.log" 2>&1 &
-              chmod -f $BASE_PATH/build/cef-$GIT_CEF_USER/binary_distrib/*
-            else
-              $caller bash "$BASE_PATH/tools/cef-$system.build" $direct >> "$BASE_PATH/build/creation-cef-$system.log" 2>&1 &
-            fi
+              base_pid=$(cat "$TEMP_DIR/build_thread-$system.pid");
+              echo $base_pid > "$TEMP_DIR/build_thread-cef_active";
+              echo $base_pid > "$TEMP_DIR/build_thread-cef_active-$system";
+              touch $TEMP_DIR/cef-$system.failed
+
+              if [[ $system = win* ]];then
+                sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $WINDOWS_SSH_USERNAME -- \
+                  bash --login //$own_ip/qemu/build/tools/cef-$system.build $direct >> "$BASE_PATH/build/creation-cef-$system.log" 2>&1
+                chmod -f $BASE_PATH/build/cef-$GIT_CEF_USER/binary_distrib/*
+              elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
+                sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
+                  bash --login -c "\
+\#\!/bin/bash;
+[[ ! -d \$HOME/Desktop/Mupel/remote_access ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access
+[[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access" 2>&1
+                sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
+                  bash --login -c "\$HOME/Desktop/Mupel/remote_access/build/tools/cef-$system.build" >> "$BASE_PATH/build/creation-cef-$system.log" 2>&1
+                sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
+                  bash --login -c "\#\!/bin/bash; umount -f //guest:@$own_ip/qemu" 2>&1
+                chmod -f $BASE_PATH/build/cef-$GIT_CEF_USER/binary_distrib/*
+              else
+                $caller bash "$BASE_PATH/tools/cef-$system.build" $direct >> "$BASE_PATH/build/creation-cef-$system.log" 2>&1
+              fi
+
+              if [ -f $TEMP_DIR/cef-$system.failed ];then
+              {
+                showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
+                           --image-on-top --form --text="CEF $system creation failed! \nRelated build stopped." \
+                           --button=gtk-ok:1 2> /dev/null &
+                rm $TEMP_DIR/cef-$system.failed
+                exit 1
+              } fi
+            ) &
             tail -f --pid=$! "$BASE_PATH/build/creation-cef-$system.log"
 
-            rm -f $TEMP_DIR/build_thread-cef_active;
-            rm -f $TEMP_DIR/build_thread-cef_active-$system;
-
             step_cef=1;
-            if [ -f $TEMP_DIR/cef-$system.failed ];then
-            {
-              rm $TEMP_DIR/cef-$system.failed
-              showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
-                         --image-on-top --form --text="CEF $system creation failed! \nRelated build stopped." \
-                         --button=gtk-ok:1 2> /dev/null &
-              exit 1
-            } fi
           }
           elif [[ $step_kodi = 1 ]] && [[ $step_user = 1 ]];then
           {
@@ -928,29 +974,49 @@ Checking ssh connection for independent OS build system (can take some seconds):
       {
         if [[ $step_kodi = 0 ]];then
         {
-          local direct;
-          if [[ $direct_build_kodi = 1 ]];then
-            direct="--build-direct";
-          else
-            direct="";fi
+          (
+            unset IFS;
+            trap 'rm -f $TEMP_DIR/build_thread-kodi_active; rm -f $TEMP_DIR/build_thread-kodi_active-$system;' EXIT SIGHUP SIGINT SIGTERM;
+            sleep 3
+            loadConfigFile
 
-          if [[ $system = win* ]];then
-            sshpass -p $WINDOWS_SSH_PASSWORD ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME -- bash --login "//$own_ip/qemu/build/tools/kodi-$system.build" $direct >> "$BASE_PATH/build/creation-kodi-$system.log" 2>&1 &
-          elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
-            $BASE_PATH/tools/kodi-$system.build --temp-dir "$TEMP_DIR" $direct >> "$BASE_PATH/build/creation-kodi-$system.log" 2>&1 &
-          else
-            $caller bash "$BASE_PATH/tools/kodi-$system.build" --temp-dir "$TEMP_DIR" $direct >> "$BASE_PATH/build/creation-kodi-$system.log" 2>&1 &
-          fi
+            if [[ $direct_build_kodi = 1 ]];then
+              direct="--build-direct";
+            else
+              direct="";fi
+
+            base_pid=$(cat "$TEMP_DIR/build_thread-$system.pid");
+            echo $base_pid > "$TEMP_DIR/build_thread-kodi_active";
+            echo $base_pid > "$TEMP_DIR/build_thread-kodi_active-$system";
+            touch $TEMP_DIR/kodi-$system.failed
+
+            if [[ $system = win* ]];then
+              sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $WINDOWS_SSH_USERNAME -- \
+                bash --login //$own_ip/qemu/build/tools/kodi-$system.build $direct >> "$BASE_PATH/build/creation-kodi-$system.log" 2>&1
+            elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
+              sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
+                bash --login -c "\
+\#\!/bin/bash;
+[[ ! -d \$HOME/Desktop/Mupel/remote_access ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access
+[[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access" 2>&1
+              sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
+                bash --login -c "\#\!/bin/bash; \$HOME/Desktop/Mupel/remote_access/build/tools/kodi-$system.build $direct"  >> "$BASE_PATH/build/creation-kodi-$system.log" 2>&1
+              sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
+                bash --login -c "\#\!/bin/bash; umount -f //guest:@$own_ip/qemu" 2>&1
+            else
+              $caller bash "$BASE_PATH/tools/kodi-$system.build" $direct >> "$BASE_PATH/build/creation-kodi-$system.log" 2>&1
+            fi
+
+            if [ -f $TEMP_DIR/kodi-$system.failed ];then
+            {
+              showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
+                         --image-on-top --form --text="Kodi $system creation failed! \nRelated build stopped." \
+                         --button=gtk-ok:1 2> /dev/null &
+              rm $TEMP_DIR/kodi-$system.failed
+              exit 1
+            } fi
+          ) &
           tail -f --pid=$! "$BASE_PATH/build/creation-kodi-$system.log";
-
-          if [ -f $TEMP_DIR/kodi-$system.failed ];then
-          {
-            rm $TEMP_DIR/kodi-$system.failed
-            showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
-                       --image-on-top --form --text="Kodi $system creation failed! \nRelated build stopped." \
-                       --button=gtk-ok:1 2> /dev/null &
-            exit 1
-          } fi
 
           step_kodi=1
 
@@ -976,24 +1042,45 @@ Checking ssh connection for independent OS build system (can take some seconds):
       {
         if [[ $step_user = 0 ]];then
         {
-          if [[ $system = win* ]];then
-            sshpass -p $WINDOWS_SSH_PASSWORD ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME -- bash --login "//$own_ip/qemu/build/tools/user-script-$system.build" >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1 &
-          elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
-            $BASE_PATH/tools/user-script-$system.build --temp-dir "$TEMP_DIR" >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1 &
-          else
-            $caller bash "$BASE_PATH/tools/user-script-$system.build" --temp-dir "$TEMP_DIR" >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1 &
-          fi
-          tail -f --pid=$! "$BASE_PATH/build/creation-user-script-$system.log"
+          (
+            unset IFS;
+            trap 'rm -f $TEMP_DIR/build_thread-user-script_active; rm -f $TEMP_DIR/build_thread-user-script_active-$system;' EXIT SIGHUP SIGINT SIGTERM;
+            sleep 3
+            loadConfigFile
 
+            base_pid=$(cat "$TEMP_DIR/build_thread-$system.pid");
+            echo $base_pid > "$TEMP_DIR/build_thread-user-script_active";
+            echo $base_pid > "$TEMP_DIR/build_thread-user-script_active-$system";
+            touch $TEMP_DIR/user_script-$system.failed
+
+            if [[ $system = win* ]];then
+              sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $WINDOWS_SSH_USERNAME -- \
+                bash --login //$own_ip/qemu/build/tools/user-script-$system.build $direct >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1
+            elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
+              sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
+                bash --login -c "\
+\#\!/bin/bash;
+[[ ! -d \$HOME/Desktop/Mupel/remote_access ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access
+[[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access" 2>&1
+              sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
+                bash --login -c "\#\!/bin/bash; \$HOME/Desktop/Mupel/remote_access/build/tools/user-script-$system.build $direct"  >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1
+              sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
+                bash --login -c "\#\!/bin/bash; umount -f //guest:@$own_ip/qemu" 2>&1
+            else
+              $caller bash "$BASE_PATH/tools/user-script-$system.build" --temp-dir "$TEMP_DIR" >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1
+            fi
+
+            if [ -f $TEMP_DIR/user_script-$system.failed ];then
+            {
+              showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
+                         --image-on-top --form --text="User script $system creation failed! \nRelated build stopped." \
+                         --button=gtk-ok:1 2> /dev/null &
+              rm $TEMP_DIR/user_script-$system.failed;
+              exit 1
+            } fi
+          ) &
+          tail -f --pid=$! "$BASE_PATH/build/creation-user-script-$system.log"
           step_user=1
-          if [ -f $TEMP_DIR/user_script-$system.failed ];then
-          {
-            rm $TEMP_DIR/user_script-$system.failed;
-            showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
-                       --image-on-top --form --text="User script $system creation failed! \nRelated build stopped." \
-                       --button=gtk-ok:1 2> /dev/null &
-            exit 1
-          } fi
         } fi
       }
       else
@@ -1001,7 +1088,8 @@ Checking ssh connection for independent OS build system (can take some seconds):
 
       if [[ $step_cef = 1 ]] && [[ $step_kodi = 1 ]] && [[ $step_user = 1 ]];then
       {
-        printf "${BRIGHT}${WHITE}All build steps ${GREEN}successfully${WHITE} performed${NORMAL}\n";
+        exitBuildThreadForOS
+        printf "${BRIGHT}${WHITE}All build steps performed${NORMAL}\n";
         exit 0;
       } fi
 
@@ -1014,7 +1102,7 @@ Checking ssh connection for independent OS build system (can take some seconds):
   echo "Build of $system started ...";
 }
 
-function buildThreadKodiAddonForOS()
+function buildThreadKodiAddonForOS
 {
   local system="$1"
   local caller="$2"
@@ -1029,11 +1117,21 @@ function buildThreadKodiAddonForOS()
     trap 'rm -f $TEMP_DIR/build_thread-$system.pid;' EXIT SIGHUP SIGINT SIGTERM;
     sleep 3
     loadConfigFile
+    touch $TEMP_DIR/kodi-$system.failed
 
     if [[ $system = win* ]];then
-      sshpass -p $WINDOWS_SSH_PASSWORD ssh 127.0.0.1 -p 2222 -l $WINDOWS_SSH_USERNAME -- bash --login "//$own_ip/qemu/build/tools/kodi-addon-${addon_name}-$system.build --addon $addon_name" >> "$BASE_PATH/build/creation-kodi-addon-$system.log" 2>&1
+      sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $WINDOWS_SSH_USERNAME -- \
+        bash --login //$own_ip/qemu/build/tools/kodi-$system.build --addon $addon_name >> "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" 2>&1
     elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
-      $BASE_PATH/tools/kodi-$system.build --temp-dir "$TEMP_DIR" --addon "$addon_name" >> "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" 2>&1
+      sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
+        bash --login -c "\
+\#\!/bin/bash;
+[[ ! -d \$HOME/Desktop/Mupel/remote_access ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access
+[[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access" 2>&1
+      sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
+        bash --login -c "\#\!/bin/bash; \$HOME/Desktop/Mupel/remote_access/build/tools/kodi-$system.build $direct --addon $addon_name" >> "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" 2>&1
+      sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
+        bash --login -c "\#\!/bin/bash; umount -f //guest:@$own_ip/qemu" 2>&1
     else
       $caller bash "$BASE_PATH/tools/kodi-$system.build" --temp-dir "$TEMP_DIR" --addon "$addon_name" >> "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" 2>&1
     fi
@@ -1057,7 +1155,7 @@ function buildThreadKodiAddonForOS()
   echo "Build of kodi add-on $system for ${addon_name} started ...";
 }
 
-function getLinuxTargetDist()
+function getLinuxTargetDist
 {
   dist_targets=$(ls /var/lib/chroot/ | grep 64bit | sed 's/64bit//g' | tr '\n'  '!');
   dist_targets=${dist_targets::-1};
@@ -1065,7 +1163,7 @@ function getLinuxTargetDist()
   echo $dist_targets
 }
 
-function getAndroidAVDS()
+function getAndroidAVDS
 {
   local android_system=$1
   local android_avds=
@@ -1092,6 +1190,7 @@ function getAndroidAVDS()
 
     sel_target_version=$(echo $ANDROID_SEL_TARGET | awk -F '-' '{print $2}');
 
+    IFS_BU=$IFS;
     IFS=$'\n'
     avd_device="-"
     declare -a android_avds=($($ANDROID_DEV_ROOT/android-sdk-linux/tools/android list avd))
@@ -1130,7 +1229,7 @@ function getAndroidAVDS()
       } fi
     } done
     android_avds_available=${android_avds_available::-1};
-    unset IFS;
+    set IFS=$IFS_BU
   }
   else
     return 1;fi
@@ -1141,7 +1240,7 @@ function getAndroidAVDS()
 }
 
 # cleanup
-function cleanup()
+function cleanup
 {
   rm -rf "$TEMP_DIR"
 
@@ -1178,7 +1277,7 @@ function cleanup()
     ps -p $pid_thread9; [[ $? = 0 ]] && killtree $pid_thread9 KILL;fi
 }
 
-function usage()
+function usage
 {
   echo "Usage: $0 [--options]"
   echo "Options:"
@@ -1188,7 +1287,7 @@ function usage()
   exit 1
 }
 
-function process_opts()
+function process_opts
 {
   while test "$1" != "" ; do
     case "$1" in
@@ -1204,7 +1303,7 @@ function process_opts()
   done
 }
 
-function getWindowsTargets()
+function getWindowsTargets
 {
   local windows_targets=;
 
@@ -1212,8 +1311,8 @@ function getWindowsTargets()
   {
     . "$HOME/.mupel/windows.conf";
 
-    windows_targets=$(ls -d $HOME/.mupel/systems/emu-windows* 2> /dev/null | awk -F"/" '{print $NF}' | tr '\n'  '!');
-    windows_targets+=$(ls -d $HOME/.mupel/systems/ext-windows* 2> /dev/null | awk -F"/" '{print $NF}' | tr '\n'  '!');
+    windows_targets=$(ls -d $EMU_INSTALL_PREFIX/emu-windows* 2> /dev/null | awk -F"/" '{print $NF}' | tr '\n'  '!');
+    windows_targets+=$(ls -d $EMU_INSTALL_PREFIX/ext-windows* 2> /dev/null | awk -F"/" '{print $NF}' | tr '\n'  '!');
     windows_targets=${windows_targets::-1};
     windows_targets=$(echo ${windows_targets//$WINDOWS_DEFAULT_RUN/\^${WINDOWS_DEFAULT_RUN}});
   } fi
@@ -1221,7 +1320,7 @@ function getWindowsTargets()
   return 0;
 }
 
-function getMacOSXTargets()
+function getMacOSXTargets
 {
   local macosx_targets=;
 
@@ -1229,8 +1328,8 @@ function getMacOSXTargets()
   {
     . "$HOME/.mupel/mac-osx.conf";
 
-    macosx_targets=$(ls -d $HOME/.mupel/systems/emu-mac-osx* 2> /dev/null | awk -F"/" '{print $NF}' | tr '\n'  '!');
-    macosx_targets+=$(ls -d $HOME/.mupel/systems/ext-mac-osx* 2> /dev/null | awk -F"/" '{print $NF}' | tr '\n'  '!');
+    macosx_targets=$(ls -d $EMU_INSTALL_PREFIX/emu-mac-osx* 2> /dev/null | awk -F"/" '{print $NF}' | tr '\n'  '!');
+    macosx_targets+=$(ls -d $EMU_INSTALL_PREFIX/ext-mac-osx* 2> /dev/null | awk -F"/" '{print $NF}' | tr '\n'  '!');
     macosx_targets=${macosx_targets::-1};
     macosx_targets=$(echo ${macosx_targets//$MAC_OS_X_DEFAULT_RUN/\^${MAC_OS_X_DEFAULT_RUN}});
   } fi
@@ -1238,9 +1337,10 @@ function getMacOSXTargets()
   return 0;
 }
 
-function getAndroidTargets()
+function getAndroidTargets
 {
   local android_targets=;
+  IFS_BU=$IFS;
   IFS=$' '
 
   if [ -f "$HOME/.mupel/android.conf" ];then
@@ -1257,10 +1357,11 @@ function getAndroidTargets()
     android_targets=$(echo ${android_targets//$ANDROID_SEL_TARGET/\^${ANDROID_SEL_TARGET}});
   } fi
   echo $android_targets;
+  set IFS=$IFS_BU
   return 0;
 }
 
-function showAndroidEmulatorKeyHelp()
+function showAndroidEmulatorKeyHelp
 {
   showdialog --skip-taskbar --on-top \
              --title="Android Emulator Keys" \
@@ -1300,7 +1401,7 @@ function showAndroidEmulatorKeyHelp()
   note that NumLock must be deactivated for keypad keys to work</tt>" 2> /dev/null
 }
 
-function showGitCommandHelp()
+function showGitCommandHelp
 {
   showdialog --skip-taskbar --on-top \
              --title="Git commands" \
@@ -1313,7 +1414,7 @@ function showGitCommandHelp()
              --text="<tt><b><i><span size=\"large\">Usable Git commands:</span></i></b></tt>" 2> /dev/null
 }
 
-function ssh_access_windows()
+function ssh_access_windows
 {
   if [[ $USE_MS_WINDOWS_32 != "TRUE" ]] && [[ $USE_MS_WINDOWS_64 != "TRUE" ]];then
   {
@@ -1344,7 +1445,7 @@ Needed Windows SSH access script file missing:</b>
   $BASE_PATH/tools/windows/open-ssh-console-access
 }
 
-function ssh_access_mac_os_x()
+function ssh_access_mac_os_x
 {
   if [[ $USE_MAC_OS_X_64 != "TRUE" ]];then
   {
@@ -1378,6 +1479,7 @@ Needed Mac OS X SSH access script file missing:</b>
 
 function forceKodiSelectedBuild
 {
+  IFS_BU=$IFS;
   unset IFS;
   local system="$1"
   local caller="$2"
@@ -1386,11 +1488,8 @@ function forceKodiSelectedBuild
   # Force process active to have right stop from here
   process_active=1
 
-  if [ ! -d $BASE_PATH/build/kodi-$GIT_USER/kodi-$system ];then
-    loadKodiBuildDir $system $system;fi
-
   # Ask user to pick one of the available targets
-  local targets="$(cd $BASE_PATH/build/kodi-$GIT_USER/kodi-$system/tools/buildsteps/$kodi_buildstep; ls)"
+  local targets="$(cd $BASE_PATH/build/kodi-$GIT_USER/kodi/tools/buildsteps/$kodi_buildstep; ls)"
   local selection="";
   for i in $targets; do
     selection=`printf "$selection FALSE %s" "$i"`;done
@@ -1420,13 +1519,25 @@ function forceKodiSelectedBuild
     mv "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log" "$BASE_PATH/build/creation-kodi-selected-$selection-$system-`date +%F_%H-%m`.old.log";fi
   touch "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log"
   (
+    unset IFS;
+    trap 'rm -f $TEMP_DIR/build_thread-$system.pid;' EXIT SIGHUP SIGINT SIGTERM;
     sleep 3
     loadConfigFile
+    touch $TEMP_DIR/kodi-$system.failed
 
     if [[ $system = win* ]];then
-      printf "${RED}${BRIGHT}Selection build for Windows not possible!${NORMAL}\n";
+      sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $WINDOWS_SSH_USERNAME -- \
+        bash --login -c >> "printf \"${RED}${BRIGHT}Selection build for Windows not possible!${NORMAL}\n\"" 2>&1
     elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
-      $BASE_PATH/tools/kodi-$system.build --temp-dir "$TEMP_DIR" --selected $selection >> "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log" 2>&1
+      sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
+        bash --login -c "\
+\#\!/bin/bash;
+[[ ! -d \$HOME/Desktop/Mupel/remote_access ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access
+[[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access" 2>&1
+      sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
+        bash --login -c "\#\!/bin/bash; \$HOME/Desktop/Mupel/remote_access/build/tools/kodi-$system.build $direct --selected $selection" >> "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log" 2>&1
+      sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
+        bash --login -c "\#\!/bin/bash; umount -f //guest:@$own_ip/qemu" 2>&1
     else
       $caller bash "$BASE_PATH/tools/kodi-$system.build" --temp-dir "$TEMP_DIR" --selected $selection >> "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log" 2>&1
     fi
@@ -1448,6 +1559,8 @@ function forceKodiSelectedBuild
 
   echo $pid > "$TEMP_DIR/build_thread-$system.pid"
   echo "Build of kodi $system part for $selected started ...";
+
+  set IFS=$IFS_BU
 }
 
 function checkAndInstallGitPulls
@@ -1470,9 +1583,6 @@ function openPullRequestInfoDialog
   requests=$(git -C "$directory" pulls list | tail -n +2);
   IFS=$'\n'
 
-  unset 1
-  unset 2
-
   for r in $requests; do
   {
     echo $r | awk -F ' ' '{print $1}'
@@ -1483,7 +1593,7 @@ function openPullRequestInfoDialog
   showdialog --width=640 --height=480 --title="Open Pull requests" --image="gtk-execute" \
              --text="Double click or press enter on <b>Pull request</b> to show related sub menu" \
              --list --print-column=1 \
-             --dclick-action="$BASE_PATH/tools/send-button-msg openPullRequestInfoDialog $directory $1" \
+             --dclick-action="$BASE_PATH/tools/send-button-msg showDetailedRequestInfo $directory $1" \
              --column="Number" --column="Date" --column="Name" --column="Source" \
              --button=gtk-close:0 > /dev/null 2>&1
 
@@ -1584,6 +1694,8 @@ touch ${TEMP_DIR}/thread9_in
       echo "#> msg field $GEN__BTN_______STOP_BUILD_ALL:visible 0;";
       echo "#> msg field $GEN__BTN______________DUMMY_1:visible 0;"; # Dummy
       echo "#> msg field $GEN__BTN______________DUMMY_2:visible 0;"; # Dummy
+      echo "#> msg field $GEN__BTN______________DUMMY_3:visible 0;"; # Dummy
+      echo "#> msg field $GEN__BTN______________DUMMY_4:visible 0;"; # Dummy
       if [[ $USE_LINUX_X86_32 = "FALSE" ]] &&
          [[ $USE_LINUX_X86_64 = "FALSE" ]] &&
          [[ $USE_LINUX_RPBI = "FALSE" ]] &&
@@ -1601,14 +1713,16 @@ touch ${TEMP_DIR}/thread9_in
       }
       else
       {
-        echo "#> msg field $GEN__BTN______START_BUILD_ALL:enable 1;";
+        echo "#> msg field $GEN__BTN______START_BUILD_ALL:enable 0;"; # Leaved disabled until build for all is supported (still in development)
         echo "#> msg field $GEN__BTN____CREATE_INST_MUPEL:visible 0;";
       } fi
 
       echo "#> msg field $GEN__CHK_________INCLUDE_KODI:set $INCLUDE_KODI;";
       echo "#> msg field $GEN__CHK__INCLUDE_KODI_ADDONS:set $INCLUDE_KODI_ADDONS;";
       echo "#> msg field $GEN__CHK__________INCLUDE_CEF:set $INCLUDE_CEF;";
-      [[ $SUPPORT_CEF = "TRUE" ]] && echo "#> msg field $GEN__CHK__________INCLUDE_CEF:enable 1;" || echo "#> msg field $GEN__CHK__________INCLUDE_CEF:enable 0;";
+      [[ $SUPPORT_CEF = "TRUE" ]] &&
+        echo "#> msg field $GEN__CHK__________INCLUDE_CEF:enable 1;" ||
+        echo "#> msg field $GEN__CHK__________INCLUDE_CEF:enable 0;";
 
       sleep 2
       kill $start_dialog_pid
@@ -1636,6 +1750,7 @@ touch ${TEMP_DIR}/thread9_in
 
         proc=$(cat "$thread1_in")
         echo -n "" > "$thread1_in";
+        IFS_BU=$IFS;
         IFS=$'\n';
         for line in ${proc}; do
         {
@@ -1647,7 +1762,6 @@ touch ${TEMP_DIR}/thread9_in
               echo "#> msg field $GEN__BTN______START_BUILD_ALL:visible 0;";
               echo "#> msg field $GEN__BTN_______STOP_BUILD_ALL:visible 1;";
               echo "#> msg field $GEN__BTN______DOWNLOAD_UPDATE:enable 0;";
-              echo "#> msg field $GEN__BTN____CREATE_NEW_BRANCH:enable 0;";
               echo "#> msg field $GEN__CHK_________INCLUDE_KODI:enable 0;";
               echo "#> msg field $GEN__CHK__INCLUDE_KODI_ADDONS:enable 0;";
               echo "#> msg field $GEN__CHK__________INCLUDE_CEF:enable 0;";
@@ -1705,66 +1819,6 @@ touch ${TEMP_DIR}/thread9_in
               echo "#> msg field $GEN__BTN______DOWNLOAD_UPDATE:enable 1;";
               mutexUnlock_BaseBuild
             }
-            elif [[ "$line" = *"kodi_prepare_patches"* ]];then
-            {
-              unset IFS;
-              printf "\
-/------------------------------------------------------------------------------
-
-${BRIGHT}${WHITE}Prepare each commit with its patch in one file per commit ...${NORMAL}
-"
-              git -C $BASE_PATH/build/kodi-$GIT_USER/kodi format-patch origin -o $BASE_PATH/build/kodi-$GIT_USER
-              printf "\
-${BRIGHT}${WHITE}Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'${NORMAL}
-
-\\-------------------------------------------------------------------------------\n"
-            }
-            elif [[ "$line" = *"kodi_new_branch"* ]];then
-            {
-              unset IFS;
-              echo "#> msg field $GEN__BTN____CREATE_NEW_BRANCH:enable 0;";
-              while :;do
-              {
-                new_kodi_branch=$(showdialog --entry \
-                                             --title="New kodi branch" \
-                                             --text="<b>Enter new kodi branch name</b>\nBecomes also loaded up if possible" \
-                                             --width=260 --center);
-                if [[ ! -z  `echo $new_kodi_branch | grep " "` ]];then
-                {
-                  showErrorDialog_YesNo "<b>Your new branch contains not allowed spaced</b>\n - '${new_kodi_branch}'\n\nDo you want to try again?";
-                  [ $? != 0 ] && break;
-                  continue;
-                } fi
-                if [ ! -z $new_kodi_branch ];then
-                {
-                  printf "\
-/------------------------------------------------------------------------------
-
-${BRIGHT}${WHITE}Creating new kodi branch '$new_kodi_branch' ...${NORMAL}
-"
-                git -C $BASE_PATH/build/kodi-$GIT_USER/kodi checkout master
-                git -C $BASE_PATH/build/kodi-$GIT_USER/kodi checkout -b $new_kodi_branch;
-                # If new branch is not on kodi source from github.com/xbmc and is loaded
-                # with access rights ask to upload new branch
-                if [ $GIT_USER != xbmc ] && [ ! -z `echo $KODI_SOURCE_URL | grep ":" | grep "@"` ];then
-                {
-                  showQuestionDialog "Do you want also upload '$new_kodi_branch' to $KODI_SOURCE_URL?";
-                  if [ $? = 0 ];then
-                    git -C $BASE_PATH/build/kodi-$GIT_USER/kodi push --set-upstream origin $new_kodi_branch;fi
-                } fi;
-                git -C $BASE_PATH/build/kodi-$GIT_USER/kodi checkout $KODI_SOURCE_BRANCH
-                # Trigger to reload available branches
-                echo "#< msg field 2:$KODI_SOURCE_URL;" >> $thread9_in
-
-                printf "\
-${BRIGHT}${WHITE}Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'${NORMAL}
-
-\\-------------------------------------------------------------------------------\n"
-                } fi
-                break;
-              } done
-              echo "#> msg field $GEN__BTN____CREATE_NEW_BRANCH:enable 1;";
-            }
             elif [[ "$line" = *"delete_old_logs"* ]];then
             {
               unset IFS;
@@ -1814,6 +1868,7 @@ Are you sure?</b>"
             echo "$line"
           } fi
         } done
+        set IFS=$IFS_BU
 
         if [ -f "$TEMP_DIR/build_thread-base_general.pid" ];then
         {
@@ -1838,8 +1893,8 @@ Are you sure?</b>"
             --field="Create and install Mupel system:FBTN@0,8,4,6" "bash $BASE_PATH/mupel-install --main-msg $thread1_in" \
             --field="dummy:FBTN@8,8,4,6" "" \
             --field="Download/Update only:FBTN@0,0,12,14" "bash -c 'echo \"#< msg download_only;\" >> $thread1_in'" \
-            --field="Create new branch:FBTN@1,1,12,14" "bash -c 'echo \"#< msg kodi_new_branch;\" >> $thread1_in'" \
-            --field="Prepare patches:FBTN@2,2,12,14" "bash -c 'echo \"#< msg kodi_prepare_patches;\" >> $thread1_in'" \
+            --field="dummy:FBTN@1,1,12,14" "" \
+            --field="dummy:FBTN@2,2,12,14" "" \
             --field="Delete old log files:FBTN@7,7,12,14" "bash -c 'echo \"#< msg delete_old_logs;\" >> $thread1_in'" \
             --field="Clear log:FBTN@8,8,12,14" "bash -c 'echo \"#> msg field 15:clear;\" >> $thread1_in'" \
             --field=":lbl@0,8,16,18" \
@@ -1847,7 +1902,7 @@ Are you sure?</b>"
             --field="Include Kodi add-ons:chk@1,1,20,22" $INCLUDE_KODI_ADDONS \
             --field="Include CEF:chk@2,2,20,22" $INCLUDE_CEF \
             --field="dummy:FBTN@0,1,24,26" "" \
-            --field="Build log:termproc@0,9,28,30" ""  &
+            --field="Build log:termproc@0,9,28,30" "" > /dev/null 2>&1 &
   pid_thread1=$!
 }
 #
@@ -1864,8 +1919,6 @@ TAB_NUM=2
 
     pulse_on=0;
     process_active=0
-    update_timeout=$REQUEST_UPDATE_TIMEOUT
-    update_enabled=$(gem list --local | grep -q git-pulls && echo 1 || echo 0)
 
     while :;do
     {
@@ -1877,18 +1930,31 @@ TAB_NUM=2
       } fi
 
       loadConfigFile
+      loadGitConfigFile
 
-      echo "#> msg field $GIT_KODI________LIST_REQ__OWN:enable 0;";
-      echo "#> msg field $GIT_KODI_______LIST_REQ__BASE:enable 0;";
-      echo "#> msg field $GIT_CEF_________LIST_REQ__OWN:enable 0;";
-      echo "#> msg field $GIT_CEF________LIST_REQ__BASE:enable 0;";
+      [ -z $NEXT_UPDATE_TIME ] && NEXT_UPDATE_TIME=0;
+      update_timeout=$(($NEXT_UPDATE_TIME - `date +%s`))
+      update_enabled=$(`gem list --local | grep -q git-pulls` && echo 1 || echo 0)
+      echo "#> msg field $GIT_KODI________LIST_REQ__OWN:enable ${GIT_KODI_LIST_REQ_OWN:-0};"
+      echo "#> msg field $GIT_KODI_______LIST_REQ__BASE:enable ${GIT_KODI_LIST_REQ_BASE:-0};"
+      echo "#> msg field $GIT_CEF_________LIST_REQ__OWN:enable ${GIT_CEF_LIST_REQ_OWN:-0};"
+      echo "#> msg field $GIT_CEF________LIST_REQ__BASE:enable ${GIT_CEF_LIST_REQ_BASE:-0};"
       checkAndInstallGitPulls
 
       # Main loop
       while :;do
       {
         if [ ! -f "$thread2_in" ];then
-          exit 0;fi
+        {
+          loadGitConfigFile noOutLock:
+          NEXT_UPDATE_TIME=$((`date +%s`+$update_timeout))
+          GIT_KODI_LIST_REQ_OWN=${local_GIT_KODI_LIST_REQ_OWN:-0}
+          GIT_KODI_LIST_REQ_BASE=${local_GIT_KODI_LIST_REQ_BASE:-0}
+          GIT_CEF_LIST_REQ_OWN=${local_GIT_CEF_LIST_REQ_OWN:-0}
+          GIT_CEF_LIST_REQ_BASE=${local_GIT_CEF_LIST_REQ_BASE:-0}
+          saveGitConfigFile noInLock;
+          exit 0;
+        } fi
 
         if [ -f ./build/global_mupel_install ];then
         {
@@ -1906,10 +1972,13 @@ TAB_NUM=2
         {
           if [[ "$line" == "#< msg"* ]];then
           {
+            loadConfigFile
+
             if [[ "$line" = *"show_own_kodi_requests"* ]];then
             {
               echo "#> msg field $GIT_KODI________LIST_REQ__OWN:enable 0;";
-              openPullRequestInfoDialog $BASE_PATH/build/kodi-$GIT_USER/kodi/ $GIT_KODI________LIST_REQ__OWN
+              $BASE_PATH/tools/send-button-msg openPullRequestListDialog $BASE_PATH/build/kodi-$GIT_USER/kodi/
+              echo "#> msg field $GIT_KODI________LIST_REQ__OWN:enable 1;";
             }
             elif [[ "$line" = *"show_base_kodi_requests"* ]];then
             {
@@ -1921,14 +1990,120 @@ TAB_NUM=2
 
                 printf "\n${WHITE}${BRIGHT}Loading Kodi base repository from $KODI_SOURCE_URL_BASE${NORMAL} ...\n" >> $thread1_in;
                 [ ! -d "$BASE_PATH/build/kodi-xbmc" ] && mkdir -p "$BASE_PATH/build/kodi-xbmc"
-                handleGITLoad "$BASE_PATH/build/kodi-xbmc" kodi $KODI_SOURCE_URL_BASE master "build_thread_1_general" >> $thread1_in;
+                handleGITLoad "$BASE_PATH/build/kodi-xbmc" kodi $KODI_SOURCE_URL_BASE master >> $thread1_in;
               } fi
-              openPullRequestInfoDialog $BASE_PATH/build/kodi-xbmc/kodi/ $GIT_KODI_______LIST_REQ__BASE
+              $BASE_PATH/tools/send-button-msg openPullRequestListDialog $BASE_PATH/build/kodi-xbmc/kodi/
+              echo "#> msg field $GIT_KODI_______LIST_REQ__BASE:enable 1;";
+            }
+            elif [[ "$line" = *"kodi_prepare_patches"* ]];then
+            {
+              unset IFS;
+              printf "\
+/------------------------------------------------------------------------------
+
+${BRIGHT}${WHITE}Prepare each commit with its patch in one file per commit ...${NORMAL}
+"
+              echo "#> msg field GIT_KODI______PREPARE_PATCHES:enable 0;" >> $thread2_in
+              PATCH_STORE=$BASE_PATH/build/.tmp/patches-kodi
+              [ ! -d $PATCH_STORE ] && mkdir $PATCH_STORE
+
+              rm -f $PATCH_STORE/*.patch
+              git -C $BASE_PATH/build/kodi-$GIT_USER/kodi format-patch origin -o $PATCH_STORE
+              if [[ ! -f $PATCH_STORE/*.patch ]];then
+              {
+                amount=$(showdialog --image="$BASE_PATH/icons/icon-info-128x128.png" \
+                                    --entry --numeric \
+                                    --title="Select already merged changes" \
+                                    --text="<b>No new changes present. You can show the by selected amount already merged changes on them.</b>" \
+                                    --entry-label="Number of changes to view:" \
+                                    --entry-text=1);
+                [ $? != 0 ] && continue;
+                amount=${amount%,000000}
+                [ -z $amount ] || [ $amount = 0 ] && continue;
+
+                git -C $BASE_PATH/build/kodi-$GIT_USER/kodi format-patch -$amount -o $PATCH_STORE > /dev/stderr
+              } fi
+
+              for f in `ls $PATCH_STORE/*.patch`; do
+              {
+                echo $f
+                cat $f | head -n 4 | tail -1 | awk -F 'PATCH ' '{print $2}' | awk -F '/' '{print $1}'
+                cat $f | head -n 2 | tail -1 | awk -F 'From: ' '{print $2}' | awk -F ' <' '{print $1}'
+                cat $f | tail -n +4 | tr -d '\n' | awk -F '---' '{print $1}' | cut -d ']' -f2- | cut -d ' ' -f2-
+                cat $f | head -n 2 | tail -1 | awk -F '<' '{print $2}' | awk -F '>' '{print $1}'
+                cat $f | head -n 3 | tail -1 | awk -F 'Date: ' '{print $2}'
+              } done |
+              showdialog --width=1024 --height=480 --title="Commit changes" --image="gtk-execute" \
+                         --text="Double click or press enter on <b>Commit</b> to show related changes" \
+                         --list --print-column=1 --hide-column=1 \
+                         --dclick-action="$BASE_PATH/tools/send-button-msg openCommitChangeView $BASE_PATH/build/kodi-$GIT_USER/kodi/ $1" \
+                         --column="File" --column="No.:NUM" --column="From" --column="Description" --column="Mail" --column="Date" \
+                         --button=gtk-close:0 > /dev/null 2>&1
+
+              echo "#> msg field GIT_KODI______PREPARE_PATCHES:enable 1;" >> $thread2_in
+
+              printf "\
+${BRIGHT}${WHITE}Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'${NORMAL}
+Available on $PATCH_STORE
+
+\\-------------------------------------------------------------------------------\n"
+            }
+            elif [[ "$line" = *"kodi_new_branch"* ]];then
+            {
+              unset IFS;
+              echo "#> msg field $GIT_KODI____CREATE_NEW_BRANCH:enable 0;";
+              while :;do
+              {
+                new_kodi_branch=$(showdialog --entry \
+                                             --title="New kodi branch" \
+                                             --text="<b>Enter new kodi branch name</b>\nBecomes also loaded up if possible" \
+                                             --width=260 --center);
+                if [[ ! -z  `echo $new_kodi_branch | grep " "` ]];then
+                {
+                  showErrorDialog_YesNo "<b>Your new branch contains not allowed spaced</b>\n - '${new_kodi_branch}'\n\nDo you want to try again?";
+                  [ $? != 0 ] && break;
+                  continue;
+                } fi
+                if [ ! -z $new_kodi_branch ];then
+                {
+                (
+                  printf "\
+/------------------------------------------------------------------------------
+
+${BRIGHT}${WHITE}Creating new kodi branch '$new_kodi_branch' ...${NORMAL}
+"
+                git -C $BASE_PATH/build/kodi-$GIT_USER/kodi checkout master
+                git -C $BASE_PATH/build/kodi-$GIT_USER/kodi checkout -b $new_kodi_branch;
+                # If new branch is not on kodi source from github.com/xbmc and is loaded
+                # with access rights ask to upload new branch
+                if [ $GIT_USER != xbmc ] && [ ! -z `echo $KODI_SOURCE_URL | grep ":" | grep "@"` ];then
+                {
+                  showQuestionDialog "Do you want also upload '$new_kodi_branch' to $KODI_SOURCE_URL?";
+                  if [ $? = 0 ];then
+                    git -C $BASE_PATH/build/kodi-$GIT_USER/kodi push --set-upstream origin $new_kodi_branch;fi
+                } fi;
+                git -C $BASE_PATH/build/kodi-$GIT_USER/kodi checkout $KODI_SOURCE_BRANCH
+                # Trigger to reload available branches
+                echo "#< msg field 2:$KODI_SOURCE_URL;" >> $thread9_in
+
+                printf "\
+${BRIGHT}${WHITE}Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'${NORMAL}
+
+\\-------------------------------------------------------------------------------\n"
+                ) |
+                showdialog --title="New Branch" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress --width=600 \
+                           --text="Create Branch '$new_kodi_branch' on '$KODI_SOURCE_URL' ..." \
+                           --pulsate --enable-log --log-expanded --log-height=300 --button=gtk-cancel:1 > /dev/null;
+                } fi
+                break;
+              } done
+              echo "#> msg field $GIT_KODI____CREATE_NEW_BRANCH:enable 1;";
             }
             elif [[ "$line" = *"show_own_cef_requests"* ]];then
             {
               echo "#> msg field $GIT_CEF_________LIST_REQ__OWN:enable 0;";
-              openPullRequestInfoDialog $BASE_PATH/build/cef-$GIT_CEF_USER/cef/ $GIT_CEF_________LIST_REQ__OWN
+              $BASE_PATH/tools/send-button-msg openPullRequestListDialog $BASE_PATH/build/cef-$GIT_CEF_USER/cef/
+              echo "#> msg field $GIT_CEF_________LIST_REQ__OWN:enable 1;";
             }
             elif [[ "$line" = *"show_base_cef_requests"* ]];then
             {
@@ -1940,9 +2115,113 @@ TAB_NUM=2
 
                 printf "\n${WHITE}${BRIGHT}Loading CEF base repository from $CEF_SOURCE_URL_BASE${NORMAL} ...\n" >> $thread1_in;
                 [ ! -d "$BASE_PATH/build/cef-chromiumembedded" ] && mkdir -p "$BASE_PATH/build/cef-chromiumembedded"
-                handleGITLoad "$BASE_PATH/build/cef-chromiumembedded" cef $CEF_SOURCE_URL_BASE master "build_thread_1_general" >> $thread1_in;
+                handleGITLoad "$BASE_PATH/build/cef-chromiumembedded" cef $CEF_SOURCE_URL_BASE master >> $thread1_in;
               } fi
-              openPullRequestInfoDialog $BASE_PATH/build/cef-chromiumembedded/cef/ $GIT_CEF________LIST_REQ__BASE
+              $BASE_PATH/tools/send-button-msg openPullRequestListDialog $BASE_PATH/build/cef-chromiumembedded/cef/
+              echo "#> msg field $GIT_CEF________LIST_REQ__BASE:enable 1;";
+            }
+            elif [[ "$line" = *"cef_prepare_patches"* ]];then
+            {
+              unset IFS;
+              printf "\
+/------------------------------------------------------------------------------
+
+${BRIGHT}${WHITE}Prepare each commit with its patch in one file per commit ...${NORMAL}
+"
+              echo "#> msg field GIT_CEF_______PREPARE_PATCHES:enable 0;" >> $thread2_in
+              PATCH_STORE=$BASE_PATH/build/.tmp/patches-cef
+              [ ! -d $PATCH_STORE ] && mkdir $PATCH_STORE
+
+              rm -f $PATCH_STORE/*.patch
+              git -C $BASE_PATH/build/cef-$GIT_CEF_USER/cef format-patch origin -o $PATCH_STORE
+              if [ ! -f $PATCH_STORE/*.patch ];then
+              {
+                amount=$(showdialog --image="$BASE_PATH/icons/icon-info-128x128.png" \
+                                    --entry --numeric \
+                                    --title="Select already merged changes" \
+                                    --text="<b>No new changes present. You can show the by selected amount already merged changes on them.</b>" \
+                                    --entry-label="Number of changes to view:" \
+                                    --entry-text=1);
+                [ $? != 0 ] && continue;
+                amount=${amount%,000000}
+                [ -z $amount ] || [ $amount = 0 ] && continue;
+                git -C $BASE_PATH/build/cef-$GIT_CEF_USER/cef format-patch -$amount -o $PATCH_STORE
+              } fi
+
+              for f in `ls $PATCH_STORE/*.patch`; do
+              {
+                echo $f
+                cat $f | head -n 4 | tail -1 | awk -F 'PATCH ' '{print $2}' | awk -F '/' '{print $1}'
+                cat $f | head -n 2 | tail -1 | awk -F 'From: ' '{print $2}' | awk -F ' <' '{print $1}'
+                cat $f | tail -n +4 | tr -d '\n' | awk -F '---' '{print $1}' | cut -d ']' -f2- | cut -d ' ' -f2-
+                cat $f | head -n 2 | tail -1 | awk -F '<' '{print $2}' | awk -F '>' '{print $1}'
+                cat $f | head -n 3 | tail -1 | awk -F 'Date: ' '{print $2}'
+              } done |
+              showdialog --width=1024 --height=480 --title="Commit changes" --image="gtk-execute" \
+                         --text="Double click or press enter on <b>Commit</b> to show related changes" \
+                         --list --print-column=1 --hide-column=1 \
+                         --dclick-action="$BASE_PATH/tools/send-button-msg openCommitChangeView $BASE_PATH/build/cef-$GIT_CEF_USER/cef/ $1" \
+                         --column="File" --column="No.:NUM" --column="From" --column="Description" --column="Mail" --column="Date" \
+                         --button=gtk-close:0 > /dev/null 2>&1
+
+              echo "#> msg field GIT_CEF_______PREPARE_PATCHES:enable 1;" >> $thread2_in
+
+              printf "\
+${BRIGHT}${WHITE}Done for '$BASE_PATH/build/cef-$GIT_CEF_USER/cef'${NORMAL}
+Available on $PATCH_STORE
+
+\\-------------------------------------------------------------------------------\n"
+            }
+            elif [[ "$line" = *"cef_new_branch"* ]];then
+            {
+              unset IFS;
+              echo "#> msg field $GIT_CEF_____CREATE_NEW_BRANCH:enable 0;";
+              while :;do
+              {
+                new_cef_branch=$(showdialog --entry \
+                                             --title="New CEF branch" \
+                                             --text="<b>Enter new CEF branch name</b>\nBecomes also loaded up if possible" \
+                                             --width=260 --center);
+                if [[ ! -z  `echo $new_cef_branch | grep " "` ]];then
+                {
+                  showErrorDialog_YesNo "<b>Your new branch contains not allowed spaced</b>\n - '${new_cef_branch}'\n\nDo you want to try again?";
+                  [ $? != 0 ] && break;
+                  continue;
+                } fi
+                if [ ! -z $new_cef_branch ];then
+                {
+                (
+                  printf "\
+/------------------------------------------------------------------------------
+
+${BRIGHT}${WHITE}Creating new CEF branch '$new_cef_branch' ...${NORMAL}
+"
+                git -C $BASE_PATH/build/cef-$GIT_CEF_USER/cef checkout master
+                git -C $BASE_PATH/build/cef-$GIT_CEF_USER/cef checkout -b $new_cef_branch;
+                # If new branch is not on cef source from github.com/xbmc and is loaded
+                # with access rights ask to upload new branch
+                if [ $GIT_CEF_USER != xbmc ] && [ ! -z `echo $CEF_SOURCE_URL | grep ":" | grep "@"` ];then
+                {
+                  showQuestionDialog "Do you want also upload '$new_cef_branch' to $CEF_SOURCE_URL?";
+                  if [ $? = 0 ];then
+                    git -C $BASE_PATH/build/cef-$GIT_CEF_USER/cef push --set-upstream origin $new_cef_branch;fi
+                } fi;
+                git -C $BASE_PATH/build/cef-$GIT_CEF_USER/cef checkout $CEF_SOURCE_BRANCH
+                # Trigger to reload available branches
+                echo "#< msg field 2:$CEF_SOURCE_URL;" >> $thread9_in
+
+                printf "\
+${BRIGHT}${WHITE}Done for '$BASE_PATH/build/cef-$GIT_CEF_USER/cef'${NORMAL}
+
+\\-------------------------------------------------------------------------------\n"
+                ) |
+                showdialog --title="New Branch" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress --width=600 \
+                           --text="Create Branch '$new_cef_branch' on '$CEF_SOURCE_URL' ..." \
+                           --pulsate --enable-log --log-expanded --log-height=300 --button=gtk-cancel:1 > /dev/null;
+                } fi
+                break;
+              } done
+              echo "#> msg field $GIT_CEF_____CREATE_NEW_BRANCH:enable 1;";
             }
             else
             {
@@ -1957,27 +2236,36 @@ TAB_NUM=2
 
         if [ $update_enabled = 1 ];then
         {
-          ((update_timeout++))
-          if [ $update_timeout >= $(( $REQUEST_UPDATE_TIMEOUT * 2 )) ];then
+          ((update_timeout--))
+          if (( $update_timeout <= 0 ));then
           {
-            update_timeout=0;
+            update_timeout=$(( $REQUEST_UPDATE_TIMEOUT * 2 ));
 
             [ -d $BASE_PATH/build/kodi-$GIT_USER/kodi/ ]      &&
               git -C $BASE_PATH/build/kodi-$GIT_USER/kodi/      pulls update &&
-              echo "#> msg field $GIT_KODI________LIST_REQ__OWN:enable 1;" ||
-              echo "#> msg field $GIT_KODI________LIST_REQ__OWN:enable 0;";
+                local_GIT_KODI_LIST_REQ_OWN=1 || local_GIT_KODI_LIST_REQ_OWN=0;
             [ -d $BASE_PATH/build/kodi-xbmc/kodi/ ]           &&
               git -C $BASE_PATH/build/kodi-xbmc/kodi/           pulls update &&
-              echo "#> msg field $GIT_KODI_______LIST_REQ__BASE:enable 1;" ||
-              echo "#> msg field $GIT_KODI_______LIST_REQ__BASE:enable 0;";
+                local_GIT_KODI_LIST_REQ_BASE=1 || local_GIT_KODI_LIST_REQ_BASE=0;
             [ -d $BASE_PATH/build/cef-$GIT_CEF_USER/cef/ ]    &&
               git -C $BASE_PATH/build/cef-$GIT_CEF_USER/cef/    pulls update &&
-              echo "#> msg field $GIT_CEF_________LIST_REQ__OWN:enable 1;" ||
-              echo "#> msg field $GIT_CEF_________LIST_REQ__OWN:enable 0;";
+                local_GIT_CEF_LIST_REQ_OWN=1 || local_GIT_CEF_LIST_REQ_OWN=0;
             [ -d $BASE_PATH/build/cef-chromiumembedded/cef/ ] &&
               git -C $BASE_PATH/build/cef-chromiumembedded/cef/ pulls update &&
-              echo "#> msg field $GIT_CEF________LIST_REQ__BASE:enable 1;" ||
-              echo "#> msg field $GIT_CEF________LIST_REQ__BASE:enable 0;";
+                local_GIT_CEF_LIST_REQ_BASE=1 || local_GIT_CEF_LIST_REQ_BASE=0;
+
+            echo "#> msg field $GIT_KODI________LIST_REQ__OWN:enable $local_GIT_KODI_LIST_REQ_OWN;";
+            echo "#> msg field $GIT_KODI_______LIST_REQ__BASE:enable $local_GIT_KODI_LIST_REQ_BASE;";
+            echo "#> msg field $GIT_CEF_________LIST_REQ__OWN:enable $local_GIT_CEF_LIST_REQ_OWN;";
+            echo "#> msg field $GIT_CEF________LIST_REQ__BASE:enable $local_GIT_CEF_LIST_REQ_BASE;";
+
+            loadGitConfigFile noOutLock:
+            NEXT_UPDATE_TIME=$((`date +%s`+$update_timeout))
+            GIT_KODI_LIST_REQ_OWN=${local_GIT_KODI_LIST_REQ_OWN:-0}
+            GIT_KODI_LIST_REQ_BASE=${local_GIT_KODI_LIST_REQ_BASE:-0}
+            GIT_CEF_LIST_REQ_OWN=${local_GIT_CEF_LIST_REQ_OWN:-0}
+            GIT_CEF_LIST_REQ_BASE=${local_GIT_CEF_LIST_REQ_BASE:-0}
+            saveGitConfigFile noInLock;
           } fi
         } fi
 
@@ -1993,10 +2281,17 @@ TAB_NUM=2
                    --field="<b>Kodi:</b>:LBL@0,8,0,2" '' \
                    --field="Pull requests (Own):FBTN@0,1,2,4" "bash -c 'echo \"#< msg show_own_kodi_requests;\" >> $thread2_in'" \
                    --field="Pull requests (Base):FBTN@2,3,2,4" "bash -c 'echo \"#< msg show_base_kodi_requests;\" >> $thread2_in'" \
+                   --field="Create new branch:FBTN@4,4,2,4" "bash -c 'echo \"#< msg kodi_new_branch;\" >> $thread2_in'" \
+                   --field="Show changes:FBTN@5,5,2,4" "bash -c 'echo \"#< msg kodi_prepare_patches;\" >> $thread2_in'" \
                    --field=":LBL@0,8,4,6" '' \
                    --field="<b>CEF (Chromium embedded framwork):</b>:LBL@0,8,6,8" '' \
                    --field="Pull requests (Own):FBTN@0,1,8,10" "bash -c 'echo \"#< msg show_own_cef_requests;\" >> $thread2_in'" \
                    --field="Pull requests (Base):FBTN@2,3,8,10" "bash -c 'echo \"#< msg show_base_cef_requests;\" >> $thread2_in'" \
+                   --field="Create new branch:FBTN@4,4,8,10" "bash -c 'echo \"#< msg cef_new_branch;\" >> $thread2_in'" \
+                   --field="Show changes:FBTN@5,5,8,10" "bash -c 'echo \"#< msg cef_prepare_patches;\" >> $thread2_in'" \
+                   --field=":LBL@0,8,10,12" '' \
+                   --field="<b>Other options:</b>:LBL@0,8,12,14" '' \
+                   --field="Show used Git SSH key:FBTN@0,1,14,16" "$BASE_PATH/tools/send-button-msg showSSHkey" \
                    --field=":XTALK" '' > /dev/null 2>&1 &
   pid_thread2=$!
 }
@@ -2512,8 +2807,6 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
 
       loadConfigFile
 
-      . "$HOME/.mupel/windows.conf";
-
       # Set buttons to initial state
       echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
       echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 1;";
@@ -2754,8 +3047,6 @@ if [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
       } fi
 
       loadConfigFile
-
-      . "$HOME/.mupel/mac-osx.conf";
 
       # Set buttons to initial state
       echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
@@ -2998,8 +3289,6 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
 
       loadConfigFile
 
-      . "$HOME/.mupel/android.conf";
-
       # Set buttons to initial state
       echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
       echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 1;";
@@ -3240,8 +3529,6 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
       } fi
 
       loadConfigFile
-
-      . "$HOME/.mupel/mac-osx.conf";
 
       # Set buttons to initial state
       echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
@@ -3486,22 +3773,27 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
 
       loadConfigFile
 
-      [ $KODI_SOURCE_USE_BASE != "TRUE" ] && use_it=1 || use_it=0
+      [ $KODI_SOURCE_USE_BASE != "TRUE" ] &&
+        use_it=1 || use_it=0
       echo "#> msg field $SET_KODI________SOURCE_REPOSI:enable $use_it;"
 
-      [ $CEF_SOURCE_USE_BASE != "TRUE" ] && use_it=1 || use_it=0
+      [ $CEF_SOURCE_USE_BASE != "TRUE" ] &&
+        use_it=1 || use_it=0
       echo "#> msg field $SET_CEF_________SOURCE_REPOSI:enable $use_it;"
-      [[ $SUPPORT_CEF = "TRUE" ]] && use_it=1 || use_it=0
+      [[ $SUPPORT_CEF = "TRUE" ]] &&
+        use_it=1 || use_it=0
       echo "#> msg field $SET_CEF_________SOURCE_BRANCH:visible $use_it;"
       echo "#> msg field $SET_CEF_________VERBOSE_BUILD:visible $use_it;"
 
-      [[ $USE_LINUX_X86_32 = "TRUE" ]] && [[ $USE_LINUX_X86_64 = "TRUE" ]] && use_it=1 || use_it=0
+      [[ $USE_LINUX_X86_32 = "TRUE" ]] && [[ $USE_LINUX_X86_64 = "TRUE" ]] &&
+        use_it=1 || use_it=0
       echo "#> msg field $SET_LINUX__________BUILD_TYPE:enable $use_it;"
       targets="x86_32!x86_64"
       targets=$(echo ${targets//$LINUX_BUILD_TYPE/\^${LINUX_BUILD_TYPE}});
       echo "#> msg field $SET_LINUX__________BUILD_TYPE:set $targets;"
 
-      [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]] && use_it=1 || use_it=0
+      [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]] &&
+        use_it=1 || use_it=0
       echo "#> msg field $SET_WINDOWS____________TARGET:visible $use_it;"
       echo "#> msg field $SET_WINDOWS______SSH_USERNAME:visible $use_it;"
       echo "#> msg field $SET_WINDOWS______SSH_PASSWORD:visible $use_it;"
@@ -3511,10 +3803,10 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       echo "#> msg field $SET_WINDOWS_________INSTALLER:visible $use_it;"
       [ $use_it = 1 ] && [[ -f $BASE_PATH/tools/windows/install-systembuild-windows ]] &&
         use_it_2=1 || use_it_2=0;
-      [ $use_it = 1 ] && [[ -n $(ps aux | grep qemu-system-x86_64 | grep $WINDOWS_DEFAULT_RUN) ]] &&
+      [ $use_it = 1 ] && [[ -n $WINDOWS_DEFAULT_RUN ]] && [[ -n $(ps aux | grep qemu-system-x86_64 | grep $WINDOWS_DEFAULT_RUN) ]] &&
         use_it_2=1 || use_it_2=0;
       echo "#> msg field $SET_WINDOWS______OPEN_CONTROL:visible $use_it_2;"
-      [ $use_it = 1 ] && [[ -z $(ps aux | grep qemu-system-x86_64 | grep $WINDOWS_DEFAULT_RUN) ]] &&
+      [ $use_it = 1 ] && [[ -n $WINDOWS_DEFAULT_RUN ]] && [[ -z $(ps aux | grep qemu-system-x86_64 | grep $WINDOWS_DEFAULT_RUN) ]] &&
         use_it_2=1 || use_it_2=0;
       echo "#> msg field $SET_WINDOWS_____________START:visible $use_it_2;"
       [ $use_it = 1 ] && [[ $WINDOWS_DEFAULT_RUN = "emu-"* ]] &&
@@ -3525,7 +3817,8 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       [[ $WINDOWS_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
       echo "#> msg field $SET_WINDOWS____________SSH_IP:enable $use_it;"
       echo "#> msg field $SET_WINDOWS__________SSH_PORT:enable $use_it;"
-      [[ $USE_MS_WINDOWS_32 = "TRUE" ]] && [[ $USE_MS_WINDOWS_64 = "TRUE" ]] && use_it=1 || use_it=0
+      [[ $USE_MS_WINDOWS_32 = "TRUE" ]] && [[ $USE_MS_WINDOWS_64 = "TRUE" ]] &&
+        use_it=1 || use_it=0
       echo "#> msg field $SET_WINDOWS________BUILD_TYPE:enable $use_it;"
       targets="x86_32!x86_64"
       targets=$(echo ${targets//$WINDOWS_BUILD_TYPE/\^${WINDOWS_BUILD_TYPE}});
@@ -3542,11 +3835,14 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       [ $use_it = 1 ] && [[ -f $BASE_PATH/tools/mac-osx/install-systembuild-mac-osx ]] &&
         use_it_2=1 || use_it_2=0;
       echo "#> msg field $SET_MAC_____________INSTALLER:visible $use_it_2;"
-      [ $use_it = 1 ] && [[ -n $(ps aux | grep qemu-system-x86_64 | grep $MAC_OS_X_DEFAULT_RUN) ]] && use_it_2=1 || use_it_2=0;
+      [ $use_it = 1 ] && [[ -n $MAC_OS_X_DEFAULT_RUN ]] && [[ -n $(ps aux | grep qemu-system-x86_64 | grep $MAC_OS_X_DEFAULT_RUN) ]] &&
+        use_it_2=1 || use_it_2=0;
       echo "#> msg field $SET_MAC__________OPEN_CONTROL:visible $use_it_2;"
-      [ $use_it = 1 ] && [[ -z $(ps aux | grep qemu-system-x86_64 | grep $MAC_OS_X_DEFAULT_RUN) ]] && use_it_2=1 || use_it_2=0;
+      [ $use_it = 1 ] && [[ -n $MAC_OS_X_DEFAULT_RUN ]] && [[ -z $(ps aux | grep qemu-system-x86_64 | grep $MAC_OS_X_DEFAULT_RUN) ]] &&
+        use_it_2=1 || use_it_2=0;
       echo "#> msg field $SET_MAC_________________START:visible $use_it_2;"
-      [ $use_it = 1 ] && [[ $MAC_OS_X_DEFAULT_RUN = "emu-"* ]] && use_it_2=1 || use_it_2=0;
+      [ $use_it = 1 ] && [[ $MAC_OS_X_DEFAULT_RUN = "emu-"* ]] &&
+        use_it_2=1 || use_it_2=0;
       echo "#> msg field $SET_MAC_________________START:enable $use_it_2;"
       [[ $MAC_OS_X_DEFAULT_RUN = "emu-"* ]] && use_it=1 || use_it=0;
       echo "#> msg field $SET_MAC__________OPEN_CONTROL:enable $use_it;"
@@ -3558,19 +3854,23 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       targets=$(echo ${targets//$selected/\^${selected}});
       echo "#> msg field $SET_MAC____IOS_ATV_BUILD_TYPE:set $targets;";
 
-      [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]] && use_it=1 || use_it=0
+      [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]] &&
+        use_it=1 || use_it=0
       echo "#> msg field $SET_ANDROID________BUILD_TYPE:visible $use_it;"
       echo "#> msg field $SET_ANDROID__BUILD_SYS_TARGET:visible $use_it;"
       echo "#> msg field $SET_ANDROID_______AVD_MANAGER:visible $use_it;"
-      [[ $USE_ANDROID_ARM = "TRUE" ]] && use_it=1 || use_it=0
+      [[ $USE_ANDROID_ARM = "TRUE" ]] &&
+        use_it=1 || use_it=0
       echo "#> msg field $SET_ANDROID____ARM_EMU_SOURCE:visible $use_it;"
-      [[ $USE_ANDROID_X86 = "TRUE" ]] && use_it=1 || use_it=0
+      [[ $USE_ANDROID_X86 = "TRUE" ]] &&
+        use_it=1 || use_it=0
       echo "#> msg field $SET_ANDROID____x86_EMU_SOURCE:visible $use_it;"
 
       parse_values "settings" 1 "$KODI_SOURCE_URL";
       parse_values "settings" 8 "$CEF_SOURCE_URL";
       echo "#> msg field $SET_CEF_________VERBOSE_BUILD:set $CEF_VERBOSE_BUILD;";
-      echo "#> msg field $SET_VARIOUS_____CPU_PROC_JOBS:set $CPU_PROC_JOBS;"
+      echo "#> msg field $SET_VAR_________CPU_PROC_JOBS:set $CPU_PROC_JOBS;"
+      echo "#> msg field $SET_VAR____EMU_INSTALL_PREFIX:set $EMU_INSTALL_PREFIX;"
 
       update_counter=10
 
@@ -3672,16 +3972,25 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
             elif [[ "$line" = *"open_avd_control"* ]];then
             {
               (
-                . $HOME/.mupel/android.conf;
                 $ANDROID_DEV_ROOT/android-sdk-linux/tools/android avd
 
                 echo "#> msg field $SET_ANDROID____ARM_EMU_SOURCE:set $(getAndroidAVDS arm);"
                 echo "#> msg field $SET_ANDROID____x86_EMU_SOURCE:set $(getAndroidAVDS x86);"
               ) &
             }
+            elif [[ "$line" = *"open_android_installer"* ]];then
+            {
+              (
+                $BASE_PATH/tools/android/install-systembuild-android;
+                echo "#> msg field $SET_MAC________________TARGET:set $(getAndroidTargets x86);";
+              ) &
+            }
             elif [[ "$line" = *"open_dist_control"* ]];then
             {
-              $BASE_PATH/tools/linux/install-systembuild-linux &
+              (
+                $BASE_PATH/tools/linux/install-systembuild-linux
+                echo "#> msg field $SET_LINUX_____USED_LINUX_DIST:set $(getLinuxTargetDist);";
+              ) &
             }
             else
               echo "Wrong command! $line" > /dev/stderr;fi
@@ -3697,7 +4006,12 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
         {
           update_counter=0;
 
-          if [[ -n $(ps aux | grep qemu-system-x86_64 | grep $WINDOWS_DEFAULT_RUN) ]];then
+          if [[ -z $WINDOWS_DEFAULT_RUN ]];then
+          {
+            echo "#> msg field $SET_WINDOWS______OPEN_CONTROL:visible 0;"
+            echo "#> msg field $SET_WINDOWS_____________START:visible 0;"
+          }
+          elif [[ -n $(ps aux | grep qemu-system-x86_64 | grep $WINDOWS_DEFAULT_RUN) ]];then
           {
             echo "#> msg field $SET_WINDOWS______OPEN_CONTROL:visible 1;"
             echo "#> msg field $SET_WINDOWS_____________START:visible 0;"
@@ -3711,7 +4025,12 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
           echo "#> msg field $SET_WINDOWS____________SSH_IP:enable $use_it;"
           echo "#> msg field $SET_WINDOWS__________SSH_PORT:enable $use_it;"
 
-          if [[ -n $(ps aux | grep qemu-system-x86_64 | grep $MAC_OS_X_DEFAULT_RUN) ]];then
+          if [[ -z $MAC_OS_X_DEFAULT_RUN ]];then
+          {
+            echo "#> msg field $SET_MAC__________OPEN_CONTROL:visible 0;"
+            echo "#> msg field $SET_MAC_________________START:visible 0;"
+          }
+          elif [[ -n $(ps aux | grep qemu-system-x86_64 | grep $MAC_OS_X_DEFAULT_RUN) ]];then
           {
             echo "#> msg field $SET_MAC__________OPEN_CONTROL:visible 1;"
             echo "#> msg field $SET_MAC_________________START:visible 0;"
@@ -3793,6 +4112,8 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field=":CB@4,8,39,40" "$(getAndroidAVDS x86)" \
              --field=":LBL@0,8,41,42" '' \
              --field="CPU process jobs:NUM@0,1,43,44" "${CPU_PROC_JOBS}!1..32" \
+             --field="Emulation prefix:MDIR@2,4,43,44" "$EMU_INSTALL_PREFIX" \
+             --field="Include last open requests in branch:CHK@5,7,43,44" "$INCLUDE_OPEN_PULL_REQUESTS" \
              --field=":XTALK" '' > /dev/null &
   pid_thread9=$!
   ((TAB_NUM++))

@@ -74,7 +74,9 @@ function processOptsCEF()
       --verbose-build)
         VERBOSEBUILD=1;
         ;;
-      --help)                   usageCEF;;
+      --help)
+        usageCEF
+        ;;
       *)
         echo "invalid command-line option: $1"
         usageCEF

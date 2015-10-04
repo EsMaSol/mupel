@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 ###############################################################################
 #                                                                             #
 #     Copyright (C) 2015 Team KODI                                            #
@@ -18,31 +18,20 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.      #
 #                                                                             #
 ###############################################################################
-#                                                                             #
-# Note: This script becomes called on Mac OS X system!                        #
-#       Access from muple to them is over a ssh connection.                   #
-#                                                                             #
-###############################################################################
 
-trap 'echo Error on line ${LINENO} inside Mac OS X system call; exit 1;' ERR SIGHUP SIGINT SIGTERM;
+BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
 
-MUPEL_PATH=$HOME/Desktop/Mupel
-
-BIT_SIZE="64";
-BASE_PATH=$MUPEL_PATH/remote_access/build # remote_access mount becomes done separate before
-
-. "$MUPEL_PATH/remote_access/home/.mupel/mupel.conf";
-. "$MUPEL_PATH/remote_access/home/.mupel/mac-osx.conf";
+. "$HOME/.mupel/mupel.conf";
 . "$BASE_PATH/tools/tool_functions";
 . "$BASE_PATH/tools/tool_kodi.include";
 
 TEMP_DIR=$BASE_PATH/build/.tmp;
-BUILD_SYSTEM="osx${BIT_SIZE}"
+BUILD_SYSTEM="linux-x86_${BIT_SIZE}"
 
 function exitBuild
 {
-  rm -f $TEMP_DIR/build_thread-cef_active-osx-x86_$BIT_SIZE;
-  rm -f $TEMP_DIR/build_thread-cef_active;
+  rm -f $TEMP_DIR/build_thread-kodi_active-$BUILD_SYSTEM;
+  rm -f $TEMP_DIR/build_thread-kodi_active;
 }
 
 ###############################################################################
@@ -50,27 +39,30 @@ function exitBuild
 
 [ ! -d $TEMP_DIR ] && mkdir -p $TEMP_DIR;
 
-INSTALL_DIR_TYPE="Release"
-processOptsKodi "$@"
+INSTALL_DIR_TYPE="Release";
+processOptsKodi "$@";
 
 initBuildScript_Kodi;
 
 # Set error return
-trap exitBuild EXIT
+trap 'trapError ${LINENO};' ERR;
+trap exitBuild EXIT;
 
 # Add failed file which becomes removed if everything is ok, this way is more
 # secure
-touch $TEMP_DIR/kodi-osx-x86_${BIT_SIZE}.failed;
+touch $TEMP_DIR/kodi-$BUILD_SYSTEM.failed;
+
+. "$BASE_PATH/versions";
 
 # Load or update kodi
-loadKodiBuildDir $BUILD_SYSTEM "Mac OS X x86 ${BIT_SIZE}bit" "$MUPEL_PATH/kodi-$GIT_USER/";
+loadKodiBuildDir $BUILD_SYSTEM "Linux x86-${BIT_SIZE}bit";
 
 export Configuration=$INSTALL_DIR_TYPE;
-export TARBALLS="$BASE_PATH/build/kodi-tarballs"
-export BUILDTHREADS=$CPU_PROC_JOBS
-export XBMC_PLATFORM_DIR="osx${BIT_SIZE}"
-export WORKSPACE="$MUPEL_PATH/kodi-$GIT_USER/kodi-$BUILD_SYSTEM"
-export XBMC_DEPENDS_ROOT="$MUPEL_PATH/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE"
+export TARBALLS=$BASE_PATH/build/kodi-tarballs;
+export BUILDTHREADS=$CPU_PROC_JOBS;
+export XBMC_PLATFORM_DIR="linux${BIT_SIZE}";
+export WORKSPACE=$BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM;
+export XBMC_DEPENDS_ROOT=$BASE_PATH/build/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE/kodi;
 
 if [ ! -z $SELECTED_BUILD ];then
   KODI_BUILD="Single selection build of '$SELECTED_BUILD'"
@@ -82,14 +74,14 @@ else
   KODI_BUILD="direct";fi
 
 printf "
--------------------------------------------------------------------------------
+/------------------------------------------------------------------------------
 |
-|  Kodi build Mac OS X x86 ${BIT_SIZE}bit
-| ===============================
+|  Kodi build Linux x86 ${BIT_SIZE}bit
+| ============================
 |
 |  Build type :        $KODI_BUILD
-|  Build add-ons :     $([[ $INCLUDE_KODI_ADDONS = TRUE ]] && echo yes || echo no)
-|  Test run :          $([[ $KODI_RUN_TESTS = TRUE ]] && echo yes || echo no)
+|  Build add-ons :     $([[ $INCLUDE_KODI_ADDONS = "TRUE" ]] && echo "yes" || echo "no")
+|  Test run :          $([[ $KODI_RUN_TESTS = "TRUE" ]] && echo "yes" || echo "no")
 |  Configuration :     $Configuration
 |
 |  TARBALLS :          $TARBALLS
@@ -98,21 +90,21 @@ printf "
 |  XBMC_DEPENDS_ROOT : $XBMC_DEPENDS_ROOT
 |  WORKSPACE :         $WORKSPACE
 |
-|  Free Disk size :    $(df -h . | tail -1 | tr -s ' ' | cut -d' ' -f4 | awk -F 'Gi' '{print $1}') GByte
-|
 \\-------------------------------------------------------------------------------
 "
 
 sleep 3
 
 # Change to source code path
-cd $MUPEL_PATH/kodi-$GIT_USER/kodi-$BUILD_SYSTEM
+cd $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM
 
 if [ ! -z $SELECTED_BUILD ];then
 {
   printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}$SELECTED_BUILD${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
   sleep 2
-  ./tools/buildsteps/osx${BIT_SIZE}/$SELECTED_BUILD
+  ./tools/buildsteps/linux${BIT_SIZE}/$SELECTED_BUILD
+  if [ $SELECTED_BUILD = make-xbmc ];then
+    make install;fi
   printf $CURS_UP
   log_success_msg
 }
@@ -122,59 +114,63 @@ elif [ -z $ADDON_BUILD ];then
   {
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}prepare-depends${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
-    ./tools/buildsteps/osx${BIT_SIZE}/prepare-depends
+    ./tools/buildsteps/linux${BIT_SIZE}/prepare-depends
+    printf $CURS_UP
     log_success_msg
 
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}configure-depends${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
-    ./tools/buildsteps/osx${BIT_SIZE}/configure-depends
+    ./tools/buildsteps/linux${BIT_SIZE}/configure-depends
+    printf $CURS_UP
     log_success_msg
 
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}make-depends${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
-    ./tools/buildsteps/osx${BIT_SIZE}/make-depends
+    ./tools/buildsteps/linux${BIT_SIZE}/make-depends
+    printf $CURS_UP
     log_success_msg
 
-    printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}prepare-xbmc${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
+    printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}install additional Kodi depends${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
-    ./tools/buildsteps/osx${BIT_SIZE}/prepare-xbmc
+    installAdditionalKodiDepends "${XBMC_DEPENDS_ROOT}/x86_${BIT_SIZE}-linux-gnu"
+    printf $CURS_UP
     log_success_msg
   }
   else
     printf "\nRunning ${BRIGHT}${WHITE}Direct Kodi build started${NORMAL}\n";fi
 
-  if [ $KODI_RUN_TESTS = true ];then
+  if [ "$KODI_RUN_TESTS" = "true" ];then
     CONFIG_EXTRA="$CONFIG_EXTRA --enable-gtest";fi
   export CONFIG_EXTRA
 
-  if [ -z $DIRECT_KODI_BUILD ] || [[ $KODI_CONF_IN_DIRECT_BUILD = TRUE ]];then
+  if [ -z $DIRECT_KODI_BUILD ] || [[ $KODI_CONF_IN_DIRECT_BUILD = "TRUE" ]];then
   {
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}configure-xbmc${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
-    ./tools/buildsteps/osx${BIT_SIZE}/configure-xbmc
+    ./tools/buildsteps/linux${BIT_SIZE}/configure-xbmc
+    printf $CURS_UP
     log_success_msg
   } fi
 
   printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}make-xbmc${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
   sleep 2
-  ./tools/buildsteps/osx${BIT_SIZE}/make-xbmc
-  log_success_msg
-
-  printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}package${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
-  sleep 2
-  ./tools/buildsteps/osx${BIT_SIZE}/package
+  ./tools/buildsteps/linux${BIT_SIZE}/make-xbmc
+  make install
+  printf $CURS_UP
   log_success_msg
 
   if [ -z $DIRECT_KODI_BUILD ] && [[ $INCLUDE_KODI_ADDONS != FALSE ]];then
   {
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}prepare-xbmc${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
-    ./tools/buildsteps/osx${BIT_SIZE}/prepare-xbmc
+    ./tools/buildsteps/linux${BIT_SIZE}/prepare-xbmc
+    printf $CURS_UP
     log_success_msg
 
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}make-binary-addons${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'"
     sleep 2
-    ./tools/buildsteps/osx${BIT_SIZE}/make-binary-addons
+    ./tools/buildsteps/linux${BIT_SIZE}/make-binary-addons
+    printf $CURS_UP
     log_success_msg
   } fi
 
@@ -183,7 +179,8 @@ elif [ -z $ADDON_BUILD ];then
   {
     printf "\n"
     sleep 2
-    ./tools/buildsteps/osx${BIT_SIZE}/run-tests
+    ./tools/buildsteps/linux${BIT_SIZE}/run-tests
+    printf $CURS_UP
     log_success_msg
   }
   else
@@ -194,30 +191,29 @@ else
   CONFIGURE=1
 
   trap '' ERR
-  if [ -f ./tools/depends/target/binary-addons/x86_${BIT_SIZE}-osx-gnu/Makefile ];then
+  if [ -f ./tools/depends/target/binary-addons/x86_${BIT_SIZE}-linux-gnu/Makefile ];then
   {
-    grep -q $ADDON_BUILD ./tools/depends/target/binary-addons/x86_${BIT_SIZE}-osx-gnu/Makefile
+    grep -q $ADDON_BUILD ./tools/depends/target/binary-addons/x86_${BIT_SIZE}-linux-gnu/Makefile
     [[ $? = 0 ]] && CONFIGURE=0
   } fi
-  trap 'echo Error on line ${LINENO} inside Mac OS X system call; exit 1;' ERR
+  trap 'trapError ${LINENO};' ERR;
 
   if [[ $CONFIGURE = 1 ]];then
   {
-    rm -rf ./tools/depends/target/binary-addons/x86_${BIT_SIZE}-osx-gnu/build/depends/include/GL
-    make -C ./tools/depends/target/binary-addons PREFIX=$XBMC_DEPENDS_ROOT/x86_${BIT_SIZE}-osx-gnu ADDONS=$ADDON_BUILD
+    rm -rf ./tools/depends/target/binary-addons/x86_${BIT_SIZE}-linux-gnu/build/depends/include/GL
+    make -C ./tools/depends/target/binary-addons PREFIX=$XBMC_DEPENDS_ROOT/x86_${BIT_SIZE}-linux-gnu ADDONS=$ADDON_BUILD
   }
   else
   {
-    make -C ./tools/depends/target/binary-addons/x86_${BIT_SIZE}-osx-gnu PREFIX=$XBMC_DEPENDS_ROOT/x86_${BIT_SIZE}-osx-gnu $ADDON_BUILD
+    make -C ./tools/depends/target/binary-addons/x86_${BIT_SIZE}-linux-gnu PREFIX=$XBMC_DEPENDS_ROOT/x86_${BIT_SIZE}-linux-gnu $ADDON_BUILD
   } fi
 } fi
 
 trap '' ERR
 
 printf "\n \
-${BRIGHT}${WHITE}All steps successfully performed and test build present and can started on MAC OS X with:${NORMAL}
- - ${BRIGHT}${BLUE}${UNDERLINE}${BASE_PATH}~/Desktop/Mupel/kodi-$GIT_USER/kodi-osx64/build/$INSTALL_DIR_TYPE/Kodi${NORMAL}\n"
+${BRIGHT}${WHITE}All steps successfully performed and test build present and can started with:${NORMAL}
+ - ${BRIGHT}${GREEN}${UNDERLINE}$BASE_PATH/build/kodi-${BUILD_SYSTEM}/kodi.bin${NORMAL}\n"
 
-rm -f $TEMP_DIR/kodi-osx-x86_${BIT_SIZE}.failed;
-
+rm -f $TEMP_DIR/kodi-$BUILD_SYSTEM.failed;
 exit 0

@@ -1,0 +1,132 @@
+#!/bin/bash
+
+if [ -f "$HOME/.mupel/mupel.conf" ];then
+{
+  . "$HOME/.mupel/mupel.conf";
+} fi
+PATH="$BASE_PATH/tools:$PATH"
+
+##
+# unset value to prevent Kodi (XBMC) configure error with:
+#
+# mkdir -p xbmc/interfaces/python/generated
+# /home/alwin/mupel/build/kodi-xbmc/binary_distrib/Release/kodi/i686-linux-gnu-native/bin/swig -w401 -c++ -o xbmc/interfaces/python/generated/AddonModuleXbmc.xml \
+#          -xml -I./xbmc -xmllang python xbmc/interfaces/swig/AddonModuleXbmc.i
+# Work around potential groovy bug reported at: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=733234
+# /usr/bin/java -cp "./tools/codegenerator/groovy/groovy-all-2.4.4.jar:./tools/codegenerator/groovy/commons-lang-2.6.jar:./tools/codegenerator:xbmc/interfaces/python" \
+#           org.codehaus.groovy.tools.FileSystemCompiler -d ./tools/codegenerator ./tools/codegenerator/Helper.groovy  ./tools/codegenerator/SwigTypeParser.groovy \
+#           xbmc/interfaces/python/MethodType.groovy xbmc/interfaces/python/PythonTools.groovy
+# Picked up JAVA_TOOL_OPTIONS: -javaagent:/usr/share/java/jayatanaag.jar
+# Error opening zip file or JAR manifest missing : /usr/share/java/jayatanaag.jar
+# Error occurred during initialization of VM
+# agent library failed to init: instrument
+# codegenerator.mk:44: recipe for target 'xbmc/interfaces/python/generated/AddonModuleXbmc.cpp' failed
+# make[1]: *** [xbmc/interfaces/python/generated/AddonModuleXbmc.cpp] Error 1
+# rm xbmc/interfaces/python/generated/AddonModuleXbmc.xml
+# make[1]: Leaving directory '/home/alwin/mupel/build/kodi-xbmc/kodi-linux-rpbi'
+# config-xbmc-makefile:23: recipe for target '../../..//libxbmc.so' failed
+# make: *** [../../..//libxbmc.so] Error 2
+#
+# Value is: "JAVA_TOOL_OPTIONS='-javaagent:/usr/share/java/jayatanaag.jar'"
+unset JAVA_TOOL_OPTIONS;
+
+##
+# Usage help function return as string the available values
+function usageKodi()
+{
+  echo "Usage: $0 [--options]"
+  echo "Options:"
+  echo "--debug           build debug version"
+  echo "--addon <name>    start a build of given add-on directly, usable during"
+  echo "                  programming time"
+  echo "--selected <name> start only given build of a single step inside build steps"
+  echo "--build-direct    if inserted kodi becomes direct build without perform of pre"
+  echo "                  steps, becomes possible after one time the complete build"
+  echo "                  was done. Usable during programming to reduce time"
+  echo "--help            this help message"
+  echo "Note:"
+  echo "  This scripts are normally called from GUI interface, but also possible to use"
+  echo "  direct with the right options set."
+  exit 1
+}
+##
+
+##
+# Function to process given input variables
+function processOptsKodi()
+{
+  DEBUG_BUILD="--enable-debug=no"
+
+  while test "$1" != "" ; do
+    case "$1" in
+      --build-direct)
+        DIRECT_KODI_BUILD=1
+        ;;
+      --debug)
+        DEBUG_BUILD="--enable-debug=yes"
+        INSTALL_DIR_TYPE="Debug"
+        ;;
+      --selected)
+        case "$2" in
+            "")
+              echo "Option '--selected', no argument"
+              shift
+              ;;
+            *)
+              SELECTED_BUILD="$2"
+              shift
+              ;;
+        esac ;;
+      --addon)
+        case "$2" in
+            "")
+              echo "Option '--addon', no argument"
+              shift
+              ;;
+            *)
+              ADDON_BUILD="$2"
+              shift
+              ;;
+        esac ;;
+      --help)
+        usageKodi
+        ;;
+      *)
+        echo "invalid command-line option: $1"
+        usageKodi
+        ;;
+    esac
+    shift
+  done
+}
+##
+
+##
+function initBuildScript_Kodi
+{
+  GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+  if [ -z $GIT_USER ];then
+  {
+    printf "${RED}${BRIGHT}ERROR: ${WHITE}Needed git user name could not be detected for Kodi${NORMAL}\n";
+    exit 1;
+  } fi
+
+  if [ ! -d $BASE_PATH/build/kodi-$GIT_USER/kodi ];then
+  {
+    printf "\
+${RED}${BRIGHT}ERROR: ${WHITE}Needed source code on${NORMAL}
+${BRIGHT}${WHITE}$BASE_PATH/build/kodi-$GIT_USER/kodi${NORMAL}
+${BRIGHT}${WHITE}for build not present!${NORMAL}\n";
+    exit 1;
+  } fi
+
+  ##
+  # If no temporary directory is passed create a own
+  if [ -z $TEMP_DIR ];then
+  {
+    OWN_TEMP=1;
+    TEMP_DIR=$(mktemp -d);
+    printf "${YELLOW}${BRIGHT}WARNING: ${WHITE}No temporary directory defined, using own $TEMP_DIR${NORMAL}\n\n";
+  } fi
+}
+##

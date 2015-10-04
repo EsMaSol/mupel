@@ -8,18 +8,26 @@ BASE_PATH=$HOME/.mupel
 ssh_name=`echo $WINDOWS_DEFAULT_RUN | tr '(' '_' | tr ')' '_'`;
 if [[ -z $ssh_name ]];then
   ssh_name="127.0.0.1 -p 2222";fi
-echo $WINDOWS_DEFAULT_RUN
-sshpass -p $WINDOWS_SSH_PASSWORD ssh $WINDOWS_DEFAULT_RUN -l $WINDOWS_SSH_USERNAME test echo
+
+sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -l $WINDOWS_SSH_USERNAME test echo
 ret=$?
 if [ $ret = 6 ];then
   showQuestionDialog "<b>Host public key is unknown, do you want to start ssh access manualy to include missing key?</b>"
   [ $? != 0 ] && exit 1
+
   which konsole >/dev/null
-  if [ "$?" != "0" ];then
-    xterm -T "Windows ssh access (Manual access)" -bg black -fg white -e ssh $WINDOWS_DEFAULT_RUN -l $WINDOWS_SSH_USERNAME
-  else
-    konsole --hide-tabbar --hide-menubar --e ssh $WINDOWS_DEFAULT_RUN -l $WINDOWS_SSH_USERNAME 2> /dev/null;
+  if [ "$?" = "0" ];then
+    konsole --hide-tabbar --hide-menubar --e ssh $ssh_name -l $WINDOWS_SSH_USERNAME 2> /dev/null;
+    exit
   fi
+
+  which gnome-terminal >/dev/null
+  if [ "$?" = "0" ];then
+    gnome-terminal --hide-menubar --title="Windows ssh access (Manual access)" -- ssh $ssh_name -l $WINDOWS_SSH_USERNAME 2> /dev/null;
+    exit
+  fi
+
+  xterm -T "Windows ssh access (Manual access)" -bg black -fg white -e ssh $ssh_name -l $WINDOWS_SSH_USERNAME
   exit 0
 elif [ $ret != 0 ];then
   handleErrorsCodes $ret sshpass "Windows ssh access"
@@ -27,8 +35,15 @@ elif [ $ret != 0 ];then
 fi
 
 which konsole >/dev/null
-if [ "$?" != "0" ];then
-  xterm -T "Windows ssh access" -bg black -fg white -e sshpass -p $WINDOWS_SSH_PASSWORD ssh $WINDOWS_DEFAULT_RUN -l $WINDOWS_SSH_USERNAME
-else
-  konsole --hide-tabbar --hide-menubar --e sshpass -p $WINDOWS_SSH_PASSWORD ssh $WINDOWS_DEFAULT_RUN -l $WINDOWS_SSH_USERNAME 2> /dev/null;
+if [ "$?" = "0" ];then
+  konsole --hide-tabbar --hide-menubar --e sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -l $WINDOWS_SSH_USERNAME 2> /dev/null;
+  exit
 fi
+
+which gnome-terminal >/dev/null
+if [ "$?" = "0" ];then
+  gnome-terminal --hide-menubar --title="Windows ssh access (Manual access)" -- sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -l $WINDOWS_SSH_USERNAME 2> /dev/null;
+  exit
+fi
+
+xterm -T "Windows ssh access" -bg black -fg white -e sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -l $WINDOWS_SSH_USERNAME

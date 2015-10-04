@@ -27,7 +27,7 @@ BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/../.. ; pwd -P)}
 
 . "$HOME/.mupel/mupel.conf"
 . "$BASE_PATH/tools/tool_functions"
-. "$BASE_PATH/tools/tool_install_functions"
+. "$BASE_PATH/tools/tool_install.include"
 . "$BASE_PATH/tools/android/android.conf"
 . "$BASE_PATH/versions"
 
@@ -464,6 +464,7 @@ X-KDE-SubstituteUID=false
 X-KDE-Username=
 X-MultipleArgs=false
 EOF
+chmod 755 $DESKTOP_FILE
 
     xdg-desktop-menu  install --novendor --noupdate $DESKTOP_FILE
     xdg-icon-resource install --novendor --size  32 "$BASE_PATH/icons/icon-android-x86-32x32.png"   $ICON_NAME
@@ -950,6 +951,10 @@ Do you want to try again (otherwise cancel install)?</b>
   trap '' INT TERM QUIT HUP
   trap '' EXIT
 
+  [ $USE_ANDROID_ARM = "TRUE" ] && ANDROID_ARM_INSTALLED=TRUE
+  [ $USE_ANDROID_X86 = "TRUE" ] && ANDROID_X86_INSTALLED=TRUE
+  saveConfigFile
+
   showdialog --form --title="Android system installer" \
                     --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" \
                     --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
@@ -1043,8 +1048,8 @@ which gpicview >/dev/null
 [ "$?" != "0" ] && packages="$packages gpicview"
 which xarchiver >/dev/null
 [ "$?" != "0" ] && packages="$packages xarchiver"
-which javac >/dev/null
-[ "$?" != "0" ] && packages="$packages default-jdk"
+which java >/dev/null
+[ "$?" != "0" ] && packages="$packages default-jdk default-jre"
 
 # Install needed packages
 if [[ ! -z $packages ]];then
@@ -1054,7 +1059,9 @@ if [[ ! -z $packages ]];then
     touch "${main_msg_tmp}"
     (
       touch "${TEMP_DIR}/build_active"
-      sudo apt-get update
+      sudo -A -- dpkg --configure -a
+      sudo -A -- apt-get update
+      [ ${PIPESTATUS[0]} != 0 ] && exit_build 1;
       sudo -A -- apt-get -y -q install $packages;
       [ ${PIPESTATUS[0]} != 0 ] && exit_build 1;
 
@@ -1066,7 +1073,7 @@ if [[ ! -z $packages ]];then
 
     tail -f --pid=$pid ${main_msg_tmp} |
       showdialog --title="Install" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress --width=600 \
-                 --text="Install needed packages for windows emulation and usage ..." \
+                 --text="Install needed packages for Android build system and usage ..." \
                  --pulsate --enable-log --log-height=300 --button=gtk-cancel:1 \
                  --auto-close 2> /dev/null;
     ret=$?;
@@ -1096,5 +1103,7 @@ if [ -z $ANDROID_DESKTOP_ICON_PATH ];then
   ANDROID_DESKTOP_ICON_PATH=$DESKTOP_DIR;fi
 
 installAndroidDevSystem
+
+trap '' INT TERM QUIT HUP
 
 exit_build 0

@@ -8,7 +8,7 @@ BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
 TEMP_DIR=$BASE_PATH/build/.tmp;
 mkdir -p $TEMP_DIR;
 
-echo - $pid_thread2 -- $1 - $2 -- $3 - $4 -- > /dev/stderr
+echo - $pid_thread2 -- $1 - value1=$2 -- value2=$3 - value3=$4 -- > /dev/stderr
 
 field=$1
 value1=$2
@@ -16,6 +16,9 @@ value2=$3
 value3=$4
 
 case $field in
+  openCommitChangeView)
+    xdg-open $value2
+    ;;
   openPullRequestListDialog)
     requests=$(git -C "$value1" pulls list | tail -n +2);
     IFS=$'\n'
@@ -30,48 +33,93 @@ case $field in
     showdialog --width=640 --height=480 --title="Open Pull requests" --image="gtk-execute" \
                --text="Double click or press enter on <b>Pull request</b> to show related sub menu" \
                --list --print-column=1 \
-               --dclick-action="@$BASE_PATH/tools/send-button-msg showDetailedRequestInfo $value1 $1" \
+               --dclick-action="$BASE_PATH/tools/send-button-msg showDetailedRequestInfo $value1 $value2" \
                --column="Number" --column="Date" --column="Name" --column="Source" \
-               --button=gtk-close:0 > /dev/null 2>&1
+               --button=gtk-close:0 # > /dev/null 2>&1
     ;;
   openPullRequestInfoDialog)
     IFS=$' '
-    requestId=$(echo $value4 | awk -F '|' '{print $1}');
-
     showdialog --form --title="Git Pull requests work" \
                --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" \
                --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
                --field="<i><span size=\"large\">Command selection</span></i>:LBL" "" \
                --field=":LBL" "" \
                --field="Handle pull requests commands::LBL" "" \
-               --field="Show detailed info:FBTN" "$BASE_PATH/tools/send-button-msg showDetailedRequestInfo $requestId $value2" \
-               --field="Open request on browser:FBTN" "$BASE_PATH/tools/send-button-msg openRequestOnBrowser $requestId $value2" \
+               --field="Show detailed info:FBTN" "$BASE_PATH/tools/send-button-msg showDetailedRequestInfo $value2 $value3" \
+               --field="Open request on browser:FBTN" "$BASE_PATH/tools/send-button-msg openRequestOnBrowser $value2 $value3" \
                --button=gtk-close:0 > /dev/null 2>&1
     ;;
   showDetailedRequestInfo)
-    requestId=$(echo $value3 | awk -F '|' '{print $1}');
-    git -C "$value1" pulls show $requestId --comments  |
+    git -C "$value1" pulls show $value2 --comments  |
       sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?m//g" |
       showdialog --text-info \
                  --width=640 --height=480 \
                  --wrap --show-uri \
-                 --title="Pull Request #$requestId" \
-                 --button="Show code changes:$BASE_PATH/tools/send-button-msg showRequestChanges $value1 $requestId" \
-                 --button="Open website:git -C $value1 pulls browse $requestId" \
+                 --title="Pull Request #$value2" \
+                 --button="Checkout Pull Request:$BASE_PATH/tools/send-button-msg checkoutRequest $value1 $value2" \
+                 --button="Show code changes:$BASE_PATH/tools/send-button-msg showRequestChanges $value1 $value2" \
+                 --button="Open website:git -C $value1 pulls browse $value2" \
                  --button=gtk-close:0 > /dev/null 2>&1
+    ;;
+  checkoutRequest)
+    git -C "$value1" pulls checkout $value2
+    if [ $? = 0 ];then
+    {
+      CHECKOUT_IT=1
+    }
+    else
+    {
+      showWarningDialog_YesNo "<b>\
+Change from '$(git -C $value1 config --get remote.origin.url)' to Request #$value2 on $value1 failed!
+
+Due want to force change?</b>"
+      if [ $? = 0 ];then
+      {
+        git -C "$value1" pulls checkout --force $value2
+        if [ $? = 0 ];then
+        {
+          CHECKOUT_IT=1
+        }
+        else
+          showErrorDialog "<b>Checkout to Request #$value2 on $value1 failed!</b>";fi
+      } fi
+    } fi
+
+    if [[ $CHECKOUT_IT = 1 ]];then
+    {
+      git -C "$value1" checkout master --force
+      git -C "$value1" branch -D pull-master
+      git -C "$value1" fetch origin pull/$value2/head:pull-master --force
+      git -C "$value1" checkout pull-master
+      showInfoDialog "<b>Successfully changed from '$(git -C $value1 config --get remote.origin.url)' to Request #$value2 on $value1</b>" 5
+    } fi
     ;;
   showRequestChanges)
     IFS=$' '
     git -C "$value1" pulls show $value2 --full | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?m//g" > $TEMP_DIR/pull_request.patch;
+    xdg-open $TEMP_DIR/pull_request.patch;
 
-    cat $TEMP_DIR/pull_request.patch |
+#    cat $TEMP_DIR/pull_request.patch |
+#      showdialog --text-info \
+#                 --width=640 --height=480 \
+#                 --show-uri \
+#                 --title="Pull Request #$value2 (code changes)" \
+#                 --button="Save patch:$BASE_PATH/tools/send-button-msg saveRequestPatch $value1 $value2" \
+#                 --button="Open website:git -C $value1 pulls browse $value2" \
+#                 --button=gtk-close:0 > /dev/null 2>&1
+    ;;
+  showSSHkey)
+    IFS=$' '
+    cat $HOME/.ssh/id_rsa.pub |
       showdialog --text-info \
                  --width=640 --height=480 \
-                 --show-uri \
-                 --title="Pull Request #$value2 (code changes)" \
-                 --button="Save patch:$BASE_PATH/tools/send-button-msg saveRequestPatch $value1 $value2" \
-                 --button="Open website:git -C $value1 pulls browse $value2" \
+                 --wrap \
+                 --title="SSH key" \
+                 --button="Open github SSH website:$BASE_PATH/tools/send-button-msg openGithubSSHWebsite" \
                  --button=gtk-close:0 > /dev/null 2>&1
+    ;;
+  openGithubSSHWebsite)
+    openWebsite "https://github.com/settings/ssh"
     ;;
   saveRequestPatch)
     ret=$(showdialog --title="Save pull request patch" \

@@ -24,22 +24,17 @@
 #                                                                             #
 ###############################################################################
 
-trap 'echo Error on line ${LINENO} inside Mac OS X system call;' ERR
+trap 'echo Error on line ${LINENO} inside Mac OS X system call; exit 1' ERR SIGHUP SIGINT SIGTERM;
 
 MUPEL_PATH=$HOME/Desktop/Mupel
 
-if [ ! -d $MUPEL_PATH/remote_access ];then
-  mkdir -p $MUPEL_PATH/remote_access;fi
-if [[ -z  `mount | grep //guest:@10.0.2.4/qemu` ]];then
-  mount -t smbfs //guest:@10.0.2.4/qemu $MUPEL_PATH/remote_access;fi
-
 BIT_SIZE="64";
-BASE_PATH=$MUPEL_PATH/remote_access/build
+BASE_PATH=$MUPEL_PATH/remote_access/build # remote_access mount becomes done separate before
 
 . "$MUPEL_PATH/remote_access/home/.mupel/mupel.conf";
 . "$MUPEL_PATH/remote_access/home/.mupel/mac-osx.conf";
 . "$BASE_PATH/tools/tool_functions";
-. "$BASE_PATH/tools/tool_cef_functions";
+. "$BASE_PATH/tools/tool_cef.include";
 
 TEMP_DIR=$BASE_PATH/build/.tmp;
 
@@ -47,6 +42,7 @@ function exitBuild
 {
   rm -f $TEMP_DIR/build_thread-cef_active-osx-x86_$BIT_SIZE;
   rm -f $TEMP_DIR/build_thread-cef_active;
+  killall -9 git
 }
 
 ###############################################################################
@@ -63,16 +59,11 @@ if [[ -n $FORCECLEAN ]] || [[ -n $FORCEUPDATE ]];then
 
 initBuildScript_CEF;
 
-
-
-
 trap exitBuild EXIT
 
 touch $TEMP_DIR/cef-osx-x86_$BIT_SIZE.failed;
 
 . "$BASE_PATH/versions";
-
-
 
 if [ -z $DIRECT_CEF_BUILD ];then
   CEF_BUILD="complete";
@@ -114,17 +105,17 @@ printf "
 |  CEF Output Directory : $out_dir
 |  Package directory :    $INSTALL_PATH
 |
+|  Free Disk size :       $(df -h . | tail -1 | tr -s ' ' | cut -d' ' -f4 | awk -F 'Gi' '{print $1}') GByte
+|
 \\-------------------------------------------------------------------------------
 
 "
 
 sleep 3
 
-
-
 ##
 # Check for presence of chromium depot tools
-printf "${BRIGHT}${WHITE}Download and install Windows Chromium depot tools to $MUPEL_PATH/${WINDOWS_DEPOT_TOOLS_BUNDLE##*/}${NORMAL} ...\n";
+printf "${BRIGHT}${WHITE}Download and install Chromium depot tools to $MUPEL_PATH/cef${NORMAL} ...\n";
 if [ ! -d "$MUPEL_PATH/depot_tools" ];then
 {
   handleGITLoad "$MUPEL_PATH" depot_tools $DEPOT_TOOLS_URL master;
@@ -138,15 +129,6 @@ if [ ! -d "$MUPEL_PATH/depot_tools" ];then
     update_depot_tools
     handleErrorsCodes $? "update_depot_tools" "$MUPEL_PATH/depot_tools" console exit;
   } fi
-
-
-
-
-
-
-
-
-
 
   gclient
   evaluateReturnValue $?;
@@ -183,7 +165,7 @@ if [ $BIT_SIZE = 64 ];then
 
 # If direct build is requested in build before was on other system a complete
 # build becomes forced
-if [ ! -f "$TEMP_DIR/cef-$GIT_CEF_USER-osx-x86_${BIT_SIZE}.active" ] && [[ ! -z $DIRECT_CEF_BUILD ]];then
+if [ ! -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-osx-x86_${BIT_SIZE}.active" ] && [[ ! -z $DIRECT_CEF_BUILD ]];then
 {
   printf "${RED}${BRIGHT}WARNING: ${WHITE}Needed CEF code for direct build not present and complete build becomes done${NORMAL}\n";
   unset DIRECT_CEF_BUILD;
@@ -191,7 +173,7 @@ if [ ! -f "$TEMP_DIR/cef-$GIT_CEF_USER-osx-x86_${BIT_SIZE}.active" ] && [[ ! -z 
 
 if [[ -z $DIRECT_CEF_BUILD ]];then
 {
-  rm -f "$TEMP_DIR/cef-$GIT_CEF_USER-*.active"
+  rm -f $BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-osx-*.active
 
   ##
   # Initial Chromium checkout.
@@ -213,8 +195,9 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
 
     (
       position=0;
-      empty_size=`du -s | awk -F ' ' '{print $1}' 2> /dev/null`;
+      empty_size=`du -s $MUPEL_PATH/cef-$GIT_CEF_USER | awk -F ' ' '{print $1}' 2> /dev/null`;
       printf "In progress, for details see $BASE_PATH/build/chromium-osx-load.log\n";
+      sleep 1
       while [ -f "$TEMP_DIR/.tempLoggerActive" ]; do
       {
         progress="";
@@ -231,7 +214,8 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
         if [ $position -ge 52 ];then
           position=0;fi
 
-        used_size=$(expr `expr $(du -s 2> /dev/null | awk -F ' ' '{print $1}' 2> /dev/null) - $empty_size` / 1024 2> /dev/null);
+        used_size=$(($(du -s $MUPEL_PATH/cef-$GIT_CEF_USER 2> /dev/null | awk -F ' ' '{print $1}' 2> /dev/null) - $empty_size));
+        used_size=$(($used_size / 1024 / 2));
         label=`tail -1 "$BASE_PATH/build/chromium-osx-load.log" | cut -d' ' -f1 | cut -c-17`;
         printf "\r$WHITE[$NORMAL $progress $WHITE] $label - $used_size MByte$NORMAL";
 
@@ -418,9 +402,9 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
   printf $CURS_UP
   log_success_msg
 
-  touch "$TEMP_DIR/cef-$GIT_CEF_USER-osx-x86_${BIT_SIZE}.active"
+  touch "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-osx-x86_${BIT_SIZE}.active"
 } fi
-#      $MUPEL_PATH/cef-$GIT_CEF_USER/src/out/${INSTALL_DIR_TYPE}$([[ $BIT_SIZE = 64 ]] && echo _x64) \
+
 # Build using Ninja.
 printf "${BRIGHT}${WHITE}Start $INSTALL_DIR_TYPE build of build CEF (Mac OS X x86 ${BIT_SIZE}bit) ...\n${NORMAL}"
 ninja $([ -n $VERBOSEBUILD ] && echo "-v") -C \
@@ -510,7 +494,5 @@ ${BRIGHT}${WHITE}All CEF steps ${GREEN}successfully${WHITE} performed and build 
 
 "
 
-rm -f $TEMP_DIR/cef-win-x86_${BIT_SIZE}.failed;
-umount $MUPEL_PATH/remote_access
-
+rm -f $TEMP_DIR/cef-osx-x86_${BIT_SIZE}.failed;
 exit 0
