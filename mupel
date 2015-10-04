@@ -1067,7 +1067,7 @@ Checking ssh connection for independent OS build system (can take some seconds):
               sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
                 bash --login -c "\#\!/bin/bash; umount -f //guest:@$own_ip/qemu" 2>&1
             else
-              $caller bash "$BASE_PATH/tools/user-script-$system.build" --temp-dir "$TEMP_DIR" >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1
+              $caller bash "$BASE_PATH/tools/user-script-$system.build" >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1
             fi
 
             if [ -f $TEMP_DIR/user_script-$system.failed ];then
@@ -1133,7 +1133,7 @@ function buildThreadKodiAddonForOS
       sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
         bash --login -c "\#\!/bin/bash; umount -f //guest:@$own_ip/qemu" 2>&1
     else
-      $caller bash "$BASE_PATH/tools/kodi-$system.build" --temp-dir "$TEMP_DIR" --addon "$addon_name" >> "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" 2>&1
+      $caller bash "$BASE_PATH/tools/kodi-$system.build" --addon "$addon_name" >> "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" 2>&1
     fi
 
     rm -f $TEMP_DIR/build_thread-$system.pid;
@@ -1539,7 +1539,7 @@ function forceKodiSelectedBuild
       sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
         bash --login -c "\#\!/bin/bash; umount -f //guest:@$own_ip/qemu" 2>&1
     else
-      $caller bash "$BASE_PATH/tools/kodi-$system.build" --temp-dir "$TEMP_DIR" --selected $selection >> "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log" 2>&1
+      $caller bash "$BASE_PATH/tools/kodi-$system.build" --selected $selection >> "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log" 2>&1
     fi
 
     rm -f $TEMP_DIR/build_thread-$system.pid;

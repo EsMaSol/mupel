@@ -106,7 +106,6 @@ else
 fi
 
 printf "\n${WHITE}${BRIGHT}System info:${NORMAL}\n"
-printf "${WHITE} - Build start time :\t$START_TIME${NORMAL}\n"
 printf "${WHITE} - Linux version :\t$(uname -r)${NORMAL}\n"
 printf "${WHITE} - Used distribution :\t%s${NORMAL}\n" "$USE_LINUX_X86_DISTR"
 printf "${WHITE} - Memory size :\t%s MByte${NORMAL}\n" $(expr `grep MemTotal /proc/meminfo | awk '{print $2}'` / 1024)
