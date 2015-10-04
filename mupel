@@ -2343,7 +2343,7 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
       echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
       echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
-      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-linux-$LINUX_BUILD_TYPE.active" ] && echo 1 || echo 0);";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-linux-$LINUX_BUILD_TYPE.active" ] && echo 1 || echo 0);";
 
       # Main loop
       while :;do
@@ -2439,7 +2439,7 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
               echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
               echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
-              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-linux-$LINUX_BUILD_TYPE.active" ] && echo 1 || echo 0);";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-linux-$LINUX_BUILD_TYPE.active" ] && echo 1 || echo 0);";
             }
             elif [[ "$line" = *"depclean"* ]];then
             {
@@ -2586,7 +2586,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
       echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
       echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
-      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-linux-rpbi.active" ] && echo 1 || echo 0);";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-linux-rpbi.active" ] && echo 1 || echo 0);";
 
       # Main loop
       while :;do
@@ -2680,7 +2680,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
               echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
               echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
-              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-linux-rpbi.active" ] && echo 1 || echo 0);";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-linux-rpbi.active" ] && echo 1 || echo 0);";
             }
             elif [[ "$line" = *"depclean"* ]];then
             {
@@ -2827,7 +2827,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
       echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:visible 0;";
       echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
-      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-win-${WINDOWS_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-win-${WINDOWS_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
 
       # Main loop
       while :;do
@@ -2921,7 +2921,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
               echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
               echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
-              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-win-${WINDOWS_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-win-${WINDOWS_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
             }
             elif [[ "$line" = *"depclean"* ]];then
             {
@@ -3068,7 +3068,7 @@ if [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
       echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
       echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
-      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-osx-x86_64.active" ] && echo 1 || echo 0);";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-osx-x86_64.active" ] && echo 1 || echo 0);";
 
       # Main loop
       while :;do
@@ -3162,7 +3162,7 @@ if [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
               echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
               echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
-              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-osx-x86_64.active" ] && echo 1 || echo 0);";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-osx-x86_64.active" ] && echo 1 || echo 0);";
             }
             elif [[ "$line" = *"depclean"* ]];then
             {
@@ -3309,7 +3309,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
       echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
       echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
-      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-android-${ANDROID_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-android-${ANDROID_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
 
       # Main loop
       while :;do
@@ -3403,7 +3403,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
               echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
               echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
-              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-android-${ANDROID_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-android-${ANDROID_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
             }
             elif [[ "$line" = *"depclean"* ]];then
             {
@@ -3550,7 +3550,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
       echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
       echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
-      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-${IOS_ATV2_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-${IOS_ATV2_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
 
       # Main loop
       while :;do
@@ -3644,7 +3644,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
               echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
               echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
-              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/.cef-${IOS_ATV2_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-${IOS_ATV2_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
             }
             elif [[ "$line" = *"depclean"* ]];then
             {
