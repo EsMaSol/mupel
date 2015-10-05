@@ -810,6 +810,8 @@ function loadConfigFile()
     . "$BASE_PATH/versions";
     GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
     GIT_CEF_USER=$(echo $CEF_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
+    LINUX_BUILD_TYPE=${LINUX_BUILD_TYPE:-x86_64}
+    WINDOWS_BUILD_TYPE=${WINDOWS_BUILD_TYPE:-x86_32}
     export KODI_SEL_ADDON;
     export GIT_USER;
     export GIT_CEF_USER;
