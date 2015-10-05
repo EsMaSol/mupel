@@ -142,15 +142,17 @@ GIT_KODI________LIST_REQ__OWN=1
 GIT_KODI_______LIST_REQ__BASE=2
 GIT_KODI____CREATE_NEW_BRANCH=3
 GIT_KODI______PREPARE_PATCHES=4
-GIT_CEF_________________SEP__=5
-GIT_CEF_______________LABEL__=6
-GIT_CEF_________LIST_REQ__OWN=7
-GIT_CEF________LIST_REQ__BASE=8
-GIT_CEF_____CREATE_NEW_BRANCH=9
-GIT_CEF_______PREPARE_PATCHES=10
-GIT_____________________SEP__=11
-GIT___________________LABEL__=12
-GIT______________SHOW_SSH_KEY=13
+GIT_KODI___ADD_COMMIT_CHANGES=5
+GIT_CEF_________________SEP__=6
+GIT_CEF_______________LABEL__=7
+GIT_CEF_________LIST_REQ__OWN=8
+GIT_CEF________LIST_REQ__BASE=9
+GIT_CEF_____CREATE_NEW_BRANCH=10
+GIT_CEF_______PREPARE_PATCHES=11
+GIT_CEF____ADD_COMMIT_CHANGES=12
+GIT_____________________SEP__=13
+GIT___________________LABEL__=14
+GIT______________SHOW_SSH_KEY=15
 
 # Build control id's
 BUILD__BTN_____BUILD_COMPLETE=0
@@ -2048,6 +2050,59 @@ Available on $PATCH_STORE
 
 \\-------------------------------------------------------------------------------\n"
             }
+            elif [[ "$line" = *"kodi_add_commit"* ]];then
+            {
+              unset IFS;
+              echo "#> msg field $GIT_KODI___ADD_COMMIT_CHANGES:enable 0;";
+              while :;do
+              {
+                new_commit=$(showdialog --entry \
+                                             --title="Add and commit changes" \
+                                             --text="<b>Enter name of the commit</b>\nBecomes also loaded up if possible" \
+                                             --width=260 --center);
+                if [[ -z $new_commit ]];then
+                {
+                  showErrorDialog_YesNo "<b>Your commit contains no text</b>\n - '${new_commit}'\n\nDo you want to try again?";
+                  [ $? != 0 ] && break;
+                  continue;
+                }
+                else
+                {
+                (
+                  printf "\
+/------------------------------------------------------------------------------
+
+Creating new kodi commit '$new_commit' on Branch '$KODI_SOURCE_BRANCH' ...
+"
+                git -C $BASE_PATH/build/kodi-$GIT_USER/kodi add .
+                git -C $BASE_PATH/build/kodi-$GIT_USER/kodi commit -m "$new_commit"
+                if [ $? != 0 ];then
+                  showWarningDialog "<b>\
+Add of the new commit failed!
+
+Does your code contains changes?</b>"
+                  exit 1
+                fi
+                git -C $BASE_PATH/build/kodi-$GIT_USER/kodi push
+                if [ $? != 0 ];then
+                  showWarningDialog "<b>\
+Transfer of the new commit to '$KODI_SOURCE_URL' with Branch '$KODI_SOURCE_BRANCH' failed!</b>"
+                  exit 1
+                fi
+
+                printf "\
+Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'
+
+\\-------------------------------------------------------------------------------\n"
+                ) | sed -u "s/.*/# &/" |
+                showdialog --title="New Commit on Kodi" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress --width=600 \
+                           --text="Create Commit '$new_commit' on '$KODI_SOURCE_URL' ..." \
+                           --pulsate --enable-log --log-expanded --log-height=300 > /dev/null;
+                } fi
+                break;
+              } done
+              echo "#> msg field $GIT_KODI___ADD_COMMIT_CHANGES:enable 1;";
+            }
             elif [[ "$line" = *"kodi_new_branch"* ]];then
             {
               unset IFS;
@@ -2070,7 +2125,7 @@ Available on $PATCH_STORE
                   printf "\
 /------------------------------------------------------------------------------
 
-${BRIGHT}${WHITE}Creating new kodi branch '$new_kodi_branch' ...${NORMAL}
+Creating new kodi branch '$new_kodi_branch' ...
 "
                 git -C $BASE_PATH/build/kodi-$GIT_USER/kodi checkout master
                 git -C $BASE_PATH/build/kodi-$GIT_USER/kodi checkout -b $new_kodi_branch;
@@ -2087,13 +2142,13 @@ ${BRIGHT}${WHITE}Creating new kodi branch '$new_kodi_branch' ...${NORMAL}
                 echo "#< msg field 2:$KODI_SOURCE_URL;" >> $thread9_in
 
                 printf "\
-${BRIGHT}${WHITE}Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'${NORMAL}
+Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'
 
 \\-------------------------------------------------------------------------------\n"
-                ) |
+                ) | sed -u "s/.*/# &/" |
                 showdialog --title="New Branch" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress --width=600 \
                            --text="Create Branch '$new_kodi_branch' on '$KODI_SOURCE_URL' ..." \
-                           --pulsate --enable-log --log-expanded --log-height=300 --button=gtk-cancel:1 > /dev/null;
+                           --pulsate --enable-log --log-expanded --log-height=300 > /dev/null;
                 } fi
                 break;
               } done
@@ -2172,6 +2227,59 @@ Available on $PATCH_STORE
 
 \\-------------------------------------------------------------------------------\n"
             }
+            elif [[ "$line" = *"cef_add_commit"* ]];then
+            {
+              unset IFS;
+              echo "#> msg field $GIT_CEF____ADD_COMMIT_CHANGES:enable 0;";
+              while :;do
+              {
+                new_commit=$(showdialog --entry \
+                                             --title="Add and commit changes" \
+                                             --text="<b>Enter name of the commit</b>\nBecomes also loaded up if possible" \
+                                             --width=260 --center);
+                if [[ -z $new_commit ]];then
+                {
+                  showErrorDialog_YesNo "<b>Your commit contains no text</b>\n - '${new_commit}'\n\nDo you want to try again?";
+                  [ $? != 0 ] && break;
+                  continue;
+                }
+                else
+                {
+                (
+                  printf "\
+/------------------------------------------------------------------------------
+
+Creating new CEF commit '$new_commit' on Branch '$CEF_SOURCE_BRANCH' ...
+"
+                git -C $BASE_PATH/build/cef-$GIT_CEF_USER/cef add .
+                git -C $BASE_PATH/build/cef-$GIT_CEF_USER/cef commit -m "$new_commit"
+                if [ $? != 0 ];then
+                  showWarningDialog "<b>\
+Add of the new commit failed!
+
+Does your code contains changes?</b>"
+                  exit 1
+                fi
+                git -C $BASE_PATH/build/cef-$GIT_CEF_USER/cef push
+                if [ $? != 0 ];then
+                  showWarningDialog "<b>\
+Transfer of the new commit to '$CEF_SOURCE_URL' with Branch '$CEF_SOURCE_BRANCH' failed!</b>"
+                  exit 1
+                fi
+
+                printf "\
+Done for '$BASE_PATH/build/cef-$GIT_CEF_USER/cef'
+
+\\-------------------------------------------------------------------------------\n"
+                ) | sed -u "s/.*/# &/" |
+                showdialog --title="New Commit on CEF" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress --width=600 \
+                           --text="Create Commit '$new_commit' on '$CEF_SOURCE_URL' ..." \
+                           --pulsate --enable-log --log-expanded --log-height=300 > /dev/null;
+                } fi
+                break;
+              } done
+              echo "#> msg field $GIT_CEF____ADD_COMMIT_CHANGES:enable 1;";
+            }
             elif [[ "$line" = *"cef_new_branch"* ]];then
             {
               unset IFS;
@@ -2194,7 +2302,7 @@ Available on $PATCH_STORE
                   printf "\
 /------------------------------------------------------------------------------
 
-${BRIGHT}${WHITE}Creating new CEF branch '$new_cef_branch' ...${NORMAL}
+Creating new CEF branch '$new_cef_branch' ...
 "
                 git -C $BASE_PATH/build/cef-$GIT_CEF_USER/cef checkout master
                 git -C $BASE_PATH/build/cef-$GIT_CEF_USER/cef checkout -b $new_cef_branch;
@@ -2211,10 +2319,10 @@ ${BRIGHT}${WHITE}Creating new CEF branch '$new_cef_branch' ...${NORMAL}
                 echo "#< msg field 2:$CEF_SOURCE_URL;" >> $thread9_in
 
                 printf "\
-${BRIGHT}${WHITE}Done for '$BASE_PATH/build/cef-$GIT_CEF_USER/cef'${NORMAL}
+Done for '$BASE_PATH/build/cef-$GIT_CEF_USER/cef'
 
 \\-------------------------------------------------------------------------------\n"
-                ) |
+                ) | sed -u "s/.*/# &/" |
                 showdialog --title="New Branch" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress --width=600 \
                            --text="Create Branch '$new_cef_branch' on '$CEF_SOURCE_URL' ..." \
                            --pulsate --enable-log --log-expanded --log-height=300 --button=gtk-cancel:1 > /dev/null;
@@ -2283,12 +2391,14 @@ ${BRIGHT}${WHITE}Done for '$BASE_PATH/build/cef-$GIT_CEF_USER/cef'${NORMAL}
                    --field="Pull requests (Base):FBTN@2,3,2,4" "bash -c 'echo \"#< msg show_base_kodi_requests;\" >> $thread2_in'" \
                    --field="Create new branch:FBTN@4,4,2,4" "bash -c 'echo \"#< msg kodi_new_branch;\" >> $thread2_in'" \
                    --field="Show changes:FBTN@5,5,2,4" "bash -c 'echo \"#< msg kodi_prepare_patches;\" >> $thread2_in'" \
+                   --field="Add and commit changes:FBTN@6,7,2,4" "bash -c 'echo \"#< msg kodi_add_commit;\" >> $thread2_in'" \
                    --field=":LBL@0,8,4,6" '' \
                    --field="<b>CEF (Chromium embedded framwork):</b>:LBL@0,8,6,8" '' \
                    --field="Pull requests (Own):FBTN@0,1,8,10" "bash -c 'echo \"#< msg show_own_cef_requests;\" >> $thread2_in'" \
                    --field="Pull requests (Base):FBTN@2,3,8,10" "bash -c 'echo \"#< msg show_base_cef_requests;\" >> $thread2_in'" \
                    --field="Create new branch:FBTN@4,4,8,10" "bash -c 'echo \"#< msg cef_new_branch;\" >> $thread2_in'" \
                    --field="Show changes:FBTN@5,5,8,10" "bash -c 'echo \"#< msg cef_prepare_patches;\" >> $thread2_in'" \
+                   --field="Add and commit changes:FBTN@6,7,8,10" "bash -c 'echo \"#< msg cef_add_commit;\" >> $thread2_in'" \
                    --field=":LBL@0,8,10,12" '' \
                    --field="<b>Other options:</b>:LBL@0,8,12,14" '' \
                    --field="Show used Git SSH key:FBTN@0,1,14,16" "$BASE_PATH/tools/send-button-msg showSSHkey" \
