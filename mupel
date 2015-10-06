@@ -2011,7 +2011,7 @@ ${BRIGHT}${WHITE}Prepare each commit with its patch in one file per commit ...${
 
               rm -f $PATCH_STORE/*.patch
               git -C $BASE_PATH/build/kodi-$GIT_USER/kodi format-patch origin -o $PATCH_STORE
-              if [[ ! -f $PATCH_STORE/*.patch ]];then
+              if [ ! -f $PATCH_STORE/0001-*.patch ];then
               {
                 amount=$(showdialog --image="$BASE_PATH/icons/icon-info-128x128.png" \
                                     --entry --numeric \

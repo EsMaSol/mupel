@@ -45,7 +45,7 @@ case "$USED_SYSTEM" in
     if [ ! -f $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/active ];then
     {
       touch $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/active
-      ${USE_LINUX_X86_DISTR}32 $BASE_PATH/build/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE/kodi/i686-linux-gnu/bin/kodi
+      ${USE_LINUX_X86_DISTR}32 $BASE_PATH/build/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE/kodi/i686-linux-gnu/bin/kodi >> $IN_DATA_ARRAY 2>&1
       rm $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/active
     } fi
     ;;
@@ -53,7 +53,7 @@ case "$USED_SYSTEM" in
     if [ ! -f $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/active ];then
     {
       touch $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/active
-      ${USE_LINUX_X86_DISTR}64 $BASE_PATH/build/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE/kodi/x86_64-linux-gnu/bin/kodi
+      ${USE_LINUX_X86_DISTR}64 $BASE_PATH/build/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE/kodi/x86_64-linux-gnu/bin/kodi >> $IN_DATA_ARRAY 2>&1
       rm $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/active
     } fi
     ;;
