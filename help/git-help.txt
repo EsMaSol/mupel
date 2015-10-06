@@ -36,3 +36,10 @@ Create a new branch:
 
 ---------------------------------------------------------------------------------------------------------------------------------
 
+If you want to rename a branch while pointed to any branch, simply do:
+  git branch -m <oldname> <newname>
+
+If you want to rename the current branch, do:
+  git branch -m <newname>
+
+---------------------------------------------------------------------------------------------------------------------------------
