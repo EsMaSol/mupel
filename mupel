@@ -2633,27 +2633,29 @@ Do you want to kill active one and restart?
 
                 if [ $USE_GUI_DEBUG = TRUE ];then
                 {
+                  # Helpfull URL to find GUI controlled debugger: https://sourceware.org/gdb/wiki/GDB%20Front%20Ends
+
                   sudo -A -- kdbg -l CPP -p $kodiPID $BASE_PATH/build/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE/kodi/$LINUX_BUILD_TYPE-linux-gnu/lib/kodi/kodi.bin > /dev/null 2>&1 &
-                  KODI_DEBUG_PID=$?
+                  KODI_DEBUG_PID=$!
                 }
                 else
                 {
                   which konsole >/dev/null
                   if [ "$?" = "0" ];then
                     sudo -A -- konsole --hide-tabbar --hide-menubar --e gdb --pid=$kodiPID --directory=$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-$LINUX_BUILD_TYPE > /dev/null 2>&1 &
-                    KODI_DEBUG_PID=$?
+                    KODI_DEBUG_PID=$!
                     continue;
                   fi
 
                   which gnome-terminal >/dev/null
                   if [ "$?" = "0" ];then
                     sudo -A -- gnome-terminal --hide-menubar --title="GNU Project Debugger" -- gdb --pid=$kodiPID --directory=$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-$LINUX_BUILD_TYPE > /dev/null 2>&1 &
-                    KODI_DEBUG_PID=$?
+                    KODI_DEBUG_PID=$!
                     continue;
                   fi
 
                   sudo -A -- xterm -T "GNU Project Debugger" -bg black -fg white -e gdb --pid=$kodiPID --directory=$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-$LINUX_BUILD_TYPE > /dev/null 2>&1 &
-                  KODI_DEBUG_PID=$?
+                  KODI_DEBUG_PID=$!
                 } fi
               }
               else
@@ -2735,6 +2737,13 @@ This give 10 seconds time to start debugger."
           ret=$?
           echo "#> msg field $BUILD__BTN________LAUNCH_KODI:visible $([ $ret = 0 ] && echo 0 || echo 1);";
           echo "#> msg field $BUILD__BTN___________DEBUGGER:visible $([ $ret = 0 ] && echo 1 || echo 0);";
+
+          if [[ $KODI_DEBUG_PID != "" ]];then
+          {
+            ps -f $KODI_DEBUG_PID | tail -1 | grep -q 'kdbg'
+            [ $? != 0 ] && KODI_DEBUG_PID="";
+          } fi
+
           echo "#> msg field $BUILD__BTN___________DEBUGGER:enable $([[ $KODI_DEBUG_PID = "" ]] && echo 1 || echo 0);";
         } fi
         ((check_sleep_time++))
