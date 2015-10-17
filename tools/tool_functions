@@ -930,6 +930,8 @@ INCLUDE_KODI_ADDONS=$INCLUDE_KODI_ADDONS
 INCLUDE_CEF=$INCLUDE_CEF
 SUPPORT_CEF=$SUPPORT_CEF
 
+USE_GUI_DEBUG=$USE_GUI_DEBUG
+
 ADD_PATHS="$ADD_PATHS"
 
 LINUX_BUILD_TYPE=$LINUX_BUILD_TYPE
@@ -1191,7 +1193,7 @@ function handleGITLoad
     git -C $to_dir clone --progress $url $out_name > /dev/stdout 2>&1
     # Allow local clones to push here
     git -C $to_dir/$out_name config receive.denyCurrentBranch ignore > /dev/stdout 2>&1
-    git -C $to_dir/$out_name checkout $used_branch > /dev/stdout 2>&1
+    git -C $to_dir/$out_name checkout $used_branch -f > /dev/stdout 2>&1
     if [[ $out_name = kodi ]] && [[ $GIT_USER != xbmc ]];then
     {
       git -C $to_dir/kodi remote add upstream https://github.com/xbmc/xbmc.git > /dev/stdout 2>&1
@@ -1201,7 +1203,7 @@ function handleGITLoad
   else
   {
     echo "Git Update: $url - branch: $4";
-    git -C $to_dir/${out_name} checkout $used_branch > /dev/stdout 2>&1
+    git -C $to_dir/${out_name} checkout $used_branch -f > /dev/stdout 2>&1
     git -C $to_dir/${out_name} pull > /dev/stdout 2>&1
     if [[ $out_name = kodi ]] && [[ $GIT_USER != xbmc ]];then
     {
@@ -1216,7 +1218,7 @@ function handleGITLoad
     if [[ $current_branch != $used_branch ]];then
     {
       git -C ${to_dir}/${out_name} clean -dffx;
-      git -C ${to_dir}/${out_name} checkout $used_branch
+      git -C ${to_dir}/${out_name} checkout $used_branch -f
       ret=$?;
     } fi
   } fi
@@ -1336,7 +1338,7 @@ function loadKodiBuildDir
         git -C $directory pull;
         if [ $? != 0 ];then
         {
-          git -C $directory checkout master;
+          git -C $directory checkout master -f;
           git -C $directory branch -D $active_branch;
           git -C $directory pull;
           git -C $directory checkout $active_branch;

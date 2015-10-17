@@ -424,6 +424,8 @@ which wget >/dev/null;
 [ "$?" != "0" ] && packages="$packages wget";
 which wget >/dev/null;
 [ "$?" != "0" ] && packages="$packages ruby";
+which kdbg >/dev/null;
+[ "$?" != "0" ] && packages="$packages kdbg";
 which kate >/dev/null;
 if [ "$?" != "0" ];then
 {

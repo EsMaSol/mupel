@@ -32,7 +32,6 @@ IN_DATA_ARRAY=$2
 
 trap 'trapError ${LINENO};' ERR
 
-
 if [ -f "${BASE_PATH}/build/run-${USED_SYSTEM}.log" ];then
   mv "${BASE_PATH}/build/run-${USED_SYSTEM}.log" "${BASE_PATH}/build/run-${USED_SYSTEM}-`date +%F_%H-%m`.old.log";fi
 touch "${BASE_PATH}/build/run-${USED_SYSTEM}.log"
@@ -45,7 +44,7 @@ case "$USED_SYSTEM" in
     if [ ! -f $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/active ];then
     {
       touch $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/active
-      ${USE_LINUX_X86_DISTR}32 $BASE_PATH/build/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE/kodi/i686-linux-gnu/bin/kodi >> $IN_DATA_ARRAY 2>&1
+      ${USE_LINUX_X86_DISTR}32 $BASE_PATH/build/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE/kodi/i686-linux-gnu/bin/kodi 2>&1
       rm $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/active
     } fi
     ;;
@@ -53,7 +52,7 @@ case "$USED_SYSTEM" in
     if [ ! -f $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/active ];then
     {
       touch $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/active
-      ${USE_LINUX_X86_DISTR}64 $BASE_PATH/build/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE/kodi/x86_64-linux-gnu/bin/kodi >> $IN_DATA_ARRAY 2>&1
+      ${USE_LINUX_X86_DISTR}64 $BASE_PATH/build/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE/kodi/x86_64-linux-gnu/bin/kodi 2>&1
       rm $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/active
     } fi
     ;;
@@ -63,7 +62,7 @@ case "$USED_SYSTEM" in
       touch $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/active
       . $HOME/.mupel/android.conf;
 
-      $HOME/.mupel/android/android-sdk-linux/tools/emulator -avd $ANDROID_SEL_AVD_ARM -sdcard ~/.mupel/android/sdcard-arm.img >> $IN_DATA_ARRAY 2>&1 &
+      $HOME/.mupel/android/android-sdk-linux/tools/emulator -avd $ANDROID_SEL_AVD_ARM -sdcard ~/.mupel/android/sdcard-arm.img 2>&1 &
       echo "${BRIGHT}${WHITE}Kodi Android ARM started ...${NORMAL}" >> $IN_DATA_ARRAY
       echo " ${YELLOW}Attention:${NORMAL} Load can takes a bit!" >> $IN_DATA_ARRAY
       adb wait-for-device
@@ -71,12 +70,12 @@ case "$USED_SYSTEM" in
       if [ -f $HOME/.android/avd/$ANDROID_SEL_AVD_X86.avd/need_kodi_update_arm ];then
       {
         echo " - New Kodi Android ARM build becomes installed on emulation ..." >> $IN_DATA_ARRAY
-        adb -e install -r `ls -1 -t $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/*.apk | head -1` >> $IN_DATA_ARRAY 2>&1
+        adb -e install -r `ls -1 -t $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/*.apk | head -1`
         rm -f $HOME/.android/avd/$ANDROID_SEL_AVD_X86.avd/need_kodi_update_arm
         printf $CURS_UP
         log_success_msg
       } fi
-      adb logcat -s Kodi:V >> $IN_DATA_ARRAY 2>&1
+      adb logcat -s Kodi:V
 
       rm $BASE_PATH/build/kodi-$GIT_USER/kodi-android-arm/active
     } fi
@@ -87,7 +86,7 @@ case "$USED_SYSTEM" in
       touch $BASE_PATH/build/kodi-$GIT_USER/kodi-android-x86/active
       . $HOME/.mupel/android.conf;
 
-      $HOME/.mupel/android/android-sdk-linux/tools/emulator -avd $ANDROID_SEL_AVD_X86 -sdcard ~/.mupel/android/sdcard-x86.img -qemu -enable-kvm >> $IN_DATA_ARRAY 2>&1 &
+      $HOME/.mupel/android/android-sdk-linux/tools/emulator -avd $ANDROID_SEL_AVD_X86 -sdcard ~/.mupel/android/sdcard-x86.img -qemu -enable-kvm 2>&1 &
       echo "${BRIGHT}${WHITE}Kodi Android x86 started ...${NORMAL}" >> $IN_DATA_ARRAY
       echo " ${YELLOW}Attention:${NORMAL} Load can takes a bit!" >> $IN_DATA_ARRAY
       adb wait-for-device
@@ -95,12 +94,12 @@ case "$USED_SYSTEM" in
       if [ -f $HOME/.android/avd/$ANDROID_SEL_AVD_X86.avd/need_kodi_update_x86 ];then
       {
         echo " - New Kodi Android x86 build becomes installed on emulation ..." >> $IN_DATA_ARRAY
-        adb -e install -r `ls -1 -t $BASE_PATH/build/kodi-$GIT_USER/kodi-android-x86/*.apk | head -1` >> $IN_DATA_ARRAY 2>&1
+        adb -e install -r `ls -1 -t $BASE_PATH/build/kodi-$GIT_USER/kodi-android-x86/*.apk | head -1`
         rm -f $HOME/.android/avd/$ANDROID_SEL_AVD_X86.avd/need_kodi_update_x86
         printf $CURS_UP
         log_success_msg
       } fi
-      adb logcat -s Kodi:V >> $IN_DATA_ARRAY 2>&1
+      adb logcat -s Kodi:V 2>&1
 
       rm $BASE_PATH/build/kodi-$GIT_USER/kodi-android-x86/active
     } fi
@@ -108,6 +107,6 @@ case "$USED_SYSTEM" in
 esac
 echo "#< msg field 7:enable 1;" >> $IN_DATA_ARRAY;
 ) | \
-tee "${BASE_PATH}/build/run-${USED_SYSTEM}.log"
+tee "${BASE_PATH}/build/run-${USED_SYSTEM}.log" >> $IN_DATA_ARRAY &
 
 trap '' ERR

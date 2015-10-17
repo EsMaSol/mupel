@@ -72,6 +72,8 @@ INCLUDE_KODI_ADDONS="FALSE"
 INCLUDE_CEF="FALSE"
 INCLUDE_USER_SCRIPT="FALSE"
 
+USE_GUI_DEBUG="TRUE"
+
 ANDROID_SEL_AVD_ARM=
 ANDROID_SEL_AVD_x86=
 
@@ -163,10 +165,11 @@ BUILD__BTN_________STOP_BUILD=4
 BUILD__BTN__________CLEAR_LOG=5
 BUILD__BTN_____OPEN_LAST_LOGS=6
 BUILD__BTN________LAUNCH_KODI=7
-BUILD__BTN___FORCE_BUILD_STEP=8
-BUILD__BTN_PERF_CODE_DEPCLEAN=9
-BUILD__CB______________ADD_ON=10
-BUILD__TERMPROC_____BUILD_LOG=12
+BUILD__BTN___________DEBUGGER=8
+BUILD__BTN___FORCE_BUILD_STEP=9
+BUILD__BTN_PERF_CODE_DEPCLEAN=10
+BUILD__CB______________ADD_ON=11
+BUILD__TERMPROC_____BUILD_LOG=13
 
 # Setting control id's
 SET_KODI______________LABEL__=0
@@ -193,43 +196,44 @@ SET_LINUX_______________SEP__=20
 SET_LINUX_____________LABEL__=21
 SET_LINUX_____USED_LINUX_DIST=22
 SET_LINUX_____OPEN_DIST_CONTR=23
-SET_LINUX__________BUILD_TYPE=24
-SET_WINDOWS_____________SEP__=25
-SET_WINDOWS___________LABEL__=26
-SET_WINDOWS____________TARGET=27
-SET_WINDOWS_________INSTALLER=28
-SET_WINDOWS________BUILD_TYPE=29
-SET_WINDOWS______OPEN_CONTROL=30
-SET_WINDOWS_____________START=31
-SET_WINDOWS________SSH_ACCESS=32
-SET_WINDOWS______SSH_USERNAME=33
-SET_WINDOWS______SSH_PASSWORD=34
-SET_WINDOWS____________SSH_IP=35
-SET_WINDOWS__________SSH_PORT=36
-SET_MAC_________________SEP__=37
-SET_MAC_______________LABEL__=38
-SET_MAC________________TARGET=39
-SET_MAC_____________INSTALLER=40
-SET_MAC____IOS_ATV_BUILD_TYPE=41
-SET_MAC__________OPEN_CONTROL=42
-SET_MAC_________________START=43
-SET_MAC____________SSH_ACCESS=44
-SET_MAC__________SSH_USERNAME=45
-SET_MAC__________SSH_PASSWORD=46
-SET_MAC________________SSH_IP=47
-SET_MAC______________SSH_PORT=48
-SET_ANDROID_____________SEP__=49
-SET_ANDROID___________LABEL__=50
-SET_ANDROID________BUILD_TYPE=51
-SET_ANDROID__BUILD_SYS_TARGET=52
-SET_ANDROID_________INSTALLER=53
-SET_ANDROID_______AVD_MANAGER=54
-SET_ANDROID____ARM_EMU_SOURCE=55
-SET_ANDROID____x86_EMU_SOURCE=56
-SET_VAR_________________SEP__=57
-SET_VAR_________CPU_PROC_JOBS=58
-SET_VAR____EMU_INSTALL_PREFIX=59
-SET_VAR_INCLUDE_OPEN_REQUESTS=60
+SET_LINUX_______USE_GUI_DEBUG=24
+SET_LINUX__________BUILD_TYPE=25
+SET_WINDOWS_____________SEP__=26
+SET_WINDOWS___________LABEL__=27
+SET_WINDOWS____________TARGET=28
+SET_WINDOWS_________INSTALLER=29
+SET_WINDOWS________BUILD_TYPE=30
+SET_WINDOWS______OPEN_CONTROL=31
+SET_WINDOWS_____________START=32
+SET_WINDOWS________SSH_ACCESS=33
+SET_WINDOWS______SSH_USERNAME=34
+SET_WINDOWS______SSH_PASSWORD=35
+SET_WINDOWS____________SSH_IP=36
+SET_WINDOWS__________SSH_PORT=37
+SET_MAC_________________SEP__=38
+SET_MAC_______________LABEL__=39
+SET_MAC________________TARGET=40
+SET_MAC_____________INSTALLER=41
+SET_MAC____IOS_ATV_BUILD_TYPE=42
+SET_MAC__________OPEN_CONTROL=43
+SET_MAC_________________START=44
+SET_MAC____________SSH_ACCESS=45
+SET_MAC__________SSH_USERNAME=46
+SET_MAC__________SSH_PASSWORD=47
+SET_MAC________________SSH_IP=48
+SET_MAC______________SSH_PORT=49
+SET_ANDROID_____________SEP__=50
+SET_ANDROID___________LABEL__=51
+SET_ANDROID________BUILD_TYPE=52
+SET_ANDROID__BUILD_SYS_TARGET=53
+SET_ANDROID_________INSTALLER=54
+SET_ANDROID_______AVD_MANAGER=55
+SET_ANDROID____ARM_EMU_SOURCE=56
+SET_ANDROID____x86_EMU_SOURCE=57
+SET_VAR_________________SEP__=58
+SET_VAR_________CPU_PROC_JOBS=59
+SET_VAR____EMU_INSTALL_PREFIX=60
+SET_VAR_INCLUDE_OPEN_REQUESTS=61
 
 ###############################################################################
 # Functions
@@ -386,7 +390,7 @@ function parse_values
       }
       else
       {
-        git -C $BASE_PATH/build/kodi-$GIT_USER/kodi checkout ${value%|}
+        git -C $BASE_PATH/build/kodi-$GIT_USER/kodi checkout ${value%|} -f
       } fi
       KODI_SOURCE_BRANCH=${value%|}
     }
@@ -454,7 +458,7 @@ function parse_values
       }
       else
       {
-        git -C $BASE_PATH/build/cef-$GIT_CEF_USER/cef checkout ${value%|}
+        git -C $BASE_PATH/build/cef-$GIT_CEF_USER/cef checkout ${value%|} -f
       } fi
       CEF_SOURCE_BRANCH=${value%|}
     }
@@ -500,6 +504,10 @@ function parse_values
     elif [[ $id = $SET_LINUX_____OPEN_DIST_CONTR ]];then
     {
       echo "$id unused here"
+    }
+    elif [[ $id = $SET_LINUX_______USE_GUI_DEBUG ]];then
+    {
+      USE_GUI_DEBUG=${value%|}
     }
     elif [[ $id = $SET_LINUX__________BUILD_TYPE ]];then
     {
@@ -1816,9 +1824,14 @@ touch ${TEMP_DIR}/thread9_in
             {
               mutexLock_BaseBuild
               echo "#> msg field $GEN__BTN______DOWNLOAD_UPDATE:enable 0;";
-              if [ $? = 0 ];then
-                buildThreadBaseGeneralProcess 0;fi
+              buildThreadBaseGeneralProcess 0;
+              loadKodiBuildDir linux-x86_64 "Linux x86-64bit";
+              if [ -d $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32 ];then
+                loadKodiBuildDir linux-x86_64 "Linux x86-64bit";fi
+              if [ -d $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi ];then
+                loadKodiBuildDir linux-rpbi "Linux Raspberry PI";fi
               echo "#> msg field $GEN__BTN______DOWNLOAD_UPDATE:enable 1;";
+              printf "\n${YELLOW}${BRIGHT}Note: ${WHITE}Only linux based parts are updated (Mac OS X and Windows need normal build)${NORMAL} ...\n";
               mutexUnlock_BaseBuild
             }
             elif [[ "$line" = *"delete_old_logs"* ]];then
@@ -2420,7 +2433,8 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
     sleep 0.5;
 
     pulse_on=0;
-    process_active=0
+    process_active=0;
+    KODI_DEBUG_PID="";
 
     while :;do
     {
@@ -2431,7 +2445,13 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
         continue;
       } fi
 
-      loadConfigFile
+      loadConfigFile;
+
+      check_sleep_time=0;
+
+      # Force on start remove of active running kodi flags
+      [ -f $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/active ] && rm $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/active
+      [ -f $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/active ] && rm $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/active
 
       # Set buttons to initial state
       echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
@@ -2449,6 +2469,11 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-$LINUX_BUILD_TYPE/Makefile" ] && echo 1 || echo 0);";
       echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
       echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
+
+      kodiPID=$(pgrep kodi.bin);
+      ret=$?;
+      echo "#> msg field $BUILD__BTN________LAUNCH_KODI:visible $([ $ret = 0 ] && echo 0 || echo 1);";
+      echo "#> msg field $BUILD__BTN___________DEBUGGER:visible $([ $ret = 0 ] && echo 1 || echo 0);";
 
       echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
       echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
@@ -2489,7 +2514,7 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
             if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] ||
                [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
             {
-              loadConfigFile
+              loadConfigFile;
 
               echo "#> msg pulse on;";
               echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 0;";
@@ -2546,6 +2571,7 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-$LINUX_BUILD_TYPE/Makefile" ] && echo 1 || echo 0);";
               echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
               echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___________DEBUGGER:visible 0;";
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
               echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
               echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
@@ -2573,10 +2599,84 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
                 $BASE_PATH/build/creation-kodi-linux-$LINUX_BUILD_TYPE.log \
                 $BASE_PATH/build/creation-cef-linux-$LINUX_BUILD_TYPE.log;
             }
+            elif [[ "$line" = *"kodilaunch"* ]];then
+            {
+              bash $BASE_PATH/tools/kodi.launch kodi-linux-$LINUX_BUILD_TYPE $thread3_in
+            }
+            elif [[ "$line" = *"debugger"* ]];then
+            {
+              loadConfigFile;
+
+              # @todo remove forced type and make selectable
+              INSTALL_DIR_TYPE="Release"
+
+              kodiPID=$(pgrep kodi.bin)
+              ret=$?
+              if [ $ret = 0 ];then
+              {
+                if [[ $KODI_DEBUG_PID != "" ]];then
+                {
+                  showWarningDialog_YesNo "<b>\
+Debugger already be active!
+
+Do you want to kill active one and restart?
+</b>"
+                  if [ $? != 0 ];then
+                    continue;fi
+
+                  sudo -A -- killtree $KODI_DEBUG_PID KILL;
+
+                  KODI_DEBUG_PID="";
+                } fi
+
+                echo "#> msg field $BUILD__BTN___________DEBUGGER:enable 0;";
+
+                if [ $USE_GUI_DEBUG = TRUE ];then
+                {
+                  sudo -A -- kdbg -l CPP -p $kodiPID $BASE_PATH/build/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE/kodi/$LINUX_BUILD_TYPE-linux-gnu/lib/kodi/kodi.bin > /dev/null 2>&1 &
+                  KODI_DEBUG_PID=$?
+                }
+                else
+                {
+                  which konsole >/dev/null
+                  if [ "$?" = "0" ];then
+                    sudo -A -- konsole --hide-tabbar --hide-menubar --e gdb --pid=$kodiPID --directory=$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-$LINUX_BUILD_TYPE > /dev/null 2>&1 &
+                    KODI_DEBUG_PID=$?
+                    continue;
+                  fi
+
+                  which gnome-terminal >/dev/null
+                  if [ "$?" = "0" ];then
+                    sudo -A -- gnome-terminal --hide-menubar --title="GNU Project Debugger" -- gdb --pid=$kodiPID --directory=$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-$LINUX_BUILD_TYPE > /dev/null 2>&1 &
+                    KODI_DEBUG_PID=$?
+                    continue;
+                  fi
+
+                  sudo -A -- xterm -T "GNU Project Debugger" -bg black -fg white -e gdb --pid=$kodiPID --directory=$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-$LINUX_BUILD_TYPE > /dev/null 2>&1 &
+                  KODI_DEBUG_PID=$?
+                } fi
+              }
+              else
+              {
+                showWarningDialog "<b>
+Needed kodi.bin PID for use on GNU Project Debugger not found! </b>
+
+If Kodi crash immediately after start add a temporary 'sleep(10);' to 'bool CApplication::Create()' in Application.cpp.
+
+This give 10 seconds time to start debugger."
+              } fi
+            }
             elif [[ "$line" = *"field $BUILD__BTN________LAUNCH_KODI:"* ]];then
             {
               enable=$(echo ${line} | awk -F'enable ' '{ print $2 }' | awk -F\; '{ print $1 }')
               echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $enable;"
+              if [ $enable = 1 ];then
+              {
+                kodiPID=$(pgrep kodi.bin)
+                ret=$?
+                echo "#> msg field $BUILD__BTN________LAUNCH_KODI:visible $([ $ret = 0 ] && echo 0 || echo 1);";
+                echo "#> msg field $BUILD__BTN___________DEBUGGER:visible $([ $ret = 0 ] && echo 1 || echo 0);";
+              } fi
             }
             elif [[ "$line" = *"field $BUILD__CB______________ADD_ON:"* ]];then
             {
@@ -2626,6 +2726,19 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
           process_active=0;
         } fi
 
+        if [ $check_sleep_time = 8 ];then
+        {
+          check_sleep_time=0;
+
+          # Check Kodi running to set start and debug buttons
+          kodiPID=$(pgrep kodi.bin)
+          ret=$?
+          echo "#> msg field $BUILD__BTN________LAUNCH_KODI:visible $([ $ret = 0 ] && echo 0 || echo 1);";
+          echo "#> msg field $BUILD__BTN___________DEBUGGER:visible $([ $ret = 0 ] && echo 1 || echo 0);";
+          echo "#> msg field $BUILD__BTN___________DEBUGGER:enable $([[ $KODI_DEBUG_PID = "" ]] && echo 1 || echo 0);";
+        } fi
+        ((check_sleep_time++))
+
         sleep 0.75;
       } done
     }
@@ -2642,7 +2755,8 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" >> $thread3_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 12:clear;\" >> $thread3_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" >> $thread3_in'" \
-             --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-linux-$LINUX_BUILD_TYPE $thread3_in" \
+             --field="Launch Kodi:FBTN@2,3,4,6" "bash -c 'echo \"#< msg kodilaunch\" >> $thread3_in'" \
+             --field="Open debugger:FBTN@2,3,4,6" "bash -c 'echo \"#< msg debugger\" >> $thread3_in'" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread3_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" >> $thread3_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
@@ -2692,6 +2806,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/Makefile" ] && echo 1 || echo 0);";
       echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
       echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN___________DEBUGGER:visible 0;";
 
       echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
       echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
@@ -2787,6 +2902,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/Makefile" ] && echo 1 || echo 0);";
               echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
               echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___________DEBUGGER:visible 0;";
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
               echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
               echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
@@ -2813,6 +2929,10 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
                 $BASE_PATH/build/creation-general.log \
                 $BASE_PATH/build/creation-kodi-linux-rpbi.log \
                 $BASE_PATH/build/creation-cef-linux-rpbi.log;
+            }
+            elif [[ "$line" = *"debugger"* ]];then
+            {
+              echo "Not supported!"
             }
             elif [[ "$line" = *"field $BUILD__BTN________LAUNCH_KODI:"* ]];then
             {
@@ -2884,6 +3004,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread4_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" >> $thread4_in'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-linux-rpbi $thread4_in" \
+             --field="Open debugger:FBTN@2,3,4,6" "bash -c 'echo \"#< msg debugger\" >> $thread4_in'" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread4_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" >> $thread4_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
@@ -2934,6 +3055,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
       echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
       echo "#> msg field $BUILD__BTN________LAUNCH_KODI:visible 0;"; # Hide "Launch Kodi" until a good way is found to start on windows
+      echo "#> msg field $BUILD__BTN___________DEBUGGER:visible 0;";
       echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
       echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:visible 0;";
       echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
@@ -3028,6 +3150,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $kodi_direct;";
               echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
               echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___________DEBUGGER:visible 0;";
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
               echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
               echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
@@ -3054,6 +3177,14 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
                 $BASE_PATH/build/creation-general.log \
                 $BASE_PATH/build/creation-kodi-win-$WINDOWS_BUILD_TYPE.log \
                 $BASE_PATH/build/creation-cef-win-$WINDOWS_BUILD_TYPE.log;
+            }
+            elif [[ "$line" = *"kodilaunch"* ]];then
+            {
+              bash $BASE_PATH/tools/kodi.launch kodi-win-$WINDOWS_BUILD_TYPE $thread5_in
+            }
+            elif [[ "$line" = *"debugger"* ]];then
+            {
+              echo "Not supported!"
             }
             elif [[ "$line" = *"field $BUILD__BTN________LAUNCH_KODI:"* ]];then
             {
@@ -3124,7 +3255,8 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" >> $thread5_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread5_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" >> $thread5_in'" \
-             --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-win32 $thread5_in" \
+             --field="Launch Kodi:FBTN@2,3,4,6" "bash -c 'echo \"#< msg kodilaunch\" >> $thread5_in'" \
+             --field="Open debugger:FBTN@2,3,4,6" "bash -c 'echo \"#< msg debugger\" >> $thread5_in'" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread5_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" >> $thread5_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
@@ -3174,7 +3306,7 @@ if [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $kodi_direct;";
       echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
       echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
-
+      echo "#> msg field $BUILD__BTN___________DEBUGGER:visible 0;";
       echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
       echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
       echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
@@ -3269,6 +3401,7 @@ if [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $kodi_direct;";
               echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
               echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___________DEBUGGER:visible 0;";
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
               echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
               echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
@@ -3295,6 +3428,10 @@ if [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
                 $BASE_PATH/build/creation-general.log \
                 $BASE_PATH/build/creation-kodi-osx-x86_64.log \
                 $BASE_PATH/build/creation-cef-osx-x86_64.log;
+            }
+            elif [[ "$line" = *"debugger"* ]];then
+            {
+              echo "Not supported!"
             }
             elif [[ "$line" = *"field $BUILD__BTN________LAUNCH_KODI:"* ]];then
             {
@@ -3365,7 +3502,8 @@ if [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" >> $thread6_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread6_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" >> $thread6_in'" \
-             --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-osx32 $thread6_in" \
+             --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-osx64 $thread6_in" \
+             --field="Open debugger:FBTN@2,3,4,6" "bash -c 'echo \"#< msg debugger\" >> $thread6_in'" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread6_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" >> $thread6_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
@@ -3415,6 +3553,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $kodi_direct;";
       echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
       echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN___________DEBUGGER:visible 0;";
 
       echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
       echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
@@ -3510,6 +3649,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $kodi_direct;";
               echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
               echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___________DEBUGGER:visible 0;";
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
               echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
               echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
@@ -3536,6 +3676,14 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
                 $BASE_PATH/build/creation-general.log \
                 $BASE_PATH/build/creation-kodi-android-${ANDROID_BUILD_TYPE}.log \
                 $BASE_PATH/build/creation-cef-android-${ANDROID_BUILD_TYPE}.log;
+            }
+            elif [[ "$line" = *"kodilaunch"* ]];then
+            {
+              bash $BASE_PATH/tools/kodi.launch kodi-android-$ANDROID_BUILD_TYPE $thread7_in
+            }
+            elif [[ "$line" = *"debugger"* ]];then
+            {
+              echo "Not supported!"
             }
             elif [[ "$line" = *"field $BUILD__BTN________LAUNCH_KODI:"* ]];then
             {
@@ -3606,7 +3754,8 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" >> $thread7_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread7_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" >> $thread7_in'" \
-             --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-android-${ANDROID_BUILD_TYPE} $thread7_in" \
+             --field="Launch Kodi:FBTN@2,3,4,6" "bash -c 'echo \"#< msg kodilaunch\" >> $thread7_in'" \
+             --field="Open debugger:FBTN@2,3,4,6" "bash -c 'echo \"#< msg debugger\" >> $thread7_in'" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread7_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" >> $thread7_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
@@ -3656,6 +3805,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $kodi_direct;";
       echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
       echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
+      echo "#> msg field $BUILD__BTN___________DEBUGGER:visible 0;";
 
       echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
       echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
@@ -3751,6 +3901,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $kodi_direct;";
               echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
               echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN___________DEBUGGER:visible 0;";
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
               echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
               echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
@@ -3777,6 +3928,10 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
                 $BASE_PATH/build/creation-general.log \
                 $BASE_PATH/build/creation-kodi-${IOS_ATV2_BUILD_TYPE}.log \
                 $BASE_PATH/build/creation-cef-${IOS_ATV2_BUILD_TYPE}.log;
+            }
+            elif [[ "$line" = *"debugger"* ]];then
+            {
+              echo "Not supported!"
             }
             elif [[ "$line" = *"field $BUILD__BTN________LAUNCH_KODI:"* ]];then
             {
@@ -3848,6 +4003,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread8_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" >> $thread8_in'" \
              --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-ios-atv2 $thread8_in" \
+             --field="Open debugger:FBTN@2,3,4,6" "bash -c 'echo \"#< msg debugger\" >> $thread8_in'" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread8_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" >> $thread8_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
@@ -4187,6 +4343,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field="<b>Linux settings:</b>:LBL@0,0,16,17" '' \
              --field="Used 32/64bit Distribution:CB@1,2,16,17" "$(getLinuxTargetDist)" \
              --field="Distribution control:FBTN@3,4,16,17" "bash -c 'echo \"#< msg open_dist_control\" >> $thread9_in'" \
+             --field="Use GUI debug:CHK@5,5,16,17" "$USE_GUI_DEBUG" \
              --field="Build type:CB@7,8,16,17" 'x86_32!x86_64' \
              --field=":LBL@0,8,21,22" '' \
              --field="<b>Windows settings:</b>:LBL@0,0,22,23" '' \

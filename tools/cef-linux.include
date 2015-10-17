@@ -386,13 +386,11 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
 
   printf "${BRIGHT}${WHITE}Start creation of kodi's build distribution for Linux x86 ${BIT_SIZE}bit ...${NORMAL}\n"
 
-  #export CEF_COMMAND_7ZIP="7z"
   unset CEF_COMMAND_7ZIP;
-  [ -n $CEF_COMMAND_7ZIP ] && pack_end=7z || pack_end=zip
 
   # Remove old to prevent package from errors which comes if build becomes cancelled on 'make_distrib.py'
-  [ -f $BASE_PATH/build/cef-$GIT_CEF_USER/src/cef/binary_distrib/cef_binary_*_linux${BIT_SIZE}.$pack_end ] &&
-    rm -f $BASE_PATH/build/cef-$GIT_CEF_USER/src/cef/binary_distrib/cef_binary_*_linux${BIT_SIZE}.$pack_end;
+  [ -f $BASE_PATH/build/cef-$GIT_CEF_USER/src/cef/binary_distrib/cef_binary_*_linux${BIT_SIZE}.zip ] &&
+    rm -f $BASE_PATH/build/cef-$GIT_CEF_USER/src/cef/binary_distrib/cef_binary_*_linux${BIT_SIZE}.zip;
 
   # --output-dir    - output directory [required]
   # --allow-partial - allow creation of partial distributions
@@ -409,13 +407,14 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
   cd $BASE_PATH/build/cef-$GIT_CEF_USER/src/cef/tools
   ./make_distrib.sh --ninja-build \
                     --allow-partial \
+                    --package \
                     $([[ -z $VERBOSEBUILD ]] && echo --quiet)
 
-  [ $INSTALL_DIR_TYPE = "Debug" ] && EXTRA_NAME=debug- || EXTRA_NAME=release-
+  [ $INSTALL_DIR_TYPE = "Debug" ] && EXTRA_NAME="debug" || EXTRA_NAME="release"
 
   # Remove old packages if present on base
-  [ -f ${INSTALL_PATH}/kodi-web-${EXTRA_NAME}*_linux${BIT_SIZE}.$pack_end ] &&
-    rm -f ${INSTALL_PATH}/kodi-web-${EXTRA_NAME}*_linux${BIT_SIZE}.$pack_end;
+  [ -f ${INSTALL_PATH}/kodi-web-${EXTRA_NAME}*_linux${BIT_SIZE}.zip ] &&
+    rm -f ${INSTALL_PATH}/kodi-web-${EXTRA_NAME}*_linux${BIT_SIZE}.zip;
 
   ####
 
@@ -423,9 +422,9 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
 
   printf "${BRIGHT}${WHITE}Move created packages to base system ...${NORMAL}\n"
 
-  name=$(cd "$BASE_PATH/build/cef-$GIT_CEF_USER/src/cef/binary_distrib"; ls -1 cef_binary_*_linux${BIT_SIZE}.* 2> /dev/null)
+  name=$(cd "$BASE_PATH/build/cef-$GIT_CEF_USER/src/cef/binary_distrib"; ls -1 cef_binary_*_linux${BIT_SIZE}_package.zip 2> /dev/null)
   if [ -n $name ];then
-    mv -f $BASE_PATH/build/cef-$GIT_CEF_USER/src/cef/binary_distrib/${name} ${INSTALL_PATH}/kodi-web-${EXTRA_NAME}${CEF_KODI_BINARY_VERSION}_${name}
+    mv -f "$BASE_PATH/build/cef-$GIT_CEF_USER/src/cef/binary_distrib/${name}" "${INSTALL_PATH}/kodi-web-${EXTRA_NAME}-${CEF_KODI_BINARY_VERSION}_${name}"
   else
   {
     printf "${BRIGHT}${RED}ERROR: ${WHITE}Needed Package '$BASE_PATH/build/cef-$GIT_CEF_USER/src/cef/binary_distrib/cef_binary_*_linux${BIT_SIZE}.*' not present${NORMAL}\n"

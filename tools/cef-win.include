@@ -449,6 +449,7 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
   cd $MUPEL_PATH/cef-$GIT_CEF_USER/src/cef/tools
   cmd /C make_distrib.bat --ninja-build \
                           --allow-partial \
+                          --package \
                           $([[ $BIT_SIZE = 64 ]] && echo --x64-build) \
                           $([[ -z $VERBOSEBUILD ]] && echo --quiet)
 
