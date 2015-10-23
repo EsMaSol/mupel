@@ -20,7 +20,7 @@ basic_dialog="yad-mupel-$system"
 # get password
 pass=$($basic_dialog --class="GSu" \
     --title="sudo Password" \
-    --center \
+    --center --on-top \
     --window-icon="$BASE_PATH/icons/icon-kodi-48x48.png" \
     --image="$BASE_PATH/icons/icon-pw-128x128.png" \
     --text="\

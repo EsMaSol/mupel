@@ -1558,7 +1558,7 @@ function forceKodiSelectedBuild
       rm $TEMP_DIR/kodi-$system.failed
       showdialog --title="Warning" \
           --image="$BASE_PATH/icons/icon-warning-128x128.png" \
-          --image-on-top --form \
+          --image-on-top --on-top --form \
           --text="Kodi $system for selection $selected creation failed! \nRelated build stopped." \
           --button=gtk-ok:1 2> /dev/null &
       exit 1

@@ -45,7 +45,7 @@ processOptsCEF "$@"
 if [[ -n $FORCECLEAN ]] || [[ -n $FORCEUPDATE ]];then
   FORCE_CHANGE=1;fi
 
-ißnitBuildScript_CEF;
+initBuildScript_CEF;
 
 trap exitBuild EXIT
 
