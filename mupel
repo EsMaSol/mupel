@@ -88,6 +88,7 @@ OS_START_TIMEOUT=90;
 REQUEST_UPDATE_TIMEOUT=1800 # 30 minutes
 
 INCLUDE_OPEN_PULL_REQUESTS=FALSE
+NO_WARNING_ON_FAIL=FALSE
 
 NET_CONNECTION=eth0 #<TODO
 
@@ -234,6 +235,7 @@ SET_VAR_________________SEP__=58
 SET_VAR_________CPU_PROC_JOBS=59
 SET_VAR____EMU_INSTALL_PREFIX=60
 SET_VAR_INCLUDE_OPEN_REQUESTS=61
+SET_VAR____NO_WARNING_ON_FAIL=62
 
 ###############################################################################
 # Functions
@@ -672,7 +674,12 @@ function parse_values
       echo "#> msg field $SET_KODI________SOURCE_REPOSI:set ${KODI_SOURCE_URL};";
       echo "#> msg field $SET_CEF_________SOURCE_REPOSI:set ${CEF_SOURCE_URL};";
 
+    }
+    elif [[ $id = $SET_VAR____NO_WARNING_ON_FAIL ]];then
+    {
+      NO_WARNING_ON_FAIL=${value%|}
     } fi
+
     set IFS=$IFS_BU
   } fi
 
@@ -694,6 +701,7 @@ function buildThreadBaseGeneralProcess
   if [ -f $TEMP_DIR/creation-general.failed ];then
   {
     rm -f $TEMP_DIR/creation-general.failed
+    [[ $NO_WARNING_ON_FAIL = FALSE ]] &&
     showdialog --title="Warning" \
                --image="$BASE_PATH/icons/icon-warning-128x128.png" \
                --image-on-top --form \
@@ -944,6 +952,7 @@ Checking ssh connection for independent OS build system (can take some seconds):
 
               if [ -f $TEMP_DIR/cef-$system.failed ];then
               {
+                [[ $NO_WARNING_ON_FAIL = FALSE ]] &&
                 showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
                            --image-on-top --form --text="CEF $system creation failed! \nRelated build stopped." \
                            --button=gtk-ok:1 2> /dev/null &
@@ -1019,6 +1028,7 @@ Checking ssh connection for independent OS build system (can take some seconds):
 
             if [ -f $TEMP_DIR/kodi-$system.failed ];then
             {
+              [[ $NO_WARNING_ON_FAIL = FALSE ]] &&
               showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
                          --image-on-top --form --text="Kodi $system creation failed! \nRelated build stopped." \
                          --button=gtk-ok:1 2> /dev/null &
@@ -1082,6 +1092,7 @@ Checking ssh connection for independent OS build system (can take some seconds):
 
             if [ -f $TEMP_DIR/user_script-$system.failed ];then
             {
+              [[ $NO_WARNING_ON_FAIL = FALSE ]] &&
               showdialog --title="Warning" --image="$BASE_PATH/icons/icon-warning-128x128.png" \
                          --image-on-top --form --text="User script $system creation failed! \nRelated build stopped." \
                          --button=gtk-ok:1 2> /dev/null &
@@ -1150,6 +1161,7 @@ function buildThreadKodiAddonForOS
     if [ -f $TEMP_DIR/kodi-$system.failed ];then
     {
       rm $TEMP_DIR/kodi-$system.failed
+      [[ $NO_WARNING_ON_FAIL = FALSE ]] &&
       showdialog --title="Warning" \
           --image="$BASE_PATH/icons/icon-warning-128x128.png" \
           --image-on-top --form \
@@ -1556,6 +1568,7 @@ function forceKodiSelectedBuild
     if [ -f $TEMP_DIR/kodi-$system.failed ];then
     {
       rm $TEMP_DIR/kodi-$system.failed
+      [[ $NO_WARNING_ON_FAIL = FALSE ]] &&
       showdialog --title="Warning" \
           --image="$BASE_PATH/icons/icon-warning-128x128.png" \
           --image-on-top --on-top --form \
@@ -4389,7 +4402,8 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field=":LBL@0,8,41,42" '' \
              --field="CPU process jobs:NUM@0,1,43,44" "${CPU_PROC_JOBS}!1..32" \
              --field="Emulation prefix:MDIR@2,4,43,44" "$EMU_INSTALL_PREFIX" \
-             --field="Include last open requests in branch:CHK@5,7,43,44" "$INCLUDE_OPEN_PULL_REQUESTS" \
+             --field="Include last open requests in branch:CHK@5,6,43,44" "$INCLUDE_OPEN_PULL_REQUESTS" \
+             --field="No warning dialog on fail:CHK@7,8,43,44" "$NO_WARNING_ON_FAIL" \
              --field=":XTALK" '' > /dev/null &
   pid_thread9=$!
   ((TAB_NUM++))
