@@ -1,0 +1,15 @@
+#!/bin/bash
+
+which konsole >/dev/null
+if [ "$?" = "0" ];then
+  konsole --hide-tabbar --hide-menubar 2> /dev/null;
+  exit
+fi
+
+which gnome-terminal >/dev/null
+if [ "$?" = "0" ];then
+  gnome-terminal --hide-menubar --title="Mupel console terninal" 2> /dev/null;
+  exit
+fi
+
+xterm -T "Mupel console terminal" -bg black -fg white

@@ -1717,7 +1717,6 @@ touch ${TEMP_DIR}/thread9_in
       echo "#> msg field $GEN__BTN_______STOP_BUILD_ALL:visible 0;";
       echo "#> msg field $GEN__BTN______________DUMMY_1:visible 0;"; # Dummy
       echo "#> msg field $GEN__BTN______________DUMMY_2:visible 0;"; # Dummy
-      echo "#> msg field $GEN__BTN______________DUMMY_3:visible 0;"; # Dummy
       echo "#> msg field $GEN__BTN______________DUMMY_4:visible 0;"; # Dummy
       if [[ $USE_LINUX_X86_32 = "FALSE" ]] &&
          [[ $USE_LINUX_X86_64 = "FALSE" ]] &&
@@ -1847,6 +1846,10 @@ touch ${TEMP_DIR}/thread9_in
               printf "\n${YELLOW}${BRIGHT}Note: ${WHITE}Only linux based parts are updated (Mac OS X and Windows need normal build)${NORMAL} ...\n";
               mutexUnlock_BaseBuild
             }
+            elif [[ "$line" = *"open_console"* ]];then
+            {
+              exec $BASE_PATH/tools/terminal
+            }
             elif [[ "$line" = *"delete_old_logs"* ]];then
             {
               unset IFS;
@@ -1921,7 +1924,7 @@ Are you sure?</b>"
             --field="Create and install Mupel system:FBTN@0,8,4,6" "bash $BASE_PATH/mupel-install --main-msg $thread1_in" \
             --field="dummy:FBTN@8,8,4,6" "" \
             --field="Download/Update only:FBTN@0,0,12,14" "bash -c 'echo \"#< msg download_only;\" >> $thread1_in'" \
-            --field="dummy:FBTN@1,1,12,14" "" \
+            --field="Open console window:FBTN@1,1,12,14" "bash -c 'echo \"#< msg open_console;\" >> $thread1_in'" \
             --field="dummy:FBTN@2,2,12,14" "" \
             --field="Delete old log files:FBTN@7,7,12,14" "bash -c 'echo \"#< msg delete_old_logs;\" >> $thread1_in'" \
             --field="Clear log:FBTN@8,8,12,14" "bash -c 'echo \"#> msg field 15:clear;\" >> $thread1_in'" \

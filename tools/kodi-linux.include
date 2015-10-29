@@ -156,6 +156,7 @@ elif [ -z $ADDON_BUILD ];then
   sleep 2
   ./tools/buildsteps/linux${BIT_SIZE}/make-xbmc
   make install
+  createKodiKeyboardHelper
   printf $CURS_UP
   log_success_msg
 
