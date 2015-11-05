@@ -264,9 +264,7 @@ function system_update()
           touch "${TEMP_DIR}/build_active"
           printf "\nInstall kodi's related build depends\n";
           [ $include_kodi_devel = "TRUE" ] && used_distname=devel || used_distname=$distname;
-          if [ -r "/var/lib/chroot/${distname}${target}bit/etc/apt/sources.list" ] &&
-             HEAD "http://ppa.launchpad.net/team-xbmc/ppa/ubuntu/dists/${used_distname}" \
-             >&/dev/null; then
+          if [ -r "/var/lib/chroot/${distname}${target}bit/etc/apt/sources.list" ]; then
           {
             present_repo=$(grep -F xbmc "/var/lib/chroot/${distname}${target}bit/etc/apt/sources.list");
             if [[ ! -z $present_repo ]] &&  [[ -z `echo $present_repo | grep -F "${used_distname}"` ]];then
@@ -277,17 +275,29 @@ function system_update()
               sudo -A -- ${distname}${target} apt-get -y -q install software-properties-common >> $build_log
               sudo -A -- ${distname}${target} add-apt-repository --yes ppa:team-xbmc/ppa >> $build_log
 
-              sudo -A -- sh -c '
-                echo "deb http://ppa.launchpad.net/team-xbmc/ppa/ubuntu" \
-                     "'"${used_distname}"' main" \
-                  >>"/var/lib/chroot/'"${distname}${target}bit"'/etc/apt/sources.list"'
-              [ $? != 0 ] && printf "Failed 7\n\n" && exit 1
-              sudo -A -- sh -c '
-                echo "deb-src http://ppa.launchpad.net/team-xbmc/ppa/ubuntu" \
-                     "'"${used_distname}"' main" \
-                  >>"/var/lib/chroot/'"${distname}${target}bit"'/etc/apt/sources.list"'
-              [ $? != 0 ] && printf "Failed 7\n\n" && exit 1
-              sudo -A -- ${distname}${target} apt-get update
+              if ! HEAD "http://ppa.launchpad.net/team-xbmc/ppa/ubuntu/dists/${used_distname}" >&/dev/null ;then
+              {
+                showInfoDialog "<b>\
+Distribution '${used_distname}' not available for \
+http://ppa.launchpad.net/team-xbmc/ppa/ubuntu \
+forcing to use development version!</b>";
+                used_distname=devel
+              } fi
+
+              if HEAD "http://ppa.launchpad.net/team-xbmc/ppa/ubuntu/dists/${used_distname}" >&/dev/null ;then
+              {
+                sudo -A -- sh -c '
+                  echo "deb http://ppa.launchpad.net/team-xbmc/ppa/ubuntu" \
+                       "'"${used_distname}"' main" \
+                    >>"/var/lib/chroot/'"${distname}${target}bit"'/etc/apt/sources.list"'
+                [ $? != 0 ] && printf "Failed 7\n\n" && exit 1
+                sudo -A -- sh -c '
+                  echo "deb-src http://ppa.launchpad.net/team-xbmc/ppa/ubuntu" \
+                       "'"${used_distname}"' main" \
+                    >>"/var/lib/chroot/'"${distname}${target}bit"'/etc/apt/sources.list"'
+                [ $? != 0 ] && printf "Failed 7\n\n" && exit 1
+                sudo -A -- ${distname}${target} apt-get update
+              } fi
             } fi
           }
           else
@@ -949,10 +959,21 @@ DIST=`grep DISTRIB_ID /etc/*-release | awk -F '=' '{print $2}'`
   exit 1;
 }
 
-[[ `uname -m` != "x86_64" ]] && {
-  echo $"${RED}${BRIGHT}Wrong system, a 64 bit linux OS is needed!${NORMAL}";
-  exit_build 1
+if [[ `uname -m` = "i686" ]];then
+{
+  printf "${YELLOW}${BRIGHT}Old system, on a 32 bit linux OS is only be build on itself possible! ${NORMAL}\n"; 
+  SYSTEM_BITS=32;
+  include_32bit="TRUE";
 }
+elif [[ `uname -m` = "x86_64" ]];the
+{
+  SYSTEM_BITS=64;
+}
+else
+{
+  printf "${RED}${BRIGHT}Wrong system, a 64 bit linux OS is needed! ${NORMAL}\n";
+  exit 1;
+} fi
 
 # Check that we are running as a regular user
 [ "$(id -nu)" = root ] && {
@@ -1213,13 +1234,13 @@ trap 'sudo -A -- apt-get clean; tput bel; echo; echo Failed' EXIT
 
 if [[ $install_way = "Update selected distribution" ]];then
 {
-  check_system_active "${udpate_dist}64bit";
+  [[ $SYSTEM_BITS = 64 ] && check_system_active "${udpate_dist}64bit";
   if [ $include_32bit = "TRUE" ];then
   {
     check_system_active "${udpate_dist}32bit";
     system_update       "${udpate_dist}" "32bit";
   } fi
-  system_update       "${udpate_dist}" "64bit";
+  [[ $SYSTEM_BITS = 64 ] && system_update "${udpate_dist}" "64bit";
 
   # Let the user know what we did
   showdialog --title="Automatic build environment" \
@@ -1248,13 +1269,13 @@ Distribution becomes reseted to new.
 </b>"
   [ $? != 0 ] && exit_build 1;
 
-  check_system_active "${udpate_dist}64bit";
+  [[ $SYSTEM_BITS = 64 ] && check_system_active "${udpate_dist}64bit";
   if [ $include_32bit = "TRUE" ];then
   {
     check_system_active "${udpate_dist}32bit";
     system_overwrite    "${udpate_dist}" "32bit";
   } fi
-  system_overwrite    "${udpate_dist}" "64bit";
+  [[ $SYSTEM_BITS = 64 ] && system_overwrite    "${udpate_dist}" "64bit";
 
   # Let the user know what we did
   showdialog --title="Automatic build environment" \
@@ -1276,13 +1297,13 @@ ________________________________________________________________________________
 }
 elif [[ $install_way = "Install new distribution" ]];then
 {
-  check_system_active "${install_dist}64bit";
+  [[ $SYSTEM_BITS = 64 ] && check_system_active "${install_dist}64bit";
   if [ $include_32bit = "TRUE" ];then
   {
     check_system_active "${install_dist}32bit";
     system_install      "${install_dist}" "32bit";
   } fi
-  system_install      "${install_dist}" "64bit";
+  [[ $SYSTEM_BITS = 64 ] && system_install      "${install_dist}" "64bit";
   if [ $install_as_default = TRUE ] && [ -f "$HOME/.mupel/mupel.conf" ];then
   {
     loadConfigFile noOutLock:
@@ -1338,10 +1359,10 @@ elif [[ $install_way = "Uninstall selected distribution" ]];then
   [ $? != 0 ] && exit_build 1;
 
   (
-    check_system_active "${udpate_dist}64bit"
+    [[ $SYSTEM_BITS = 64 ] && check_system_active "${udpate_dist}64bit"
     check_system_active "${udpate_dist}32bit"
     system_uninstall "${udpate_dist}32bit"
-    system_uninstall "${udpate_dist}64bit"
+    [[ $SYSTEM_BITS = 64 ] && system_uninstall "${udpate_dist}64bit"
   ) |
     showdialog --title="Install" --image="$BASE_PATH/icons/icon-install-128x128.png" --progress --width=600 \
                --text="Removing old distribution ${udpate_dist} ..." \

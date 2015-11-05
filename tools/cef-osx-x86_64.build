@@ -185,10 +185,14 @@ if [[ -z $DIRECT_CEF_BUILD ]];then
 
     printf "\n${BRIGHT}${RED}WARNING: ${WHITE}Download takes a very long time ${UNDERLINE}(more as 12 hours possible)${NORMAL}\n";
 
-    cd "$MUPEL_PATH/cef-$GIT_CEF_USER";
-    [ -f "$BASE_PATH/build/chromium-osx-load.log" ] &&
+    cd "$BASE_PATH/build/cef-$GIT_CEF_USER";
+    if [ -f "$BASE_PATH/build/chromium-osx-load.log" ];then
+    {
+      if [ ! -d "$BASE_PATH/build/log-old" ];then
+        mkdir "$BASE_PATH/build/log-old";fi
       mv -f "$BASE_PATH/build/chromium-osx-load.log" \
-            "$BASE_PATH/build/chromium-osx-load.old.log";
+            "$BASE_PATH/build/log-old/chromium-osx-load.old.log";
+    } fi
 
     touch "$BASE_PATH/build/chromium-osx-load.log";
     touch "$TEMP_DIR/.tempLoggerActive";

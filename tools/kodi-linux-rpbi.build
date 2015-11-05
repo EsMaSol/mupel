@@ -55,7 +55,9 @@ touch $TEMP_DIR/kodi-linux-rpbi.failed;
 . "$BASE_PATH/versions";
 
 # Load or update kodi
-loadKodiBuildDir $BUILD_SYSTEM "Linux Raspberry PI";
+if [ ! -d $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM ] ||
+   [[ $DISABLE_GIT_UPDATE = FALSE ]];then
+  loadKodiBuildDir $BUILD_SYSTEM "Linux Raspberry PI";fi
 
 export Configuration=$INSTALL_DIR_TYPE
 export TARBALLS=$BASE_PATH/build/kodi-tarballs
@@ -185,7 +187,9 @@ elif [ -z $ADDON_BUILD ];then
     CONFIG_EXTRA="$CONFIG_EXTRA --enable-gtest";fi
   export CONFIG_EXTRA
 
-  if [ -z $DIRECT_KODI_BUILD ] || [[ $KODI_CONF_IN_DIRECT_BUILD = "TRUE" ]];then
+  if [ -z $DIRECT_KODI_BUILD ] || 
+     [[ $KODI_CONF_IN_DIRECT_BUILD = "TRUE" ]] ||
+     [ ! -f $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/Makefile ];then
   {
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}configure-xbmc${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2

@@ -42,6 +42,7 @@ USE_IOS_ATV2="FALSE"
 
 RELEASE_BUILD=0
 DEBUG_BUILD=0
+SYSTEM_BITS=32
 
 KODI_SOURCE_URL=""
 KODI_SOURCE_URL_INACTIVE=""
@@ -71,6 +72,7 @@ INCLUDE_KODI="TRUE"
 INCLUDE_KODI_ADDONS="FALSE"
 INCLUDE_CEF="FALSE"
 INCLUDE_USER_SCRIPT="FALSE"
+DISABLE_GIT_UPDATE="FALSE"
 
 USE_GUI_DEBUG="TRUE"
 
@@ -126,16 +128,16 @@ PATH="$ADD_PATHS:$PATH";
 GEN__BTN______START_BUILD_ALL=0
 GEN__BTN_______STOP_BUILD_ALL=1
 GEN__BTN____CREATE_INST_MUPEL=2
-GEN__BTN______________DUMMY_1=3
-GEN__BTN______DOWNLOAD_UPDATE=4
-GEN__BTN______________DUMMY_3=5
-GEN__BTN______________DUMMY_4=6
-GEN__BTN____DEL_OLD_LOG_FILES=7
-GEN__BTN____________CLEAR_LOG=8
-GEN_____________________SEP__=9
-GEN__CHK_________INCLUDE_KODI=10
-GEN__CHK__INCLUDE_KODI_ADDONS=11
-GEN__CHK__________INCLUDE_CEF=12
+GEN__BTN______DOWNLOAD_UPDATE=3
+GEN__BTN______________DUMMY_3=4
+GEN__BTN______________DUMMY_4=5
+GEN__BTN____DEL_OLD_LOG_FILES=6
+GEN__BTN____________CLEAR_LOG=7
+GEN_____________________SEP__=8
+GEN__CHK_________INCLUDE_KODI=9
+GEN__CHK__INCLUDE_KODI_ADDONS=10
+GEN__CHK__________INCLUDE_CEF=11
+GEN__CHK___DISABLE_GIT_UPDATE=12
 GEN__BTN______________DUMMY_2=13
 GEN__TERMPROC_______BUILD_LOG=14
 
@@ -305,7 +307,9 @@ function parse_values
     elif [[ $id = $GEN__CHK__INCLUDE_KODI_ADDONS ]];then # handle 'Include Kodi add-ons' change
       INCLUDE_KODI_ADDONS=${value%|};
     elif [[ $id = $GEN__CHK__________INCLUDE_CEF ]];then # handle 'Include CEF' change
-      INCLUDE_CEF=${value%|};fi
+      INCLUDE_CEF=${value%|}
+    elif [[ $id = $GEN__CHK___DISABLE_GIT_UPDATE ]];then
+      DISABLE_GIT_UPDATE=${value%|};fi
   }
   elif [ "$field" = "add-ons" ];then
   {
@@ -689,9 +693,16 @@ function parse_values
 function buildThreadBaseGeneralProcess
 {
   local stand_alone=$1
+  if [ ! -d "$BASE_PATH/build/log-old" ];then
+    mkdir "$BASE_PATH/build/log-old";fi
 
   if [ -f "$BASE_PATH/build/creation-general.log" ];then
-    mv "$BASE_PATH/build/creation-general.log" "$BASE_PATH/build/creation-general-`date +%F_%H-%m`.old.log";fi
+  {
+    if [ ! -d "$BASE_PATH/build/log-old" ];then
+      mkdir "$BASE_PATH/build/log-old";fi
+    mv "$BASE_PATH/build/creation-general.log" \
+       "$BASE_PATH/build/log-old/creation-general-`date +%F_%H-%m`.old.log";
+  } fi
   touch "$BASE_PATH/build/creation-general.log"
 
   bash "$BASE_PATH/tools/basic-system-creation.build" >> "/dev/stdout" 2>&1 | \
@@ -795,12 +806,21 @@ function buildThreadForOS
 
   loadConfigFile
 
+  if [ ! -d "$BASE_PATH/build/log-old" ];then
+    mkdir "$BASE_PATH/build/log-old";fi
   if [ -f "$BASE_PATH/build/creation-kodi-$system.log" ];then
-    mv "$BASE_PATH/build/creation-kodi-$system.log" "$BASE_PATH/build/creation-kodi-$system-`date +%F_%H-%m`.old.log";fi
+  {
+    if [ ! -d "$BASE_PATH/build/log-old" ];then
+      mkdir "$BASE_PATH/build/log-old";fi
+    mv "$BASE_PATH/build/creation-kodi-$system.log" \
+       "$BASE_PATH/build/log-old/creation-kodi-$system-`date +%F_%H-%m`.old.log";
+  } fi
   if [ -f "$BASE_PATH/build/creation-cef-$system.log" ];then
-    mv "$BASE_PATH/build/creation-cef-$system.log" "$BASE_PATH/build/creation-cef-$system-`date +%F_%H-%m`.old.log";fi
+    mv "$BASE_PATH/build/creation-cef-$system.log" \
+       "$BASE_PATH/build/log-old/creation-cef-$system-`date +%F_%H-%m`.old.log";fi
   if [ -f "$BASE_PATH/build/creation-user-script0-$system.log" ];then
-    mv "$BASE_PATH/build/creation-user-script-$system.log" "$BASE_PATH/build/creation-user-script-$system-`date +%F_%H-%m`.old.log";fi
+    mv "$BASE_PATH/build/creation-user-script-$system.log" \
+       "$BASE_PATH/build/log-old/creation-user-script-$system-`date +%F_%H-%m`.old.log";fi
 
   if [[ $INCLUDE_CEF = "TRUE" ]];then
     touch "$BASE_PATH/build/creation-cef-$system.log";fi
@@ -1040,7 +1060,8 @@ Checking ssh connection for independent OS build system (can take some seconds):
 
           step_kodi=1
 
-          if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-$system/kodi.bin" ] ||
+          if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-$system/configure" ] ||
+             [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-$system/kodi.bin" ] ||
              [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-$system/kodiapp-x86-debug.apk" ];then
           {
             echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable 1";
@@ -1129,8 +1150,11 @@ function buildThreadKodiAddonForOS
   local caller="$2"
   local addon_name="$3"
 
+  if [ ! -d "$BASE_PATH/build/log-old" ];then
+    mkdir "$BASE_PATH/build/log-old";fi
   if [ -f "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" ];then
-    mv "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system-`date +%F_%H-%m`.old.log";fi
+    mv "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" \
+       "$BASE_PATH/build/log-old/creation-kodi-addon-${addon_name}-$system-`date +%F_%H-%m`.old.log";fi
 
   touch "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log"
   (
@@ -1179,7 +1203,7 @@ function buildThreadKodiAddonForOS
 
 function getLinuxTargetDist
 {
-  dist_targets=$(ls /var/lib/chroot/ | grep 64bit | sed 's/64bit//g' | tr '\n'  '!');
+  dist_targets=$(ls /var/lib/chroot/ | grep ${SYSTEM_BITS}bit | sed 's/${SYSTEM_BITS}bit//g' | tr '\n'  '!');
   dist_targets=${dist_targets::-1};
   dist_targets=$(echo ${dist_targets//$USE_LINUX_X86_DISTR/\^${USE_LINUX_X86_DISTR}});
   echo $dist_targets
@@ -1537,8 +1561,11 @@ function forceKodiSelectedBuild
       break;fi
   } done
 
+  if [ ! -d "$BASE_PATH/build/log-old" ];then
+    mkdir "$BASE_PATH/build/log-old";fi
   if [ -f "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log" ];then
-    mv "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log" "$BASE_PATH/build/creation-kodi-selected-$selection-$system-`date +%F_%H-%m`.old.log";fi
+    mv "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log" \
+       "$BASE_PATH/build/log-old/creation-kodi-selected-$selection-$system-`date +%F_%H-%m`.old.log";fi
   touch "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log"
   (
     unset IFS;
@@ -1549,7 +1576,7 @@ function forceKodiSelectedBuild
 
     if [[ $system = win* ]];then
       sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $WINDOWS_SSH_USERNAME -- \
-        bash --login -c >> "printf \"${RED}${BRIGHT}Selection build for Windows not possible!${NORMAL}\n\"" 2>&1
+        bash --login -c >> "printf \"${RED}${BRIGHT}Selection build for Windows not possible! ${NORMAL}\n\"" 2>&1
     elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
       sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
         bash --login -c "\
@@ -1635,15 +1662,32 @@ function openPullRequestInfoDialog
 #                            Start of process points                          #
 #                                                                             #
 [[ $DIST != "Ubuntu" ]] && [[ $DIST != "Debian" ]] && {
-  echo "${RED}${BRIGHT}Build not possible, need performed on ubuntu or debian based system (needed for install of dependencies parts)${NORMAL}" > /dev/stderr
+  printf "${RED}${BRIGHT}Build not possible, need performed on ubuntu or debian based system (needed for install of dependencies parts)${NORMAL}\n" > /dev/stderr
   exit 1 ;
 }
 
 # Check that xserver is running and user is root.
 [[ $DISPLAY ]] || {
-  echo $"${RED}${BRIGHT}There is no xserver running. Exiting...${NORMAL}";
+  printf "${RED}${BRIGHT}There is no xserver running. Exiting...${NORMAL}\n";
   exit 1;
 }
+
+if [[ `uname -m` = "i686" ]];then
+{
+  printf "${YELLOW}${BRIGHT}Old system, on a 32 bit linux OS is only be build on itself possible! ${NORMAL}\n"; 
+  SYSTEM_BITS=32;
+  YAD_MUPEL=yad-mupel-i686
+}
+elif [[ `uname -m` = "x86_64" ]];then
+{
+  SYSTEM_BITS=64;
+  YAD_MUPEL=yad-mupel-x86_64
+}
+else
+{
+  printf "${RED}${BRIGHT}Wrong system, a 64 bit linux OS is needed! ${NORMAL}\n";
+  exit 1;
+} fi
 
 # Check that we are running as a regular user
 [ "$(id -nu)" = root ] && {
@@ -1715,7 +1759,6 @@ touch ${TEMP_DIR}/thread9_in
       # Set buttons to initial state
       echo "#> msg field $GEN__BTN______START_BUILD_ALL:visible 1;";
       echo "#> msg field $GEN__BTN_______STOP_BUILD_ALL:visible 0;";
-      echo "#> msg field $GEN__BTN______________DUMMY_1:visible 0;"; # Dummy
       echo "#> msg field $GEN__BTN______________DUMMY_2:visible 0;"; # Dummy
       echo "#> msg field $GEN__BTN______________DUMMY_4:visible 0;"; # Dummy
       if [[ $USE_LINUX_X86_32 = "FALSE" ]] &&
@@ -1742,6 +1785,7 @@ touch ${TEMP_DIR}/thread9_in
       echo "#> msg field $GEN__CHK_________INCLUDE_KODI:set $INCLUDE_KODI;";
       echo "#> msg field $GEN__CHK__INCLUDE_KODI_ADDONS:set $INCLUDE_KODI_ADDONS;";
       echo "#> msg field $GEN__CHK__________INCLUDE_CEF:set $INCLUDE_CEF;";
+      echo "#> msg field $GEN__CHK___DISABLE_GIT_UPDATE:set $DISABLE_GIT_UPDATE;";
       [[ $SUPPORT_CEF = "TRUE" ]] &&
         echo "#> msg field $GEN__CHK__________INCLUDE_CEF:enable 1;" ||
         echo "#> msg field $GEN__CHK__________INCLUDE_CEF:enable 0;";
@@ -1787,6 +1831,7 @@ touch ${TEMP_DIR}/thread9_in
               echo "#> msg field $GEN__CHK_________INCLUDE_KODI:enable 0;";
               echo "#> msg field $GEN__CHK__INCLUDE_KODI_ADDONS:enable 0;";
               echo "#> msg field $GEN__CHK__________INCLUDE_CEF:enable 0;";
+              echo "#> msg field $GEN__CHK___DISABLE_GIT_UPDATE:enable 0;";
               PULSE_ON=1
 
               buildThreadBaseGeneral
@@ -1829,8 +1874,7 @@ touch ${TEMP_DIR}/thread9_in
               echo "#> msg field $GEN__CHK_________INCLUDE_KODI:enable 1;";
               echo "#> msg field $GEN__CHK__INCLUDE_KODI_ADDONS:enable 1;";
               echo "#> msg field $GEN__CHK__________INCLUDE_CEF:enable 1;";
-              echo "#> msg field $GEN__CHK_________INCLUDE_KODI:enable 1;";
-              echo "#> msg field $GEN__CHK__INCLUDE_KODI_ADDONS:enable 1;";
+              echo "#> msg field $GEN__CHK___DISABLE_GIT_UPDATE:enable 1;";
             }
             elif [[ "$line" = *"download_only"* ]];then
             {
@@ -1839,7 +1883,7 @@ touch ${TEMP_DIR}/thread9_in
               buildThreadBaseGeneralProcess 0;
               loadKodiBuildDir linux-x86_64 "Linux x86-64bit";
               if [ -d $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32 ];then
-                loadKodiBuildDir linux-x86_64 "Linux x86-64bit";fi
+                loadKodiBuildDir linux-x86_32 "Linux x86-32bit";fi
               if [ -d $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi ];then
                 loadKodiBuildDir linux-rpbi "Linux Raspberry PI";fi
               echo "#> msg field $GEN__BTN______DOWNLOAD_UPDATE:enable 1;";
@@ -1855,14 +1899,15 @@ touch ${TEMP_DIR}/thread9_in
               unset IFS;
               echo "#> msg field $GEN__BTN____DEL_OLD_LOG_FILES:enable 0;";
 
-              if [[ ! -z  `ls $BASE_PATH/build/*.old.log 2> /dev/null` ]];then
+              if [ ! -d "$BASE_PATH/build/log-old" ] && 
+                 [[ ! -z  `ls $BASE_PATH/build/log-old/*.old.log 2> /dev/null` ]];then
               {
                 showWarningDialog_YesNo "<b>\
 All old log files with '*.old.log' becomes deleted!
 
 Are you sure?</b>"
                 if [ $? = 0 ];then
-                  rm -vf $BASE_PATH/build/*.old.log;fi
+                  rm -vf $BASE_PATH/build/log-old/*.old.log;fi
               }
               else
                 echo "No old log files present, skipped.";fi
@@ -1915,14 +1960,13 @@ Are you sure?</b>"
       } done
     } done
   ) | \
-  yad-mupel-x86_64 --plug=$KEY --tabnum=1 --form \
+  $YAD_MUPEL --plug=$KEY --tabnum=1 --form \
             --text="General settings" \
             --pulsate \
             --xcom-log=$thread1_in \
             --field="Start build all:FBTN@0,8,0,2" "bash -c 'echo \"#< msg start_build;\" >> $thread1_in'" \
             --field="Stop build all:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build;\" >> $thread1_in'" \
             --field="Create and install Mupel system:FBTN@0,8,4,6" "bash $BASE_PATH/mupel-install --main-msg $thread1_in" \
-            --field="dummy:FBTN@8,8,4,6" "" \
             --field="Download/Update only:FBTN@0,0,12,14" "bash -c 'echo \"#< msg download_only;\" >> $thread1_in'" \
             --field="Open console window:FBTN@1,1,12,14" "bash -c 'echo \"#< msg open_console;\" >> $thread1_in'" \
             --field="dummy:FBTN@2,2,12,14" "" \
@@ -1932,6 +1976,7 @@ Are you sure?</b>"
             --field="Include Kodi:chk@0,0,20,22" $INCLUDE_KODI \
             --field="Include Kodi add-ons:chk@1,1,20,22" $INCLUDE_KODI_ADDONS \
             --field="Include CEF:chk@2,2,20,22" $INCLUDE_CEF \
+            --field="Disable build git update:chk@7,8,20,22" $DISABLE_GIT_UPDATE \
             --field="dummy:FBTN@0,1,24,26" "" \
             --field="Build log:termproc@0,9,28,30" "" > /dev/null 2>&1 &
   pid_thread1=$!
@@ -2411,7 +2456,7 @@ Done for '$BASE_PATH/build/cef-$GIT_CEF_USER/cef'
     }
     done
   ) | \
-  yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
+  $YAD_MUPEL --plug=$KEY --tabnum=$TAB_NUM --form \
                    --text="Git checks" \
                    --pulsate \
                    --xcom-log=$thread2_in \
@@ -2442,7 +2487,7 @@ TAB_LIST+="--tab=Git checks "
 ###############################################################################
 
 ###############################################################################
-# Thread three: Handle Linux 64 bit
+# Thread three: Handle Linux 64 bit (or 32 bit on single OS build system, to match my old Laptop ;D )
 if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
 {
   (
@@ -2482,7 +2527,8 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
       }
       else
         kodi_direct=0;fi
-      echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-$LINUX_BUILD_TYPE/Makefile" ] && echo 1 || echo 0);";
+
+      echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-$LINUX_BUILD_TYPE/configure" ] && echo 1 || echo 0);";
       echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
       echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
 
@@ -2584,7 +2630,7 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
                 kodi_direct=1
               else
                 kodi_direct=0;fi
-              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-$LINUX_BUILD_TYPE/Makefile" ] && echo 1 || echo 0);";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-$LINUX_BUILD_TYPE/configure" ] && echo 1 || echo 0);";
               echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
               echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
               echo "#> msg field $BUILD__BTN___________DEBUGGER:visible 0;";
@@ -2769,7 +2815,7 @@ This give 10 seconds time to start debugger."
     }
     done
   ) | \
-  yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
+  $YAD_MUPEL --plug=$KEY --tabnum=$TAB_NUM --form \
              --text="Linux x86 (Debian/Ubuntu based)" \
              --pulsate \
              --xcom-log=$thread3_in \
@@ -2828,7 +2874,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
       }
       else
         kodi_direct=0;fi
-      echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/Makefile" ] && echo 1 || echo 0);";
+      echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/configure" ] && echo 1 || echo 0);";
       echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
       echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
       echo "#> msg field $BUILD__BTN___________DEBUGGER:visible 0;";
@@ -2924,7 +2970,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
                 kodi_direct=1
               else
                 kodi_direct=0;fi
-              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/Makefile" ] && echo 1 || echo 0);";
+              echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/configure" ] && echo 1 || echo 0);";
               echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
               echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
               echo "#> msg field $BUILD__BTN___________DEBUGGER:visible 0;";
@@ -3017,7 +3063,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
     }
     done
   ) | \
-  yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
+  $YAD_MUPEL --plug=$KEY --tabnum=$TAB_NUM --form \
              --text="Linux Raspberry PI build" \
              --pulsate \
              --xcom-log=$thread4_in \
@@ -3269,7 +3315,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
     }
     done
   ) | \
-  yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
+  $YAD_MUPEL --plug=$KEY --tabnum=$TAB_NUM --form \
              --text="Windows build" \
              --pulsate \
              --xcom-log=$thread5_in \
@@ -3516,7 +3562,7 @@ if [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
     }
     done
   ) | \
-  yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
+  $YAD_MUPEL --plug=$KEY --tabnum=$TAB_NUM --form \
              --text="Mac OS X build" \
              --pulsate \
              --xcom-log=$thread6_in \
@@ -3768,7 +3814,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
     }
     done
   ) | \
-  yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
+  $YAD_MUPEL --plug=$KEY --tabnum=$TAB_NUM --form \
              --text="Android" \
              --pulsate \
              --xcom-log=$thread7_in \
@@ -4016,7 +4062,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
     }
     done
   ) | \
-  yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
+  $YAD_MUPEL --plug=$KEY --tabnum=$TAB_NUM --form \
              --text="iOS/ATV2" \
              --pulsate \
              --xcom-log=$thread8_in \
@@ -4083,7 +4129,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       targets=$(echo ${targets//$LINUX_BUILD_TYPE/\^${LINUX_BUILD_TYPE}});
       echo "#> msg field $SET_LINUX__________BUILD_TYPE:set $targets;"
 
-      [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]] &&
+      [[ $SYSTEM_BITS = 64 ]] && [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]] &&
         use_it=1 || use_it=0
       echo "#> msg field $SET_WINDOWS____________TARGET:visible $use_it;"
       echo "#> msg field $SET_WINDOWS______SSH_USERNAME:visible $use_it;"
@@ -4092,6 +4138,9 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       echo "#> msg field $SET_WINDOWS__________SSH_PORT:visible $use_it;"
       echo "#> msg field $SET_WINDOWS________SSH_ACCESS:visible $use_it;"
       echo "#> msg field $SET_WINDOWS_________INSTALLER:visible $use_it;"
+      echo "#> msg field $SET_WINDOWS______OPEN_CONTROL:visible $use_it;"
+      echo "#> msg field $SET_WINDOWS________BUILD_TYPE:visible $use_it;"
+
       [ $use_it = 1 ] && [[ -f $BASE_PATH/tools/windows/install-systembuild-windows ]] &&
         use_it_2=1 || use_it_2=0;
       [ $use_it = 1 ] && [[ -n $WINDOWS_DEFAULT_RUN ]] && [[ -n $(ps aux | grep qemu-system-x86_64 | grep $WINDOWS_DEFAULT_RUN) ]] &&
@@ -4115,7 +4164,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       targets=$(echo ${targets//$WINDOWS_BUILD_TYPE/\^${WINDOWS_BUILD_TYPE}});
       echo "#> msg field $SET_WINDOWS________BUILD_TYPE:set $targets;"
 
-      [[ $USE_MAC_OS_X_64 = "TRUE" ]] && use_it=1 || use_it=0
+      [[ $SYSTEM_BITS = 64 ]] && [[ $USE_MAC_OS_X_64 = "TRUE" ]] && use_it=1 || use_it=0
       echo "#> msg field $SET_MAC________________TARGET:visible $use_it;"
       echo "#> msg field $SET_MAC__________SSH_USERNAME:visible $use_it;"
       echo "#> msg field $SET_MAC__________SSH_PASSWORD:visible $use_it;"
@@ -4123,7 +4172,9 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       echo "#> msg field $SET_MAC______________SSH_PORT:visible $use_it;"
       echo "#> msg field $SET_MAC_________________START:visible $use_it;"
       echo "#> msg field $SET_MAC____________SSH_ACCESS:visible $use_it;"
-      [ $use_it = 1 ] && [[ -f $BASE_PATH/tools/mac-osx/install-systembuild-mac-osx ]] &&
+      echo "#> msg field $SET_MAC__________OPEN_CONTROL:visible $use_it;"
+      echo "#> msg field $SET_MAC____IOS_ATV_BUILD_TYPE:visible $use_it;"
+      [[ $SYSTEM_BITS = 64 ]] && [ $use_it = 1 ] && [[ -f $BASE_PATH/tools/mac-osx/install-systembuild-mac-osx ]] &&
         use_it_2=1 || use_it_2=0;
       echo "#> msg field $SET_MAC_____________INSTALLER:visible $use_it_2;"
       [ $use_it = 1 ] && [[ -n $MAC_OS_X_DEFAULT_RUN ]] && [[ -n $(ps aux | grep qemu-system-x86_64 | grep $MAC_OS_X_DEFAULT_RUN) ]] &&
@@ -4145,15 +4196,15 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       targets=$(echo ${targets//$selected/\^${selected}});
       echo "#> msg field $SET_MAC____IOS_ATV_BUILD_TYPE:set $targets;";
 
-      [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]] &&
+      [[ $SYSTEM_BITS = 64 ]] && [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]] &&
         use_it=1 || use_it=0
       echo "#> msg field $SET_ANDROID________BUILD_TYPE:visible $use_it;"
       echo "#> msg field $SET_ANDROID__BUILD_SYS_TARGET:visible $use_it;"
       echo "#> msg field $SET_ANDROID_______AVD_MANAGER:visible $use_it;"
-      [[ $USE_ANDROID_ARM = "TRUE" ]] &&
+      [[ $SYSTEM_BITS = 64 ]] && [[ $USE_ANDROID_ARM = "TRUE" ]] &&
         use_it=1 || use_it=0
       echo "#> msg field $SET_ANDROID____ARM_EMU_SOURCE:visible $use_it;"
-      [[ $USE_ANDROID_X86 = "TRUE" ]] &&
+      [[ $SYSTEM_BITS = 64 ]] && [[ $USE_ANDROID_X86 = "TRUE" ]] &&
         use_it=1 || use_it=0
       echo "#> msg field $SET_ANDROID____x86_EMU_SOURCE:visible $use_it;"
 
@@ -4341,7 +4392,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       } done
     } done
   ) | \
-  yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
+  $YAD_MUPEL --plug=$KEY --tabnum=$TAB_NUM --form \
              --pulsate \
              --xcom-log=$thread9_in \
              --field="<b>Kodi:</b>:LBL@0,8,2,4" '' \
@@ -4417,7 +4468,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
 ###############################################################################
 # Thread ten: Handle help
 {
-  yad-mupel-x86_64 --plug=$KEY --tabnum=$TAB_NUM --form \
+  $YAD_MUPEL --plug=$KEY --tabnum=$TAB_NUM --form \
              --text="Help" \
              --field=":LBL@0,1,0,1" '' \
              --field="<b>Helper commands:</b>:LBL@0,1,1,2" '' \
@@ -4438,24 +4489,24 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
 ###############################################################################
 # Thread main
 {
-yad-mupel-x86_64 --notebook \
-      --width=1024 --height=768 \
-      --title="Mupel" \
-      --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" \
-      --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
-      --image-on-top \
-      --text="\
+  $YAD_MUPEL --notebook \
+             --width=1024 --height=768 \
+             --title="Mupel" \
+             --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" \
+             --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
+             --image-on-top \
+             --text="\
 <i><span size=\"larger\">Multi platform build environment for Kodi on Linux (Mupel)</span></i>
 <i>Version:</i> $MUPEL_VERSION" \
-      --key=$KEY \
-      --tab-pos=left \
-      --tab="General" \
-      $TAB_LIST \
-      --tab="Settings" \
-      --tab="Help" \
-      --button=gtk-ok:0 > /dev/null 2>&1
+             --key=$KEY \
+             --tab-pos=left \
+             --tab="General" \
+             $TAB_LIST \
+             --tab="Settings" \
+             --tab="Help" \
+             --button=gtk-ok:0 > /dev/null 2>&1
 
-unset SYSTEM_ACTIVE
+  unset SYSTEM_ACTIVE
 }
 #
 ###############################################################################

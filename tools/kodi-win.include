@@ -55,7 +55,9 @@ touch $TEMP_DIR/kodi-windows-x86_${BIT_SIZE}.failed;
 . "$BASE_PATH/versions";
 
 # Load or update kodi
-loadKodiBuildDir $BUILD_SYSTEM "Windows x86-${BIT_SIZE}bit" "c:/mupel/kodi-$GIT_USER/";
+if [ ! -d "c:/mupel/kodi-$GIT_USER/kodi-$BUILD_SYSTEM" ] ||
+   [[ $DISABLE_GIT_UPDATE = FALSE ]];then
+  loadKodiBuildDir $BUILD_SYSTEM "Windows x86-${BIT_SIZE}bit" "c:/mupel/kodi-$GIT_USER/";fi
 
 export Configuration=$INSTALL_DIR_TYPE;
 export TARBALLS=$BASE_PATH/build/kodi-tarballs;

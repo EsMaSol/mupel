@@ -33,8 +33,13 @@ IN_DATA_ARRAY=$2
 trap 'trapError ${LINENO};' ERR
 
 if [ -f "${BASE_PATH}/build/run-${USED_SYSTEM}.log" ];then
-  mv "${BASE_PATH}/build/run-${USED_SYSTEM}.log" "${BASE_PATH}/build/run-${USED_SYSTEM}-`date +%F_%H-%m`.old.log";fi
-touch "${BASE_PATH}/build/run-${USED_SYSTEM}.log"
+{
+  if [ ! -d "$BASE_PATH/build/log-old" ];then
+    mkdir "$BASE_PATH/build/log-old";fi
+  mv "${BASE_PATH}/build/run-${USED_SYSTEM}.log" \
+     "${BASE_PATH}/build/log-old/run-${USED_SYSTEM}-`date +%F_%H-%m`.old.log";
+} fi
+touch "${BASE_PATH}/build/run-${USED_SYSTEM}.log";
 
 (
 GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'||'.org/'' '{print $2}' | awk -F '/' '{print $1}');

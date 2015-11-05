@@ -268,24 +268,34 @@ function handleSkipPresent
 #                                                                             #
 DIST=`grep DISTRIB_ID /etc/*-release | awk -F '=' '{print $2}'`
 [[ $DIST != "Ubuntu" ]] && [[ $DIST != "Debian" ]] && {
-  echo "${RED}${BRIGHT}Build not possible, need performed on ubuntu or debian based system (needed for install of dependencies parts)!${NORMAL}" > /dev/stderr
+  printf "${RED}${BRIGHT}Build not possible, need performed on ubuntu or debian based system (needed for install of dependencies parts)! ${NORMAL}\n" > /dev/stderr
   exit 1 ;
 }
 
 # Check that xserver is running and user is root.
 [[ $DISPLAY ]] || {
-  echo $"${RED}${BRIGHT}There is no xserver running. Exiting...${NORMAL}";
+  printf "${RED}${BRIGHT}There is no xserver running. Exiting...${NORMAL}\n";
   exit 1;
 }
 
-[[ `uname -m` != "x86_64" ]] && {
-  echo $"${RED}${BRIGHT}Wrong system, a 64 bit linux OS is needed!${NORMAL}";
-  exit 1;
+if [[ `uname -m` = "i686" ]];then
+{
+  printf "${YELLOW}${BRIGHT}Old system, on a 32 bit linux OS is only be build on itself possible! ${NORMAL}\n"; 
+  SYSTEM_BITS=32;
 }
+elif [[ `uname -m` = "x86_64" ]];the
+{
+  SYSTEM_BITS=64;
+}
+else
+{
+  printf "${RED}${BRIGHT}Wrong system, a 64 bit linux OS is needed! ${NORMAL}\n";
+  exit 1;
+} fi
 
 # Check that we are running as a regular user
 [ "$(id -nu)" = root ] && {
-  printf "${RED}${BRIGHT}Run this script as a regular user and provide your \"sudo\" password if requested!${NORMAL}\n" > /dev/stderr
+  printf "${RED}${BRIGHT}Run this script as a regular user and provide your \"sudo\" password if requested! ${NORMAL}\n" > /dev/stderr
   exit 1;
 }
 
@@ -342,6 +352,7 @@ EMU_INSTALL_PREFIX=${EMU_INSTALL_PREFIX:-$INSTALL_PREFIX/systems}
 
 RELEASE_BUILD=${RELEASE_BUILD:-TRUE}
 DEBUG_BUILD=${DEBUG_BUILD:-FALSE}
+SYSTEM_BITS=${SYSTEM_BITS:-64}
 
 KODI_SOURCE_URL=${KODI_SOURCE_URL:-https://github.com/xbmc/xbmc}
 KODI_SOURCE_URL_INACTIVE=$KODI_SOURCE_URL_INACTIVE
@@ -369,7 +380,9 @@ DEPOT_TOOLS_URL=${DEPOT_TOOLS_URL:-https://chromium.googlesource.com/chromium/to
 INCLUDE_KODI=${INCLUDE_KODI:-TRUE}
 INCLUDE_KODI_ADDONS=${INCLUDE_KODI_ADDONS:-FALSE}
 INCLUDE_CEF=${INCLUDE_CEF:-FALSE}
+INCLUDE_USER_SCRIPT=${INCLUDE_USER_SCRIPT:-FALSE}
 SUPPORT_CEF=${SUPPORT_CEF:-TRUE}
+DISABLE_GIT_UPDATE=${DISABLE_GIT_UPDATE:-FALSE}
 
 ADD_PATHS=${ADD_PATHS:-$BASE_PATH/build/depot_tools}
 
@@ -872,7 +885,7 @@ saveConfigFile
 # comes from (e.g. to use emulation also without them).
 mkdir -p $INSTALL_PREFIX/tools
 cp -f $BASE_PATH/tools/tool_functions $INSTALL_PREFIX/tools
-cp -f $BASE_PATH/tools/yad-mupel-x86_64 $INSTALL_PREFIX/tools
+cp -f $BASE_PATH/tools/yad-mupel-$(uname -m) $INSTALL_PREFIX/tools
 cp -rf $BASE_PATH/icons $INSTALL_PREFIX
 
 ##
