@@ -27,6 +27,7 @@
 *.out
 *.app
 
+*~
 /build
 
 /tools/ios-atv2
