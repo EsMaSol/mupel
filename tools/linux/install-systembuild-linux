@@ -959,15 +959,15 @@ DIST=`grep DISTRIB_ID /etc/*-release | awk -F '=' '{print $2}'`
   exit 1;
 }
 
-if [[ `uname -m` = "i686" ]];then
+if [[ `uname -m` = "x86_64" ]];then
+{
+  SYSTEM_BITS=64;
+}
+elif [[ `uname -m` = "i686" ]];then
 {
   printf "${YELLOW}${BRIGHT}Old system, on a 32 bit linux OS is only be build on itself possible! ${NORMAL}\n"; 
   SYSTEM_BITS=32;
   include_32bit="TRUE";
-}
-elif [[ `uname -m` = "x86_64" ]];the
-{
-  SYSTEM_BITS=64;
 }
 else
 {
@@ -1113,6 +1113,13 @@ function parse_values
   } fi
 }
 
+if [ $SYSTEM_BITS = 32 ];then
+{
+  ADDITIONAL_TEXT="
+    Build is on Linux 32bit and no other systems are as this
+    is supported!"
+} fi
+
 while :; do
 {
   thread1_in=${TEMP_DIR}/thread1_in
@@ -1121,6 +1128,11 @@ while :; do
   (
     echo "#> msg field 10:enable 0;"
     echo "#> msg field 11:enable 0;"
+
+    if [ $SYSTEM_BITS = 32 ];then
+    {
+      echo "#> msg field 14:enable 0;"
+    } fi
 
     # Main loop
     while :;do
@@ -1178,7 +1190,8 @@ while :; do
    a Debian or Ubuntu distribution in a chroot environment.
 
    You will have to provide your \"sudo\" password when
-   requested.:LBL" "" \
+   requested.
+   $ADDITIONAL_TEXT:LBL" "" \
             --field=":LBL" "" \
             --field="Select what you want to do:CB" "$way_selection" \
             --field=":LBL" "" \

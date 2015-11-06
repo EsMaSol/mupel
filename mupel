@@ -23,6 +23,7 @@ DIST=`grep DISTRIB_ID /etc/*-release | awk -F '=' '{print $2}'`
 BASE_PATH=$(cd $(dirname $0) ; pwd -P)
 PATH="$BASE_PATH/tools:$PATH"
 
+. $BASE_PATH/versions
 . $BASE_PATH/tools/tool_functions
 
 ##
@@ -42,21 +43,21 @@ USE_IOS_ATV2="FALSE"
 
 RELEASE_BUILD=0
 DEBUG_BUILD=0
-SYSTEM_BITS=32
+SYSTEM_BITS=64
 
 KODI_SOURCE_URL=""
 KODI_SOURCE_URL_INACTIVE=""
-KODI_SOURCE_URL_BASE="https://github.com/xbmc/xbmc"
-KODI_SOURCE_BRANCH=""
+KODI_SOURCE_URL_BASE=$KODI_SOURCE_DEFAULT_URL_BASE
+KODI_SOURCE_BRANCH=$KODI_SOURCE_DEFAULT_BRANCH
 KODI_SOURCE_USE_BASE="FALSE"
 KODI_RUN_TESTS="FALSE"
 KODI_CONF_IN_DIRECT_BUILD="FALSE"
 KODI_DEP_CLEAN="FALSE"
 KODI_SEL_ADDON=""
-CEF_SOURCE_URL=""
+CEF_SOURCE_URL=$CEF_SOURCE_DEFAULT_URL
 CEF_SOURCE_URL_INACTIVE=""
 CEF_SOURCE_URL_BASE="https://bitbucket.org/chromiumembedded/cef"
-CEF_SOURCE_BRANCH=""
+CEF_SOURCE_BRANCH=$CEF_SOURCE_DEFAULT_BRANCH
 CEF_SOURCE_USE_BASE="FALSE"
 CEF_DEBUG="FALSE"
 CEF_FORCE_UPDATE="FALSE"
@@ -366,10 +367,11 @@ function parse_values
       echo "#> msg field $SET_KODI________SOURCE_BRANCH:enable 0;"
 
       KODI_SOURCE_USE_BASE=${value%|}
+      KODI_SOURCE_USE_BASE=${KODI_SOURCE_USE_BASE:-FALSE}
       if [ $KODI_SOURCE_USE_BASE = "TRUE" ];then
       {
         KODI_SOURCE_URL_INACTIVE=$KODI_SOURCE_URL
-        KODI_SOURCE_URL=$KODI_SOURCE_URL_BASE
+        KODI_SOURCE_URL=${KODI_SOURCE_URL_BASE:-KODI_SOURCE_DEFAULT_URL_BASE};
         GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{print $2}' | awk -F '/' '{print $1}');
       }
       else
@@ -399,6 +401,7 @@ function parse_values
         git -C $BASE_PATH/build/kodi-$GIT_USER/kodi checkout ${value%|} -f
       } fi
       KODI_SOURCE_BRANCH=${value%|}
+      KODI_SOURCE_BRANCH=${KODI_SOURCE_BRANCH:-KODI_SOURCE_DEFAULT_BRANCH}
     }
     elif [[ $id = $SET_KODI____________RUN_TESTS ]];then
     {
@@ -467,6 +470,7 @@ function parse_values
         git -C $BASE_PATH/build/cef-$GIT_CEF_USER/cef checkout ${value%|} -f
       } fi
       CEF_SOURCE_BRANCH=${value%|}
+      CEF_SOURCE_BRANCH=${CEF_SOURCE_BRANCH:-CEF_SOURCE_DEFAULT_BRANCH}
     }
     elif [[ $id = $SET_CEF_________________DEBUG ]];then
     {
@@ -513,7 +517,7 @@ function parse_values
     }
     elif [[ $id = $SET_LINUX_______USE_GUI_DEBUG ]];then
     {
-      USE_GUI_DEBUG=${value%|}
+      USE_GUI_DEBUG=${value%|:-TRUE}
     }
     elif [[ $id = $SET_LINUX__________BUILD_TYPE ]];then
     {
@@ -681,7 +685,7 @@ function parse_values
     }
     elif [[ $id = $SET_VAR____NO_WARNING_ON_FAIL ]];then
     {
-      NO_WARNING_ON_FAIL=${value%|}
+      NO_WARNING_ON_FAIL=${value%|:-FALSE}
     } fi
 
     set IFS=$IFS_BU
@@ -1359,7 +1363,7 @@ function getWindowsTargets
 
     windows_targets=$(ls -d $EMU_INSTALL_PREFIX/emu-windows* 2> /dev/null | awk -F"/" '{print $NF}' | tr '\n'  '!');
     windows_targets+=$(ls -d $EMU_INSTALL_PREFIX/ext-windows* 2> /dev/null | awk -F"/" '{print $NF}' | tr '\n'  '!');
-    windows_targets=${windows_targets::-1};
+#    windows_targets=${windows_targets::-1} > /dev/null
     windows_targets=$(echo ${windows_targets//$WINDOWS_DEFAULT_RUN/\^${WINDOWS_DEFAULT_RUN}});
   } fi
   echo $windows_targets;
@@ -1376,7 +1380,7 @@ function getMacOSXTargets
 
     macosx_targets=$(ls -d $EMU_INSTALL_PREFIX/emu-mac-osx* 2> /dev/null | awk -F"/" '{print $NF}' | tr '\n'  '!');
     macosx_targets+=$(ls -d $EMU_INSTALL_PREFIX/ext-mac-osx* 2> /dev/null | awk -F"/" '{print $NF}' | tr '\n'  '!');
-    macosx_targets=${macosx_targets::-1};
+#    macosx_targets=${macosx_targets::-1} > /dev/null 2>&1
     macosx_targets=$(echo ${macosx_targets//$MAC_OS_X_DEFAULT_RUN/\^${MAC_OS_X_DEFAULT_RUN}});
   } fi
   echo $macosx_targets;
@@ -1672,16 +1676,16 @@ function openPullRequestInfoDialog
   exit 1;
 }
 
-if [[ `uname -m` = "i686" ]];then
+if [[ `uname -m` = "x86_64" ]];then
+{
+  SYSTEM_BITS=64;
+  YAD_MUPEL=yad-mupel-x86_64
+}
+elif [[ `uname -m` = "i686" ]];then
 {
   printf "${YELLOW}${BRIGHT}Old system, on a 32 bit linux OS is only be build on itself possible! ${NORMAL}\n"; 
   SYSTEM_BITS=32;
   YAD_MUPEL=yad-mupel-i686
-}
-elif [[ `uname -m` = "x86_64" ]];then
-{
-  SYSTEM_BITS=64;
-  YAD_MUPEL=yad-mupel-x86_64
 }
 else
 {
@@ -1708,7 +1712,7 @@ mutexUnlock_BaseBuild
 # not direct problematic on system but a hack way
 killall $basic_dialog -q;
 
-$basic_dialog --html --width=644 --height=478 --uri=/home/alwin/mupel/icons/mupel-start-image.png --undecorated --no-buttons --sticky --on-top --center --skip-taskbar &
+$basic_dialog --html --width=644 --height=478 --uri=/home/alwin/mupel/icons/mupel-start-image.png --undecorated --no-buttons --sticky --on-top --center --skip-taskbar 2> /dev/null &
 start_dialog_pid=$!;
 sleep 1.5
 
@@ -4122,10 +4126,18 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       echo "#> msg field $SET_CEF_________SOURCE_BRANCH:visible $use_it;"
       echo "#> msg field $SET_CEF_________VERBOSE_BUILD:visible $use_it;"
 
-      [[ $USE_LINUX_X86_32 = "TRUE" ]] && [[ $USE_LINUX_X86_64 = "TRUE" ]] &&
-        use_it=1 || use_it=0
+      if [ $SYSTEM_BITS = 64 ];then
+      {
+        [[ $USE_LINUX_X86_32 = "TRUE" ]] && [[ $USE_LINUX_X86_64 = "TRUE" ]] &&
+          use_it=1 || use_it=0
+        targets="x86_32!x86_64";
+      }
+      else
+      {
+        targets="x86_32";
+        use_it=0
+      } fi
       echo "#> msg field $SET_LINUX__________BUILD_TYPE:enable $use_it;"
-      targets="x86_32!x86_64"
       targets=$(echo ${targets//$LINUX_BUILD_TYPE/\^${LINUX_BUILD_TYPE}});
       echo "#> msg field $SET_LINUX__________BUILD_TYPE:set $targets;"
 
@@ -4200,6 +4212,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
         use_it=1 || use_it=0
       echo "#> msg field $SET_ANDROID________BUILD_TYPE:visible $use_it;"
       echo "#> msg field $SET_ANDROID__BUILD_SYS_TARGET:visible $use_it;"
+      echo "#> msg field $SET_ANDROID_________INSTALLER:visible $use_it;"
       echo "#> msg field $SET_ANDROID_______AVD_MANAGER:visible $use_it;"
       [[ $SYSTEM_BITS = 64 ]] && [[ $USE_ANDROID_ARM = "TRUE" ]] &&
         use_it=1 || use_it=0
@@ -4397,29 +4410,29 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --xcom-log=$thread9_in \
              --field="<b>Kodi:</b>:LBL@0,8,2,4" '' \
              --field="Repository:@0,3,4,6" "$KODI_SOURCE_URL" \
-             --field="Use base:CHK@4,5,4,6" "$KODI_SOURCE_USE_BASE" \
+             --field="Use base:CHK@4,5,4,6" "${KODI_SOURCE_USE_BASE:-FALSE}" \
              --field="Branch:CB@6,8,4,6" '' \
-             --field="Run tests:CHK@0,0,6,8" "$KODI_RUN_TESTS" \
-             --field="Configure in direct build:CHK@1,2,6,8" "$KODI_CONF_IN_DIRECT_BUILD" \
-             --field="Depclean on branch change:CHK@3,4,6,8" "$KODI_DEP_CLEAN" \
+             --field="Run tests:CHK@0,0,6,8" "${KODI_RUN_TESTS:-FALSE}" \
+             --field="Configure in direct build:CHK@1,2,6,8" "${KODI_CONF_IN_DIRECT_BUILD:-FALSE}" \
+             --field="Depclean on branch change:CHK@3,4,6,8" "${KODI_DEP_CLEAN:-FALSE}" \
              --field=":LBL@0,8,10,11" '' \
              --field="<b>CEF (Chromium embedded framwork):</b>:LBL@0,8,11,12" '' \
              --field="Repository:@0,3,12,13" "$CEF_SOURCE_URL" \
-             --field="Use base:CHK@4,5,12,13" "$CEF_SOURCE_USE_BASE" \
+             --field="Use base:CHK@4,5,12,13" "${CEF_SOURCE_USE_BASE:-FALSE}" \
              --field="Branch:CB@6,8,12,13" '' \
-             --field="Debug:CHK@0,0,13,14" "$CEF_DEBUG" \
-             --field="Force update:CHK@1,1,13,14" "$CEF_FORCE_UPDATE" \
-             --field="No update:CHK@2,2,13,14" "$CEF_NO_UPDATE" \
-             --field="Force config:CHK@3,3,13,14" "$CEF_FORCE_CONFIG" \
-             --field="Force clean:CHK@4,4,13,14" "$CEF_FORCE_CLEAN" \
-             --field="Force clean deps:CHK@5,6,13,14" "$CEF_FORCE_CLEAN_DEPS" \
-             --field="Build tests:CHK@7,7,13,14" "$CEF_BUILD_TESTS" \
-             --field="Verbose build:CHK@8,8,13,14" "$CEF_VERBOSE_BUILD" \
+             --field="Debug:CHK@0,0,13,14" "${CEF_DEBUG:-FALSE}" \
+             --field="Force update:CHK@1,1,13,14" "${CEF_FORCE_UPDATE:-FALSE}" \
+             --field="No update:CHK@2,2,13,14" "${CEF_NO_UPDATE:-FALSE}" \
+             --field="Force config:CHK@3,3,13,14" "${CEF_FORCE_CONFIG:-FALSE}" \
+             --field="Force clean:CHK@4,4,13,14" "${CEF_FORCE_CLEAN:-FALSE}" \
+             --field="Force clean deps:CHK@5,6,13,14" "${CEF_FORCE_CLEAN_DEPS:-FALSE}" \
+             --field="Build tests:CHK@7,7,13,14" "${CEF_BUILD_TESTS:-FALSE}" \
+             --field="Verbose build:CHK@8,8,13,14" "${CEF_VERBOSE_BUILD:-FALSE}" \
              --field=":LBL@0,8,15,16" '' \
              --field="<b>Linux settings:</b>:LBL@0,0,16,17" '' \
              --field="Used 32/64bit Distribution:CB@1,2,16,17" "$(getLinuxTargetDist)" \
              --field="Distribution control:FBTN@3,4,16,17" "bash -c 'echo \"#< msg open_dist_control\" >> $thread9_in'" \
-             --field="Use GUI debug:CHK@5,5,16,17" "$USE_GUI_DEBUG" \
+             --field="Use GUI debug:CHK@5,5,16,17" "${USE_GUI_DEBUG:-TRUE}" \
              --field="Build type:CB@7,8,16,17" 'x86_32!x86_64' \
              --field=":LBL@0,8,21,22" '' \
              --field="<b>Windows settings:</b>:LBL@0,0,22,23" '' \
@@ -4454,10 +4467,10 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field="ARM | x86 AVD emulation:CB@1,4,39,40" "$(getAndroidAVDS arm)" \
              --field=":CB@4,8,39,40" "$(getAndroidAVDS x86)" \
              --field=":LBL@0,8,41,42" '' \
-             --field="CPU process jobs:NUM@0,1,43,44" "${CPU_PROC_JOBS}!1..32" \
-             --field="Emulation prefix:MDIR@2,4,43,44" "$EMU_INSTALL_PREFIX" \
-             --field="Include last open requests in branch:CHK@5,6,43,44" "$INCLUDE_OPEN_PULL_REQUESTS" \
-             --field="No warning dialog on fail:CHK@7,8,43,44" "$NO_WARNING_ON_FAIL" \
+             --field="CPU process jobs:NUM@0,1,43,44" "${CPU_PROC_JOBS:-8}!1..32" \
+             --field="Emulation prefix:MDIR@2,4,43,44" "${EMU_INSTALL_PREFIX:-$HOME/.mupel/systems}" \
+             --field="Include last open requests in branch:CHK@5,6,43,44" "${INCLUDE_OPEN_PULL_REQUESTS:-FALSE}" \
+             --field="No warning dialog on fail:CHK@7,8,43,44" "${NO_WARNING_ON_FAIL:-FALSE}" \
              --field=":XTALK" '' > /dev/null &
   pid_thread9=$!
   ((TAB_NUM++))
