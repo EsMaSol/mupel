@@ -280,10 +280,10 @@ DIST=`grep DISTRIB_ID /etc/*-release | awk -F '=' '{print $2}'`
 
 if [[ `uname -m` = "i686" ]];then
 {
-  printf "${YELLOW}${BRIGHT}Old system, on a 32 bit linux OS is only be build on itself possible! ${NORMAL}\n"; 
+  printf "${YELLOW}${BRIGHT}Old system, on a 32 bit linux OS is only be build on itself possible! ${NORMAL}\n";
   SYSTEM_BITS=32;
 }
-elif [[ `uname -m` = "x86_64" ]];the
+elif [[ `uname -m` = "x86_64" ]];then
 {
   SYSTEM_BITS=64;
 }
