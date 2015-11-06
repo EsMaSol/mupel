@@ -278,14 +278,14 @@ DIST=`grep DISTRIB_ID /etc/*-release | awk -F '=' '{print $2}'`
   exit 1;
 }
 
-if [[ `uname -m` = "i686" ]];then
+if [[ `uname -m` = "x86_64" ]];then
+{
+  SYSTEM_BITS=64;
+}
+elif [[ `uname -m` = "i686" ]];then
 {
   printf "${YELLOW}${BRIGHT}Old system, on a 32 bit linux OS is only be build on itself possible! ${NORMAL}\n";
   SYSTEM_BITS=32;
-}
-elif [[ `uname -m` = "x86_64" ]];then
-{
-  SYSTEM_BITS=64;
 }
 else
 {
@@ -498,7 +498,7 @@ while :; do
   install_values=$(showdialog --form --title="Mupel - Installer" \
                              --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" \
                              --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
-                             --width=1024 \
+                             --width=800 \
                              --height=500 \
                              --field="<i><span size=\"large\">Mupel cross build system installer</span></i>:LBL" "" \
                              --field="Kodi git repository:"           "$KODI_SOURCE_URL" \
@@ -514,7 +514,7 @@ while :; do
                              --field="Include Linux Raspberry PI:CHK" "$USE_LINUX_RPBI" \
                              --field="Include Android ARM:CHK"        "$USE_ANDROID_ARM" \
                              --field="Include Android x86:CHK"        "$USE_ANDROID_X86" \
-                             --field="Include iOS-ATV2:CHK"           "$USE_IOS_ATV2" \
+                             --field="Include iOS:CHK"                "$USE_IOS_ATV2" \
                              --field="Emulation install prefix:DIR"   "$EMU_INSTALL_PREFIX" \
                              --field=":LBL" "" \
                              --field="Chromium depot tools git repository:" "$DEPOT_TOOLS_URL" \
@@ -820,15 +820,15 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
   {
     while :; do
     {
-      env_install_ios_atv2=$(showdialog --title="Select creation script for access to IOS-ATV2 system over ssh" \
+      env_install_ios_atv2=$(showdialog --title="Select creation script for access to iOS system over ssh" \
                                         --file --file-filter="install-systembuild-android *.install *.sh" \
                                         --width=700 --height=480 2> /dev/null);
       if [ $? != 0 ];then
       {
-        showWarningDialog_YesNo "<b>Selection of IOS-ATV2 access creation script failed!</b>\n\nTry again?";
+        showWarningDialog_YesNo "<b>Selection of iOS access creation script failed!</b>\n\nTry again?";
         if [ $? != 0 ];then
         {
-          showQuestionDialog "<b>Continue without IOS-ATV2 access install?</b>";
+          showQuestionDialog "<b>Continue without iOS access install?</b>";
           [ $? = 0 ] && break;
           exit_build 1;
         } fi
@@ -853,11 +853,11 @@ INST_GIT_USER=$(echo $KODI_SOURCE_URL | tr ':' '/' | awk -F ''.com/'|'.org/'' '{
 if [ ! -d $BASE_PATH/build/kodi-xbmc/kodi ] && [ $INST_GIT_USER != xbmc ];then
 {
   [ ! -d $BASE_PATH/build/kodi-xbmc ] && mkdir $BASE_PATH/build/kodi-xbmc;
-  handleGITLoad "$BASE_PATH/build/kodi-xbmc" kodi $KODI_SOURCE_URL_BASE master |
+  handleGITLoad "$BASE_PATH/build/kodi-xbmc" kodi $KODI_SOURCE_DEFAULT_URL_BASE master |
     showdialog --title="Install" \
                --image="$BASE_PATH/icons/icon-install-128x128.png" \
                --progress --width=600 \
-               --text="Load source repository '$KODI_SOURCE_URL_BASE' ..." \
+               --text="Load source repository '$KODI_SOURCE_DEFAULT_URL_BASE' ..." \
                --pulsate --button=gtk-cancel:1 --auto-close > /dev/null;
 } fi
 
