@@ -1712,7 +1712,10 @@ mutexUnlock_BaseBuild
 # not direct problematic on system but a hack way
 killall $basic_dialog -q;
 
-$basic_dialog --html --width=644 --height=478 --uri=/home/alwin/mupel/icons/mupel-start-image.png --undecorated --no-buttons --sticky --on-top --center --skip-taskbar 2> /dev/null &
+$basic_dialog --html --width=644 --height=478 \
+              --uri=$BASE_PATH/icons/mupel-start-image.png \
+              --undecorated --no-buttons --sticky \
+              --on-top --center --skip-taskbar 2> /dev/null &
 start_dialog_pid=$!;
 sleep 1.5
 
