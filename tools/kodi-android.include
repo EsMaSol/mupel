@@ -131,6 +131,7 @@ printf "
 
 sleep 3
 
+[[ $ANDROID_SYSTEM = x86 ]] && ADDIT_BUILD_DIR_NAME=x86
 # Change to source code path
 cd $BASE_PATH/build/kodi-$GIT_USER/kodi-${BUILD_SYSTEM}
 
@@ -138,7 +139,7 @@ if [ ! -z $SELECTED_BUILD ];then
 {
   printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}$SELECTED_BUILD${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
   sleep 2
-  ./tools/buildsteps/android/$SELECTED_BUILD
+  ./tools/buildsteps/android${ADDIT_BUILD_DIR_NAME}/$SELECTED_BUILD
   if [ $SELECTED_BUILD = make-xbmc ];then
     make apk;
     make install;
@@ -152,25 +153,25 @@ elif [ -z $ADDON_BUILD ];then
   {
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}prepare-depends${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
-    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/tools/buildsteps/android/prepare-depends
+    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/tools/buildsteps/android${ADDIT_BUILD_DIR_NAME}/prepare-depends
     printf $CURS_UP
     log_success_msg
 
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}configure-depends${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
-    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/tools/buildsteps/android/configure-depends
+    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/tools/buildsteps/android${ADDIT_BUILD_DIR_NAME}/configure-depends
     printf $CURS_UP
     log_success_msg
 
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}make-depends${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
-    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/tools/buildsteps/android/make-depends
+    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/tools/buildsteps/android${ADDIT_BUILD_DIR_NAME}/make-depends
     printf $CURS_UP
     log_success_msg
 
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}prepare-xbmc${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
-    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/tools/buildsteps/android/prepare-xbmc
+    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/tools/buildsteps/android${ADDIT_BUILD_DIR_NAME}/prepare-xbmc
     printf $CURS_UP
     log_success_msg
   }
@@ -187,14 +188,14 @@ elif [ -z $ADDON_BUILD ];then
   {
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}configure-xbmc${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
-    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/tools/buildsteps/android/configure-xbmc
+    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/tools/buildsteps/android${ADDIT_BUILD_DIR_NAME}/configure-xbmc
     printf $CURS_UP
     log_success_msg
   } fi
 
   printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}make-xbmc${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
   sleep 2
-  bash $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/tools/buildsteps/android/make-xbmc
+  bash $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/tools/buildsteps/android${ADDIT_BUILD_DIR_NAME}/make-xbmc
   make apk;
   if [ -z $DIRECT_KODI_BUILD ];then
     make install;fi
@@ -207,7 +208,7 @@ elif [ -z $ADDON_BUILD ];then
     if [[ $INCLUDE_KODI_ADDONS != FALSE ]];then
     {
       printf "\n"
-      bash $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/tools/buildsteps/android/make-binary-addons
+      bash $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/tools/buildsteps/android${ADDIT_BUILD_DIR_NAME}/make-binary-addons
       printf $CURS_UP
       log_success_msg
     }
@@ -220,7 +221,7 @@ elif [ -z $ADDON_BUILD ];then
   if [[ $KODI_RUN_TESTS != FALSE ]];then
   {
     printf "\n"
-    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/tools/buildsteps/android/run-tests
+    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/tools/buildsteps/android${ADDIT_BUILD_DIR_NAME}/run-tests
     printf $CURS_UP
     log_success_msg
   }
