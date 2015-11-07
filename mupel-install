@@ -336,7 +336,7 @@ USE_MS_WINDOWS_64=${USE_MS_WINDOWS_64:-TRUE}
 USE_MAC_OS_X_64=${USE_MAC_OS_X_64:-TRUE}
 USE_ANDROID_ARM=${USE_ANDROID_ARM:-TRUE}
 USE_ANDROID_X86=${USE_ANDROID_X86:-TRUE}
-USE_IOS_ATV2=${USE_IOS_ATV2:-TRUE}
+USE_IOS=${USE_IOS:-TRUE}
 
 LINUX_X86_32_INSTALLED=${LINUX_X86_32_INSTALLED:-FALSE}
 LINUX_X86_64_INSTALLED=${LINUX_X86_64_INSTALLED:-FALSE}
@@ -346,7 +346,7 @@ MS_WINDOWS_64_INSTALLED=${MS_WINDOWS_64_INSTALLED:-FALSE}
 MAC_OS_X_64_INSTALLED=${MAC_OS_X_64_INSTALLED:-FALSE}
 ANDROID_ARM_INSTALLED=${ANDROID_ARM_INSTALLED:-FALSE}
 ANDROID_X86_INSTALLED=${ANDROID_X86_INSTALLED:-FALSE}
-IOS_ATV2_INSTALLED=${IOS_ATV2_INSTALLED:-FALSE}
+IOS_INSTALLED=${IOS_INSTALLED:-FALSE}
 
 EMU_INSTALL_PREFIX=${EMU_INSTALL_PREFIX:-$INSTALL_PREFIX/systems}
 
@@ -514,7 +514,7 @@ while :; do
                              --field="Include Linux Raspberry PI:CHK" "$USE_LINUX_RPBI" \
                              --field="Include Android ARM:CHK"        "$USE_ANDROID_ARM" \
                              --field="Include Android x86:CHK"        "$USE_ANDROID_X86" \
-                             --field="Include iOS:CHK"                "$USE_IOS_ATV2" \
+                             --field="Include iOS:CHK"                "$USE_IOS" \
                              --field="Emulation install prefix:DIR"   "$EMU_INSTALL_PREFIX" \
                              --field=":LBL" "" \
                              --field="Chromium depot tools git repository:" "$DEPOT_TOOLS_URL" \
@@ -555,7 +555,7 @@ USE_MAC_OS_X_64="$(echo $install_values | awk -F '|' '{print $11}')";
 USE_LINUX_RPBI="$(echo $install_values | awk -F '|' '{print $12}')";
 USE_ANDROID_ARM="$(echo $install_values | awk -F '|' '{print $13}')";
 USE_ANDROID_X86="$(echo $install_values | awk -F '|' '{print $14}')";
-USE_IOS_ATV2="$(echo $install_values | awk -F '|' '{print $15}')";
+USE_IOS="$(echo $install_values | awk -F '|' '{print $15}')";
 EMU_INSTALL_PREFIX="$(echo $install_values | awk -F '|' '{print $16}')";
 DEPOT_TOOLS_URL="$(echo $install_values | awk -F '|' '{print $18}')";
 USE_JENKINS="$(echo $install_values | awk -F '|' '{print $19}')";
@@ -810,17 +810,17 @@ if [[ $USE_ANDROID_X86 = "TRUE" ]] || [[ $USE_ANDROID_ARM = "TRUE" ]];then
   } fi
 } fi
 
-if [[ $USE_IOS_ATV2 = "TRUE" ]];then
+if [[ $USE_IOS = "TRUE" ]];then
 {
-  if [ -f $BASE_PATH/tools/ios-atv2/install-systembuild-ios-atv2 ];then
+  if [ -f $BASE_PATH/tools/ios/install-systembuild-ios ];then
   {
-    env_install_ios_atv2=$BASE_PATH/tools/ios-atv2/install-systembuild-ios-atv2;
+    env_install_ios=$BASE_PATH/tools/ios/install-systembuild-ios;
   }
   else
   {
     while :; do
     {
-      env_install_ios_atv2=$(showdialog --title="Select creation script for access to iOS system over ssh" \
+      env_install_ios=$(showdialog --title="Select creation script for access to iOS system over ssh" \
                                         --file --file-filter="install-systembuild-android *.install *.sh" \
                                         --width=700 --height=480 2> /dev/null);
       if [ $? != 0 ];then
@@ -992,14 +992,14 @@ if [[ $USE_ANDROID_X86 = "TRUE" ]] ||
   } done
 } fi
 
-if [[ $USE_IOS_ATV2 = "TRUE" ]] &&
-   [ `handleSkipPresent $IOS_ATV2_INSTALLED "iOS"` = 0 ];then
+if [[ $USE_IOS = "TRUE" ]] &&
+   [ `handleSkipPresent $IOS_INSTALLED "iOS"` = 0 ];then
 {
   while :; do
   {
-    if [[ -n $env_install_ios_atv2 ]];then
+    if [[ -n $env_install_ios ]];then
     {
-      bash "$env_install_ios_atv2"
+      bash "$env_install_ios"
       ret=$?
       loadConfigFile
     }

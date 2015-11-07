@@ -39,7 +39,7 @@ USE_MS_WINDOWS_64="FALSE"
 USE_MAC_OS_X_64="FALSE"
 USE_ANDROID_ARM="FALSE"
 USE_ANDROID_X86="FALSE"
-USE_IOS_ATV2="FALSE"
+USE_IOS="FALSE"
 
 RELEASE_BUILD=0
 DEBUG_BUILD=0
@@ -218,27 +218,26 @@ SET_MAC_________________SEP__=38
 SET_MAC_______________LABEL__=39
 SET_MAC________________TARGET=40
 SET_MAC_____________INSTALLER=41
-SET_MAC____IOS_ATV_BUILD_TYPE=42
-SET_MAC__________OPEN_CONTROL=43
-SET_MAC_________________START=44
-SET_MAC____________SSH_ACCESS=45
-SET_MAC__________SSH_USERNAME=46
-SET_MAC__________SSH_PASSWORD=47
-SET_MAC________________SSH_IP=48
-SET_MAC______________SSH_PORT=49
-SET_ANDROID_____________SEP__=50
-SET_ANDROID___________LABEL__=51
-SET_ANDROID________BUILD_TYPE=52
-SET_ANDROID__BUILD_SYS_TARGET=53
-SET_ANDROID_________INSTALLER=54
-SET_ANDROID_______AVD_MANAGER=55
-SET_ANDROID____ARM_EMU_SOURCE=56
-SET_ANDROID____x86_EMU_SOURCE=57
-SET_VAR_________________SEP__=58
-SET_VAR_________CPU_PROC_JOBS=59
-SET_VAR____EMU_INSTALL_PREFIX=60
-SET_VAR_INCLUDE_OPEN_REQUESTS=61
-SET_VAR____NO_WARNING_ON_FAIL=62
+SET_MAC__________OPEN_CONTROL=42
+SET_MAC_________________START=43
+SET_MAC____________SSH_ACCESS=44
+SET_MAC__________SSH_USERNAME=45
+SET_MAC__________SSH_PASSWORD=46
+SET_MAC________________SSH_IP=47
+SET_MAC______________SSH_PORT=48
+SET_ANDROID_____________SEP__=49
+SET_ANDROID___________LABEL__=50
+SET_ANDROID________BUILD_TYPE=51
+SET_ANDROID__BUILD_SYS_TARGET=52
+SET_ANDROID_________INSTALLER=53
+SET_ANDROID_______AVD_MANAGER=54
+SET_ANDROID____ARM_EMU_SOURCE=55
+SET_ANDROID____x86_EMU_SOURCE=56
+SET_VAR_________________SEP__=57
+SET_VAR_________CPU_PROC_JOBS=58
+SET_VAR____EMU_INSTALL_PREFIX=59
+SET_VAR_INCLUDE_OPEN_REQUESTS=60
+SET_VAR____NO_WARNING_ON_FAIL=61
 
 ###############################################################################
 # Functions
@@ -633,11 +632,6 @@ function parse_values
       MAC_OS_X_SSH_PORT=${value%|}
       export MAC_OS_X_SSH_PORT
     }
-    elif [[ $id = $SET_MAC____IOS_ATV_BUILD_TYPE ]];then
-    {
-      IOS_ATV2_BUILD_TYPE=$(echo ${value%|} | tr '[:upper:]' '[:lower:]');
-      export IOS_ATV2_BUILD_TYPE
-    }
     #####
     # Android
     elif [[ $id = $SET_ANDROID________BUILD_TYPE ]];then
@@ -747,7 +741,7 @@ function buildThreadBaseGeneral
     [[ $USE_MAC_OS_X_64 = "TRUE" ]]   && echo "#< msg start_build;" >> "$thread6_in"
     [[ $USE_ANDROID_ARM = "TRUE" ]]   ||
     [[ $USE_ANDROID_X86 = "TRUE" ]]   && echo "#< msg start_build;" >> "$thread7_in"
-    [[ $USE_IOS_ATV2 = "TRUE" ]]      && echo "#< msg start_build;" >> "$thread8_in"
+    [[ $USE_IOS = "TRUE" ]]      && echo "#< msg start_build;" >> "$thread8_in"
 
     sleep 3
 
@@ -770,7 +764,7 @@ function buildThreadBaseGeneral
         STILL_ACTIVE=1
       elif [[ $USE_ANDROID_X86 = "TRUE" ]]   && [ -f "$TEMP_DIR/build_thread-android-x86.pid" ];then
         STILL_ACTIVE=1
-      elif [[ $USE_IOS_ATV2 = "TRUE" ]]      && [ -f "$TEMP_DIR/build_thread-ios_atv2.pid" ];then
+      elif [[ $USE_IOS = "TRUE" ]]      && [ -f "$TEMP_DIR/build_thread-ios.pid" ];then
         STILL_ACTIVE=1;fi
 
       if [[ $STILL_ACTIVE = 0 ]];then
@@ -851,7 +845,7 @@ function buildThreadForOS
     } fi
   } fi
 
-  if [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
+  if [[ $system = osx* ]] || [[ $system = ios ]];then
   {
     own_ip=$([[ $MAC_OS_X_SSH_IP != 127.0.0.1 ]] && [[ $MAC_OS_X_SSH_IP != localhost ]] && echo $own_ip || echo 10.0.2.4);
     ssh_name=$([[ $own_ip = 10.0.2.4 ]] && echo "$MAC_OS_X_DEFAULT_RUN" | tr '(' '_' | tr ')' '_' || echo $MAC_OS_X_SSH_IP);
@@ -873,7 +867,7 @@ function buildThreadForOS
 
     trap 'exitBuildThreadForOS' EXIT SIGHUP SIGINT SIGTERM;
 
-    if [[ $system = win* ]] || [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
+    if [[ $system = win* ]] || [[ $system = osx* ]] || [[ $system = ios ]];then
     {
       printf "\
 Remote network connection:
@@ -959,7 +953,7 @@ Checking ssh connection for independent OS build system (can take some seconds):
                 sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $WINDOWS_SSH_USERNAME -- \
                   bash --login //$own_ip/qemu/build/tools/cef-$system.build $direct >> "$BASE_PATH/build/creation-cef-$system.log" 2>&1
                 chmod -f $BASE_PATH/build/cef-$GIT_CEF_USER/binary_distrib/*
-              elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
+              elif [[ $system = osx* ]] || [[ $system = ios ]];then
                 sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
                   bash --login -c "\
 \#\!/bin/bash;
@@ -1036,7 +1030,7 @@ Checking ssh connection for independent OS build system (can take some seconds):
             if [[ $system = win* ]];then
               sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $WINDOWS_SSH_USERNAME -- \
                 bash --login //$own_ip/qemu/build/tools/kodi-$system.build $direct >> "$BASE_PATH/build/creation-kodi-$system.log" 2>&1
-            elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
+            elif [[ $system = osx* ]] || [[ $system = ios ]];then
               sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
                 bash --login -c "\
 \#\!/bin/bash;
@@ -1101,7 +1095,7 @@ Checking ssh connection for independent OS build system (can take some seconds):
             if [[ $system = win* ]];then
               sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $WINDOWS_SSH_USERNAME -- \
                 bash --login //$own_ip/qemu/build/tools/user-script-$system.build $direct >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1
-            elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
+            elif [[ $system = osx* ]] || [[ $system = ios ]];then
               sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
                 bash --login -c "\
 \#\!/bin/bash;
@@ -1171,7 +1165,7 @@ function buildThreadKodiAddonForOS
     if [[ $system = win* ]];then
       sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $WINDOWS_SSH_USERNAME -- \
         bash --login //$own_ip/qemu/build/tools/kodi-$system.build --addon $addon_name >> "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" 2>&1
-    elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
+    elif [[ $system = osx* ]] || [[ $system = ios ]];then
       sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
         bash --login -c "\
 \#\!/bin/bash;
@@ -1581,7 +1575,7 @@ function forceKodiSelectedBuild
     if [[ $system = win* ]];then
       sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $WINDOWS_SSH_USERNAME -- \
         bash --login -c >> "printf \"${RED}${BRIGHT}Selection build for Windows not possible! ${NORMAL}\n\"" 2>&1
-    elif [[ $system = osx* ]] || [[ $system = ios ]] || [[ $system = atv2 ]];then
+    elif [[ $system = osx* ]] || [[ $system = ios ]];then
       sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
         bash --login -c "\
 \#\!/bin/bash;
@@ -1776,7 +1770,7 @@ touch ${TEMP_DIR}/thread9_in
          [[ $USE_MAC_OS_X_64 = "FALSE" ]] &&
          [[ $USE_ANDROID_ARM = "FALSE" ]] &&
          [[ $USE_ANDROID_X86 = "FALSE" ]] &&
-         [[ $USE_IOS_ATV2 = "FALSE" ]];then
+         [[ $USE_IOS = "FALSE" ]];then
       {
         echo "#> msg field $GEN__BTN______START_BUILD_ALL:enable 0;";
         echo "#> msg field $GEN__BTN____CREATE_INST_MUPEL:visible 1;";
@@ -1853,7 +1847,7 @@ touch ${TEMP_DIR}/thread9_in
               [[ $USE_MAC_OS_X_64 = "TRUE" ]]   && echo "#< msg stop_build;" >> "$thread6_in"
               [[ $USE_ANDROID_ARM = "TRUE" ]]   ||
               [[ $USE_ANDROID_X86 = "TRUE" ]]   && echo "#< msg stop_build;" >> "$thread7_in"
-              [[ $USE_IOS_ATV2 = "TRUE" ]]      && echo "#< msg stop_build;" >> "$thread8_in"
+              [[ $USE_IOS = "TRUE" ]]      && echo "#< msg stop_build;" >> "$thread8_in"
 
               if [ -f "$TEMP_DIR/build_thread-base_general.pid" ];then
               {
@@ -3847,8 +3841,8 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
 ###############################################################################
 
 ###############################################################################
-# Thread eight: Handle IOS ATV2
-if [[ $USE_IOS_ATV2 = "TRUE" ]];then
+# Thread eight: Handle iOS
+if [[ $USE_IOS = "TRUE" ]];then
 {
   (
     sleep 0.5;
@@ -3873,10 +3867,10 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
       echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
       echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
-      if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-${IOS_ATV2_BUILD_TYPE}/kodi.bin" ];then
+      if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-ios.build/kodi.bin" ];then
       {
         kodi_direct=1
-        parse_values "add-ons" "${IOS_ATV2_BUILD_TYPE}"
+        parse_values "add-ons" "iOS"
       }
       else
         kodi_direct=0;fi
@@ -3888,7 +3882,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
       echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
       echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
-      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-${IOS_ATV2_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
+      echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-ios.active" ] && echo 1 || echo 0);";
 
       # Main loop
       while :;do
@@ -3940,24 +3934,24 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
               pulse_on=1
               echo "#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "${IOS_ATV2_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi;
+                buildThreadForOS "iOS" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi;
               elif [[ "$line" = *"start_addon_build"* ]];then
-                buildThreadKodiAddonForOS "${IOS_ATV2_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" "$KODI_SEL_ADDON";
+                buildThreadKodiAddonForOS "iOS" "${USE_LINUX_X86_DISTR}64" "$KODI_SEL_ADDON";
               elif [[ "$line" = *"kodi_force_build_step"* ]];then
-                forceKodiSelectedBuild "${IOS_ATV2_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" ${IOS_ATV2_BUILD_TYPE};fi
+                forceKodiSelectedBuild "iOS" "${USE_LINUX_X86_DISTR}64" "ios";fi
             }
             elif [[ "$line" = *"stop_build"* ]];then
             {
-              if [ -f "$TEMP_DIR/build_thread-${IOS_ATV2_BUILD_TYPE}.pid" ];then
+              if [ -f "$TEMP_DIR/build_thread-ios.pid" ];then
               {
-                pid_to_kill=$(cat "$TEMP_DIR/build_thread-${IOS_ATV2_BUILD_TYPE}.pid");
+                pid_to_kill=$(cat "$TEMP_DIR/build_thread-ios.pid");
                 ps -p $pid_to_kill > /dev/null
                 if [[ $? = 0 ]];then
                 {
                   killtree $pid_to_kill KILL;
                   kill $pid_to_kill
                 } fi
-                rm -f "$TEMP_DIR/build_thread-${IOS_ATV2_BUILD_TYPE}.pid"
+                rm -f "$TEMP_DIR/build_thread-ios.pid"
               } fi
 
               echo ""
@@ -3972,7 +3966,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
               echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
               echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
-              if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-${IOS_ATV2_BUILD_TYPE}/kodi.bin" ];then
+              if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-ios/kodi.bin" ];then
                 kodi_direct=1
               else
                 kodi_direct=0;fi
@@ -3983,7 +3977,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
               echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 1;";
               echo "#> msg field $BUILD__CB______________ADD_ON:enable $kodi_direct;";
-              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-${IOS_ATV2_BUILD_TYPE}.active" ] && echo 1 || echo 0);";
+              echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:enable $([ -f "$BASE_PATH/build/cef-$GIT_CEF_USER/cef-$CEF_SOURCE_BRANCH-ios.active" ] && echo 1 || echo 0);";
             }
             elif [[ "$line" = *"depclean"* ]];then
             {
@@ -4004,8 +3998,8 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
             {
               $TEXT_VIEVER \
                 $BASE_PATH/build/creation-general.log \
-                $BASE_PATH/build/creation-kodi-${IOS_ATV2_BUILD_TYPE}.log \
-                $BASE_PATH/build/creation-cef-${IOS_ATV2_BUILD_TYPE}.log;
+                $BASE_PATH/build/creation-kodi-ios.log \
+                $BASE_PATH/build/creation-cef-ios.log;
             }
             elif [[ "$line" = *"debugger"* ]];then
             {
@@ -4032,12 +4026,12 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
                 value=$(echo ${p#*:} | awk -F ';' '{print $1}')
                 IFS=$'|';
                 if [[ "$id" -ge "0" ]];then
-                  parse_values "${IOS_ATV2_BUILD_TYPE}" $id "$value"
+                  parse_values "iOS" $id "$value"
                 else
                   id2=0
                   IFS=$'|';
                   for value2 in ${value}; do
-                    parse_values "${IOS_ATV2_BUILD_TYPE}" $id2 "$value2"
+                    parse_values "iOS" $id2 "$value2"
                     ((id2++))
                   done;
                 fi; IFS=$'\n';
@@ -4054,7 +4048,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
           } fi
         } done
 
-        if [ -f "$TEMP_DIR/build_thread-${IOS_ATV2_BUILD_TYPE}.pid" ];then
+        if [ -f "$TEMP_DIR/build_thread-ios.pid" ];then
         {
           process_active=1
         }
@@ -4070,7 +4064,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
     done
   ) | \
   $YAD_MUPEL --plug=$KEY --tabnum=$TAB_NUM --form \
-             --text="iOS/ATV2" \
+             --text="iOS" \
              --pulsate \
              --xcom-log=$thread8_in \
              --field="Build complete:FBTN@0,1,0,2" "bash -c 'echo \"#< msg start_build\" >> $thread8_in'" \
@@ -4080,7 +4074,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
              --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" >> $thread8_in'" \
              --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread8_in'" \
              --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" >> $thread8_in'" \
-             --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-ios-atv2 $thread8_in" \
+             --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-ios $thread8_in" \
              --field="Open debugger:FBTN@2,3,4,6" "bash -c 'echo \"#< msg debugger\" >> $thread8_in'" \
              --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread8_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" >> $thread8_in'" \
@@ -4088,7 +4082,7 @@ if [[ $USE_IOS_ATV2 = "TRUE" ]];then
              --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
   pid_thread8=$!
 
-  TAB_LIST+="--tab=iOS/ATV2 "
+  TAB_LIST+="--tab=iOS "
   ((TAB_NUM++))
 } fi
 #
@@ -4188,7 +4182,6 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       echo "#> msg field $SET_MAC_________________START:visible $use_it;"
       echo "#> msg field $SET_MAC____________SSH_ACCESS:visible $use_it;"
       echo "#> msg field $SET_MAC__________OPEN_CONTROL:visible $use_it;"
-      echo "#> msg field $SET_MAC____IOS_ATV_BUILD_TYPE:visible $use_it;"
       [[ $SYSTEM_BITS = 64 ]] && [ $use_it = 1 ] && [[ -f $BASE_PATH/tools/mac-osx/install-systembuild-mac-osx ]] &&
         use_it_2=1 || use_it_2=0;
       echo "#> msg field $SET_MAC_____________INSTALLER:visible $use_it_2;"
@@ -4206,10 +4199,6 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       [[ $MAC_OS_X_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
       echo "#> msg field $SET_MAC________________SSH_IP:enable $use_it;"
       echo "#> msg field $SET_MAC______________SSH_PORT:enable $use_it;"
-      selected=$(echo $IOS_ATV2_BUILD_TYPE | tr '[:lower:]' '[:upper:]');
-      targets="IOS!ATV2";
-      targets=$(echo ${targets//$selected/\^${selected}});
-      echo "#> msg field $SET_MAC____IOS_ATV_BUILD_TYPE:set $targets;";
 
       [[ $SYSTEM_BITS = 64 ]] && [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]] &&
         use_it=1 || use_it=0
@@ -4453,7 +4442,6 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field="<b>Mac OS X settings:</b>:LBL@0,8,29,30" '' \
              --field="Build system target:CB@1,4,29,30" "$(getMacOSXTargets)" \
              --field="Installer:FBTN@5,6,29,30" "bash -c 'echo \"#< msg open_mac_os_x_installer\" >> $thread9_in'" \
-             --field="Build type:CB@7,8,29,30" 'IOS!ATV2' \
              --field="Emulation control:FBTN@0,0,30,31" "bash -c 'echo \"#< msg open_mac_os_x_control\" >> $thread9_in'" \
              --field="Start Mac OS X:FBTN@0,0,30,31" "bash -c 'echo \"#< msg start_mac_os_x\" >> $thread9_in'" \
              --field="SSH access:FBTN@1,1,30,31" "bash -c 'echo \"#< msg ssh_access_mac_os_x\" >> $thread9_in'" \
