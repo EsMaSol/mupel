@@ -538,6 +538,7 @@ function parse_values
       echo "#> msg field $SET_WINDOWS__________SSH_PORT:enable $use_it;"
       [[ $WINDOWS_DEFAULT_RUN = "emu-"* ]] && use_it_2=1 || use_it_2=0;
       echo "#> msg field $SET_WINDOWS_____________START:enable $use_it_2;"
+      echo "#> msg field $SET_WINDOWS_____________START:visible $use_it_2;"
     }
     elif [[ $id = $SET_WINDOWS______SSH_USERNAME ]];then
     {
@@ -595,6 +596,7 @@ function parse_values
       echo "#> msg field $SET_MAC______________SSH_PORT:enable $use_it;"
       [[ $MAC_OS_X_DEFAULT_RUN = "emu-"* ]] && use_it_2=1 || use_it_2=0;
       echo "#> msg field $SET_MAC_________________START:enable $use_it_2;"
+      echo "#> msg field $SET_MAC_________________START:visible $use_it_2;"
     }
     elif [[ $id = $SET_MAC__________OPEN_CONTROL ]];then
     {
