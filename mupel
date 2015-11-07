@@ -1207,7 +1207,7 @@ function buildThreadKodiAddonForOS
 
 function getLinuxTargetDist
 {
-  dist_targets=$(ls /var/lib/chroot/ | grep ${SYSTEM_BITS}bit | sed 's/${SYSTEM_BITS}bit//g' | tr '\n'  '!');
+  dist_targets=$(ls /var/lib/chroot/ | grep ${SYSTEM_BITS}bit | sed 's/64bit//g' | sed 's/32bit//g' | tr '\n'  '!');
   dist_targets=${dist_targets::-1};
   dist_targets=$(echo ${dist_targets//$USE_LINUX_X86_DISTR/\^${USE_LINUX_X86_DISTR}});
   echo $dist_targets
@@ -1683,7 +1683,7 @@ if [[ `uname -m` = "x86_64" ]];then
 }
 elif [[ `uname -m` = "i686" ]];then
 {
-  printf "${YELLOW}${BRIGHT}Old system, on a 32 bit linux OS is only be build on itself possible! ${NORMAL}\n"; 
+  printf "${YELLOW}${BRIGHT}Old system, on a 32 bit linux OS is only be build on itself possible! ${NORMAL}\n";
   SYSTEM_BITS=32;
   YAD_MUPEL=yad-mupel-i686
 }
@@ -1903,7 +1903,7 @@ touch ${TEMP_DIR}/thread9_in
               unset IFS;
               echo "#> msg field $GEN__BTN____DEL_OLD_LOG_FILES:enable 0;";
 
-              if [ ! -d "$BASE_PATH/build/log-old" ] && 
+              if [ ! -d "$BASE_PATH/build/log-old" ] &&
                  [[ ! -z  `ls $BASE_PATH/build/log-old/*.old.log 2> /dev/null` ]];then
               {
                 showWarningDialog_YesNo "<b>\
