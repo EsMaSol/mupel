@@ -1,0 +1,184 @@
+#!/bin/bash -e
+###############################################################################
+#                                                                             #
+#     Copyright (C) 2015 Team KODI                                            #
+#     http://kodi.tv                                                          #
+#                                                                             #
+#  This program is free software: you can redistribute it and/or modify       #
+#  it under the terms of the GNU General Public License as published by       #
+#  the Free Software Foundation, either version 3 of the License, or          #
+#  (at your option) any later version.                                        #
+#                                                                             #
+#  This program is distributed in the hope that it will be useful,            #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of             #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              #
+#  GNU General Public License for more details.                               #
+#                                                                             #
+#  You should have received a copy of the GNU General Public License          #
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.      #
+#                                                                             #
+###############################################################################
+
+BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
+PATH="$BASE_PATH/tools:$PATH"
+INSTALL_PREFIX="$HOME/.mupel"
+
+. $BASE_PATH/tools/tool_functions
+. $BASE_PATH/tools/tool_install.include
+
+NEW_IMAGE_NAME="androidVirtualSDCard"
+NEW_IMAGE_SIZE=512
+NEW_IMAGE_PATH=$INSTALL_PREFIX/android/
+IMAGES_PRESENT=$(cd $NEW_IMAGE_PATH; ls *.img | awk -F '.img' '{print $1}' | tr '\n' '!');
+IMAGES_PRESENT=${IMAGES_PRESENT%!}
+SEL_IMAGE=${IMAGES_PRESENT%!*}
+
+TEMP_DIR=$BASE_PATH/build/.tmp;
+mkdir -p $TEMP_DIR;
+
+while :; do
+{
+  thread1_in=${TEMP_DIR}/thread1_android_virt_sdcard_in
+  touch ${TEMP_DIR}/thread1_android_virt_sdcard_in
+  install_values=$(
+  (
+    # Main loop
+    while :;do
+    {
+      if [ ! -f "$thread1_in" ] ||
+         [ -z `ps -h | grep "Handle Android virtual SD-Cards" | grep -v "grep" | awk -F ' ' '{print $1}'` ];then
+        exit 0;fi
+
+      proc=$(cat "$thread1_in")
+      echo -n "" > "$thread1_in";
+      IFS=$'\n';
+      for line in ${proc}; do
+      {
+        if [[ "$line" == *"#< msg"* ]];then
+        {
+          if [[ "$line" = *"generate_image"* ]];then
+          {
+            echo $NEW_IMAGE_NAME | grep ' ' -q
+            if [ $? = 0 ];then
+            {
+              showErrorDialog "<b>Use of spaces is not allowed for name!</b>"
+              continue;
+            } fi
+            file=$NEW_IMAGE_PATH/$NEW_IMAGE_NAME.img
+            if [ -f $file ];then
+            {
+              showWarningDialog_YesNo "<b>
+Virtual image with \"$NEW_IMAGE_NAME\" already present!
+
+Do youn want to create it new (old entries are deleted)?
+</b>"
+              if [ $? != 0 ];then
+                continue;fi
+
+              rm -f $file
+            } fi
+
+            $HOME/.mupel/android/android-sdk-linux/tools/mksdcard -l "$NEW_IMAGE_NAME" ${NEW_IMAGE_SIZE}M $file;
+            if [ $? = 0 ];then
+              showInfoDialog "Succesfully created virtual image \"$NEW_IMAGE_NAME\"";
+            else
+              showErrorDialog "Creation of virtual image \"$NEW_IMAGE_NAME\" failed!";fi
+
+          }
+          elif [[ "$line" = *"edit_image"* ]];then
+          {
+            echo $line > /dev/stderr
+            mkdir -p $TEMP_DIR/android_image_edit;
+            sudo -A -- mount -o loop $NEW_IMAGE_PATH/$SEL_IMAGE.img $TEMP_DIR/android_image_edit;
+            if [ $? = 0 ];then
+            {
+              sudo -A -- krusader $TEMP_DIR/android_image_edit
+              sudo -A -- umount $TEMP_DIR/android_image_edit;
+            } fi
+          }
+          elif [[ "$line" = *"delete_image"* ]];then
+          {
+            echo $line > /dev/stderr
+            file=$NEW_IMAGE_PATH/$SEL_IMAGE.img
+            if [ -f $file ];then
+            {
+              showWarningDialog_YesNo "<b>
+Virtual image with \"$SEL_IMAGE\" becomes deleted!
+
+Are you sure?
+</b>"
+              if [ $? != 0 ];then
+                continue;fi
+              rm -f $file
+            } fi
+          }
+          elif [[ "$line" = *"field 3"* ]];then
+          {
+            NEW_IMAGE_NAME=$(echo ${line} | awk -F ':' '{print $2}' | awk -F '|' '{print $1}' | tr -d '^')
+          }
+          elif [[ "$line" = *"field 4"* ]];then
+          {
+            NEW_IMAGE_SIZE=$(echo ${line} | awk -F ':' '{print $2}' | awk -F ',' '{print $1}')
+          }
+          elif [[ "$line" = *"field 7"* ]];then
+          {
+            SEL_IMAGE=$(echo ${line} | awk -F ':' '{print $2}' | awk -F '|' '{print $1}')
+          }
+          else
+          {
+            echo "Wrong command! $line" > /dev/stderr
+          } fi
+        }
+        else
+        {
+          echo "$line"
+        } fi
+      } done
+      sleep 0.5;
+    } done
+  ) | \
+  showdialog --form --title="Mupel - Handle Android virtual SD-Cards" \
+                             --window-icon="$BASE_PATH/icons/icon-mupel-128x128.png" \
+                             --image="$BASE_PATH/icons/icon-kodi-mbe.png" \
+                             --xcom-log=$thread1_in \
+                             --width=500 \
+                             --height=400 \
+                             --field="<i><span size=\"large\">Handle virtual SD-Card images which allow usage with own files on Android.</span></i>:LBL" "" \
+                             --field=":LBL"                                     "" \
+                             --field="Generate a new virtual sd-card image:LBL" "" \
+                             --field="Volume label:CE"                          "^$NEW_IMAGE_NAME" \
+                             --field="Set used virtual image size in MByte:NUM" "$NEW_IMAGE_SIZE!128..1048575!128!0" \
+                             --field="Generate image:FBTN"                      "bash -c 'echo \"#< msg generate_image\" >> $thread1_in'" \
+                             --field=":LBL"                                     "" \
+                             --field="Select present image:CB"                  "$IMAGES_PRESENT" \
+                             --field="Edit image:FBTN"                          "bash -c 'echo \"#< msg edit_image\" >> $thread1_in'" \
+                             --field="Delete image:FBTN"                        "bash -c 'echo \"#< msg delete_image\" >> $thread1_in'" \
+                             --field=":LBL" "" \
+                             --field="\
+     Copyright (C) 2015 Team KODI
+     http://kodi.tv
+
+     GNU General Public License, Version 3
+     see http://www.gnu.org/licenses/:LBL" "" \
+                             --field=":LBL" "" \
+                             --field=":XTALK" '' \
+                             --center --button=gtk-quit:0); # 2> /dev/null
+  if [ $? != 0 ];then
+  {
+    showWarningDialog_YesNo "Are you sure to exit install?";
+    [ $? = 0 ] && exit_build 1;
+  }
+  else
+    break;fi
+} done
+
+NEW_IMAGE_NAME="$(echo $install_values | awk -F '|' '{print $4}')";
+NEW_IMAGE_SIZE="$(echo $install_values | awk -F '|' '{print $5}')";
+NEW_IMAGE_SIZE=${NEW_IMAGE_SIZE%,000000};
+echo $NEW_IMAGE_NAME $NEW_IMAGE_SIZE
+
+rm -f ${TEMP_DIR}/thread1_android_virt_sdcard_in
+
+
+#$HOME/.mupel/android/android-sdk-linux/tools/mksdcard
+

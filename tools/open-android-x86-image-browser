@@ -1,0 +1,43 @@
+#!/bin/bash -e
+###############################################################################
+#                                                                             #
+#     Copyright (C) 2015 Team KODI                                            #
+#     http://kodi.tv                                                          #
+#                                                                             #
+#  This program is free software: you can redistribute it and/or modify       #
+#  it under the terms of the GNU General Public License as published by       #
+#  the Free Software Foundation, either version 3 of the License, or          #
+#  (at your option) any later version.                                        #
+#                                                                             #
+#  This program is distributed in the hope that it will be useful,            #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of             #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              #
+#  GNU General Public License for more details.                               #
+#                                                                             #
+#  You should have received a copy of the GNU General Public License          #
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.      #
+#                                                                             #
+###############################################################################
+
+BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
+PATH="$BASE_PATH/tools:$PATH"
+
+. $BASE_PATH/tools/tool_functions
+
+
+TEMP_DIR=$BASE_PATH/build/.tmp;
+mkdir -p $TEMP_DIR/android_x86_image;
+
+sudo -A -- modprobe nbd max_part=8
+[ $? != 0 ] && exit 1
+sudo -A -- qemu-nbd --disconnect /dev/nbd0
+[ $? != 0 ] && exit 1
+sudo -A -- qemu-nbd --connect=/dev/nbd0 "${HOME}/.mupel/systems/emu-android-x86/root_disk.qcow2"
+[ $? != 0 ] && exit 1
+sudo -A -- mount -w /dev/nbd0p1 $TEMP_DIR/android_x86_image
+[ $? != 0 ] && exit 1
+
+sudo -A -- krusader $TEMP_DIR/android_x86_image
+
+sudo -A -- umount $TEMP_DIR/android_x86_image
+sudo -A -- qemu-nbd --disconnect /dev/nbd0

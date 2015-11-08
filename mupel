@@ -233,11 +233,14 @@ SET_ANDROID_________INSTALLER=53
 SET_ANDROID_______AVD_MANAGER=54
 SET_ANDROID____ARM_EMU_SOURCE=55
 SET_ANDROID____x86_EMU_SOURCE=56
-SET_VAR_________________SEP__=57
-SET_VAR_________CPU_PROC_JOBS=58
-SET_VAR____EMU_INSTALL_PREFIX=59
-SET_VAR_INCLUDE_OPEN_REQUESTS=60
-SET_VAR____NO_WARNING_ON_FAIL=61
+
+# Setting control id's 2
+SET_2_KODI______________LABEL__=0
+SET_2_VAR_________CPU_PROC_JOBS=1
+SET_2_VAR____EMU_INSTALL_PREFIX=2
+SET_2_VAR_INCLUDE_OPEN_REQUESTS=3
+SET_2_VAR____NO_WARNING_ON_FAIL=4
+SET_2_VAR_________________SEP__=5
 
 ###############################################################################
 # Functions
@@ -339,6 +342,34 @@ function parse_values
     targets+="!"
 
     echo "#> msg field $BUILD__CB______________ADD_ON:set ${targets};"
+  }
+  elif [ "$field" = "settings2" ];then
+  {
+    #####
+    # General
+    if [[ $id = $SET_2_VAR_________CPU_PROC_JOBS ]];then
+    {
+      value=${value%|}
+      [ -z $value ] && value=8;
+      CPU_PROC_JOBS=${value%,000000}
+    }
+    elif [[ $id = $SET_2_VAR____EMU_INSTALL_PREFIX ]];then
+    {
+      value=${value%|}
+      EMU_INSTALL_PREFIX=${value:-$INSTALL_PREFIX/systems}
+      echo "#> msg field $SET_MAC________________TARGET:set $(getMacOSXTargets x86);";
+      echo "#> msg field $SET_WINDOWS____________TARGET:set $(getWindowsTargets x86);";
+    }
+    elif [[ $id = $SET_2_VAR_INCLUDE_OPEN_REQUESTS ]];then
+    {
+      INCLUDE_OPEN_PULL_REQUESTS=${value%|}
+      echo "#> msg field $SET_KODI________SOURCE_REPOSI:set ${KODI_SOURCE_URL};";
+      echo "#> msg field $SET_CEF_________SOURCE_REPOSI:set ${CEF_SOURCE_URL};";
+    }
+    elif [[ $id = $SET_2_VAR____NO_WARNING_ON_FAIL ]];then
+    {
+      NO_WARNING_ON_FAIL=${value%|:-FALSE}
+    } fi
   }
   elif [ "$field" = "settings" ];then
   {
@@ -656,32 +687,6 @@ function parse_values
     elif [[ $id = $SET_ANDROID____x86_EMU_SOURCE ]];then
     {
       ANDROID_SEL_AVD_X86=$(echo ${value%|} | awk -F 'Name: ' '{print $2}' | awk -F ' - ' '{print $1}');
-    }
-    #####
-    # General
-    elif [[ $id = $SET_VAR_________CPU_PROC_JOBS ]];then
-    {
-      value=${value%|}
-      [ -z $value ] && value=8;
-      CPU_PROC_JOBS=${value%,000000}
-    }
-    elif [[ $id = $SET_VAR____EMU_INSTALL_PREFIX ]];then
-    {
-      value=${value%|}
-      EMU_INSTALL_PREFIX=${value:-$INSTALL_PREFIX/systems}
-      echo "#> msg field $SET_MAC________________TARGET:set $(getMacOSXTargets x86);";
-      echo "#> msg field $SET_WINDOWS____________TARGET:set $(getWindowsTargets x86);";
-    }
-    elif [[ $id = $SET_VAR_INCLUDE_OPEN_REQUESTS ]];then
-    {
-      INCLUDE_OPEN_PULL_REQUESTS=${value%|}
-      echo "#> msg field $SET_KODI________SOURCE_REPOSI:set ${KODI_SOURCE_URL};";
-      echo "#> msg field $SET_CEF_________SOURCE_REPOSI:set ${CEF_SOURCE_URL};";
-
-    }
-    elif [[ $id = $SET_VAR____NO_WARNING_ON_FAIL ]];then
-    {
-      NO_WARNING_ON_FAIL=${value%|:-FALSE}
     } fi
 
     set IFS=$IFS_BU
@@ -1299,7 +1304,8 @@ function cleanup
         "$thread6_in" \
         "$thread7_in" \
         "$thread8_in" \
-        "$thread9_in"
+        "$thread9_in" \
+        "$thread10_in"
   sleep 1.5
 
   # Check after
@@ -1458,6 +1464,11 @@ function showGitCommandHelp
              --text-info \
              --filename="$BASE_PATH/help/git-help.txt" \
              --text="<tt><b><i><span size=\"large\">Usable Git commands:</span></i></b></tt>" 2> /dev/null
+}
+
+function open_krusader
+{
+  krusader $HOME
 }
 
 function ssh_access_windows
@@ -4217,9 +4228,6 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
 
       parse_values "settings" 1 "$KODI_SOURCE_URL";
       parse_values "settings" 8 "$CEF_SOURCE_URL";
-      echo "#> msg field $SET_CEF_________VERBOSE_BUILD:set $CEF_VERBOSE_BUILD;";
-      echo "#> msg field $SET_VAR_________CPU_PROC_JOBS:set $CPU_PROC_JOBS;"
-      echo "#> msg field $SET_VAR____EMU_INSTALL_PREFIX:set $EMU_INSTALL_PREFIX;"
 
       update_counter=10
 
@@ -4262,14 +4270,6 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
                 fi; IFS=$'\n';
               } done; unset IFS;
             }
-            elif [[ "$line" = *"android_emu_keys"* ]];then
-            {
-              showAndroidEmulatorKeyHelp &
-            }
-            elif [[ "$line" = *"git_command_help"* ]];then
-            {
-              showGitCommandHelp &
-            }
             elif [[ "$line" = *"open_windows_control"* ]];then
             {
               /usr/local/bin/qemu-windows &
@@ -4289,6 +4289,18 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
             elif [[ "$line" = *"ssh_access_windows"* ]];then
             {
               ssh_access_windows &
+            }
+            elif [[ "$line" = *"open_android_x86_emu"* ]];then
+            {
+              /usr/local/bin/qemu-android-x86 &
+            }
+            elif [[ "$line" = *"open_android_x86_image"* ]];then
+            {
+              $BASE_PATH/tools/open-android-x86-image-browser &
+            }
+            elif [[ "$line" = *"android_virtual_sdcard"* ]];then
+            {
+              $BASE_PATH/tools/generate-android-virtual-sdcard &
             }
             elif [[ "$line" = *"open_mac_os_x_control"* ]];then
             {
@@ -4310,13 +4322,9 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
             {
               ssh_access_mac_os_x &
             }
-            elif [[ "$line" = *"jenkins"* ]];then
+            elif [[ "$line" = *"open_android_virt_disk"* ]];then
             {
-              showdialog --title="Mupel - Jenkins place" \
-                         --width=520 --height=474 --html \
-                         --uri=$BASE_PATH/icons/jenkins-holiday.png \
-                         --text="<i><span size=\"large\">Hi, I'm still in holiday</span></i>" \
-                         --button=gtk-ok:0 &
+              ssh_access_mac_os_x &
             }
             elif [[ "$line" = *"open_avd_control"* ]];then
             {
@@ -4395,7 +4403,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
 
         } fi
 
-        sleep 0.5
+        sleep 0.25
       } done
     } done
   ) | \
@@ -4459,11 +4467,8 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field="Android Virtual Device (AVD) Manager:FBTN@7,8,38,39" "bash -c 'echo \"#< msg open_avd_control\" >> $thread9_in'" \
              --field="ARM | x86 AVD emulation:CB@1,4,39,40" "$(getAndroidAVDS arm)" \
              --field=":CB@4,8,39,40" "$(getAndroidAVDS x86)" \
-             --field=":LBL@0,8,41,42" '' \
-             --field="CPU process jobs:NUM@0,1,43,44" "${CPU_PROC_JOBS:-8}!1..32" \
-             --field="Emulation prefix:MDIR@2,4,43,44" "${EMU_INSTALL_PREFIX:-$HOME/.mupel/systems}" \
-             --field="Include last open requests in branch:CHK@5,6,43,44" "${INCLUDE_OPEN_PULL_REQUESTS:-FALSE}" \
-             --field="No warning dialog on fail:CHK@7,8,43,44" "${NO_WARNING_ON_FAIL:-FALSE}" \
+             --field="Virtual disk manager:FBTN@5,6,40,41" "bash -c 'echo \"#< msg android_virtual_sdcard\" >> $thread9_in'" \
+             --field="Open x86 disk:FBTN@7,8,40,41" "bash -c 'echo \"#< msg open_android_x86_image\" >> $thread9_in'" \
              --field=":XTALK" '' > /dev/null &
   pid_thread9=$!
   ((TAB_NUM++))
@@ -4474,19 +4479,123 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
 ###############################################################################
 # Thread ten: Handle help
 {
+  (
+    while :;do
+    {
+      if [ -f ./build/global_mupel_install ];then
+      {
+        [ -z $SYSTEM_ACTIVE ] && exit 0;
+        sleep 2;
+        continue;
+      } fi
+
+      loadConfigFile
+
+      echo "#> msg field $SET_CEF_________VERBOSE_BUILD:set $CEF_VERBOSE_BUILD;";
+      echo "#> msg field $SET_VAR_________CPU_PROC_JOBS:set $CPU_PROC_JOBS;"
+      echo "#> msg field $SET_VAR____EMU_INSTALL_PREFIX:set $EMU_INSTALL_PREFIX;"
+
+      update_counter=10
+
+      # Main loop
+      while :;do
+      {
+        if [ ! -f "$thread10_in" ];then
+          exit 0;fi
+
+        if [ -f ./build/global_mupel_install ];then
+        {
+          [ -z $SYSTEM_ACTIVE ] && exit 0;
+          break;
+        } fi
+
+        proc=$(cat "$thread10_in")
+        echo -n "" > "$thread10_in";
+        IFS=$'\n';
+        for line in ${proc}; do
+        {
+          if [[ "$line" == "#< msg"* ]];then
+          {
+            if [[ "$line" = *"field"* ]];then
+            {
+              IFS=$'\n';
+              for p in ${line}; do
+              {
+                id=$(echo ${p} | awk -F ' ' '{print $4}' | awk -F ':' '{print $1}')
+                value=$(echo ${p#*:} | awk -F ';' '{print $1}')
+                IFS=$'|';
+                if [[ "$id" -ge "0" ]];then
+                  parse_values "settings2" $id "$value"
+                else
+                  id2=0
+                  IFS=$'|'; for value2 in ${value}; do
+                    parse_values "settings2" $id2 "$value2"
+                    ((id2++))
+                  done;
+                  [ -z $SYSTEM_ACTIVE ] && exit 0;
+                fi; IFS=$'\n';
+              } done; unset IFS;
+            }
+            elif [[ "$line" = *"android_emu_keys"* ]];then
+            {
+              showAndroidEmulatorKeyHelp &
+            }
+            elif [[ "$line" = *"git_command_help"* ]];then
+            {
+              showGitCommandHelp &
+            }
+            elif [[ "$line" = *"open_krusader"* ]];then
+            {
+              open_krusader &
+            }
+            elif [[ "$line" = *"jenkins"* ]];then
+            {
+              showdialog --title="Mupel - Jenkins place" \
+                         --width=520 --height=474 --html \
+                         --uri=$BASE_PATH/icons/jenkins-holiday.png \
+                         --text="<i><span size=\"large\">Hi, I'm still in holiday</span></i>" \
+                         --button=gtk-ok:0 &
+            }
+            else
+              echo "Wrong command! $line" > /dev/stderr;fi
+          } fi
+        } done;
+        unset IFS
+
+        if [ $update_counter -lt 20 ];then
+        {
+          let update_counter=update_counter+1;
+        }
+        else
+        {
+          update_counter=0;
+
+        } fi
+
+        sleep 0.25
+      } done
+    } done
+  ) | \
   $YAD_MUPEL --plug=$KEY --tabnum=$TAB_NUM --form \
-             --text="Help" \
-             --field=":LBL@0,1,0,1" '' \
-             --field="<b>Helper commands:</b>:LBL@0,1,1,2" '' \
-             --field="Open ssh access console to Windows:FBTN@0,0,2,3" "bash -c 'echo \"#< msg ssh_access_windows\" >> $thread9_in'" \
-             --field="Open ssh access console to Mac OS X:FBTN@1,1,2,3" "bash -c 'echo \"#< msg ssh_access_mac_os_x\" >> $thread9_in'" \
-             --field=":LBL@0,1,3,4" '' \
-             --field="<b>Help documentation:</b>:LBL@0,1,4,5" '' \
-             --field="Git command help:FBTN@0,0,5,6" "bash -c 'echo \"#< msg git_command_help\" >> $thread9_in'" \
-             --field="Android emulator keys:FBTN@1,1,5,6" "bash -c 'echo \"#< msg android_emu_keys\" >> $thread9_in'" \
-             --field=":LBL@0,1,6,7" '' \
-             --field="What does jenkins?:FBTN@0,1,7,8" "bash -c 'echo \"#< msg hello_jenkins\" >> $thread9_in'" \
-             --field="About:FBTN@0,1,8,9" "bash ./mupel --info" > /dev/null &
+             --text="Settings / Help" \
+             --field=":LBL@0,8,0,1" '' \
+             --field="CPU process jobs:NUM@0,1,1,2" "${CPU_PROC_JOBS:-8}!1..32" \
+             --field="Emulation prefix:MDIR@3,4,1,2" "${EMU_INSTALL_PREFIX:-$HOME/.mupel/systems}" \
+             --field="Include last open requests in branch:CHK@5,6,1,2" "${INCLUDE_OPEN_PULL_REQUESTS:-FALSE}" \
+             --field="No warning dialog on fail:CHK@7,8,1,2" "${NO_WARNING_ON_FAIL:-FALSE}" \
+             --field=":LBL@0,8,2,3" '' \
+             --field="<b>Helper commands:</b>:LBL@0,8,3,4" '' \
+             --field="Open file browser (Krusader):FBTN@0,1,4,5" "bash -c 'echo \"#< msg open_krusader\" >> $thread10_in'" \
+             --field="Open ssh access console to Windows:FBTN@0,4,5,6" "bash -c 'echo \"#< msg ssh_access_windows\" >> $thread10_in'" \
+             --field="Open ssh access console to Mac OS X:FBTN@5,8,5,6" "bash -c 'echo \"#< msg ssh_access_mac_os_x\" >> $thread10_in'" \
+             --field=":LBL@0,8,7,8" '' \
+             --field="<b>Help documentation:</b>:LBL@0,8,8,9" '' \
+             --field="Git command help:FBTN@0,4,9,10" "bash -c 'echo \"#< msg git_command_help\" >> $thread10_in'" \
+             --field="Android emulator keys:FBTN@5,8,9,10" "bash -c 'echo \"#< msg android_emu_keys\" >> $thread10_in'" \
+             --field=":LBL@0,8,11,12" '' \
+             --field="What does jenkins?:FBTN@0,8,12,13" "bash -c 'echo \"#< msg hello_jenkins\" >> $thread10_in'" \
+             --field="About:FBTN@0,8,13,14" "bash ./mupel --info" > /dev/null &
+  pid_thread10=$!
   ((TAB_NUM++))
 }
 #
@@ -4509,7 +4618,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --tab="General" \
              $TAB_LIST \
              --tab="Settings" \
-             --tab="Help" \
+             --tab="Settings / Help" \
              --button=gtk-ok:0 > /dev/null 2>&1
 
   unset SYSTEM_ACTIVE

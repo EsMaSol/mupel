@@ -390,7 +390,7 @@ mount_points="$mount_points"
 ##
 # Mount virtual filesystem for android x86
 #
-if [[ ! -n \`mount | grep $INSTALL_PREFIX/systems/data_share/base/home\` ]];fi
+if [[ ! -n \`mount | grep $INSTALL_PREFIX/systems/data_share/base/home\` ]];then
   ln -sf ~ $INSTALL_PREFIX/systems/data_share/link/home;
   mount $INSTALL_PREFIX/systems/data_share/base/home;
 fi
