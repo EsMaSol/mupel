@@ -435,7 +435,7 @@ which svn >/dev/null;
 [ "$?" != "0" ] && packages="$packages subversion";
 which wget >/dev/null;
 [ "$?" != "0" ] && packages="$packages wget";
-which wget >/dev/null;
+which ruby >/dev/null;
 [ "$?" != "0" ] && packages="$packages ruby";
 which kdbg >/dev/null;
 [ "$?" != "0" ] && packages="$packages kdbg";

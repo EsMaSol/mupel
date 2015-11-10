@@ -26,6 +26,7 @@ function usageCEF()
   echo "                    buildwas done. Usable during programming to reduce time"
   echo "--build-tests       Also build the cef_unittests target"
   echo "--verbose-build     Show all command lines while building"
+  echo "--update-distrib    Update only the install point"
   echo "--help              This help message"
   exit 1
 }
@@ -73,6 +74,9 @@ function processOptsCEF()
         ;;
       --verbose-build)
         VERBOSEBUILD=1;
+        ;;
+      --update-distrib)
+        UPDATE_DISTRIB=1;
         ;;
       --help)
         usageCEF

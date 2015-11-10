@@ -43,6 +43,7 @@ function usageKodi()
   echo "--build-direct    if inserted kodi becomes direct build without perform of pre"
   echo "                  steps, becomes possible after one time the complete build"
   echo "                  was done. Usable during programming to reduce time"
+  echo "--update-distrib  Update only the install point"
   echo "--help            this help message"
   echo "Note:"
   echo "  This scripts are normally called from GUI interface, but also possible to use"
@@ -88,6 +89,9 @@ function processOptsKodi()
               shift
               ;;
         esac ;;
+      --update-distrib)
+        UPDATE_DISTRIB=1;
+        ;;
       --help)
         usageKodi
         ;;

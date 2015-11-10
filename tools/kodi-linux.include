@@ -34,6 +34,15 @@ function exitBuild
   rm -f $TEMP_DIR/build_thread-kodi_active;
 }
 
+function updateDistribution
+{
+  printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}updateDistribution${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
+  make install
+  createKodiKeyboardHelper
+  printf $CURS_UP
+  log_success_msg
+}
+
 ###############################################################################
 # Start of main process
 
@@ -66,7 +75,9 @@ export XBMC_PLATFORM_DIR="linux${BIT_SIZE}";
 export WORKSPACE=$BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM;
 export XBMC_DEPENDS_ROOT=$BASE_PATH/build/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE/kodi;
 
-if [ ! -z $SELECTED_BUILD ];then
+if [ ! -z $UPDATE_DISTRIB ];then
+  KODI_BUILD="Update of binary distribution only"
+elif [ ! -z $SELECTED_BUILD ];then
   KODI_BUILD="Single selection build of '$SELECTED_BUILD'"
 elif [ ! -z $ADDON_BUILD ];then
   KODI_BUILD="$ADDON_BUILD add-on only";
@@ -100,6 +111,10 @@ sleep 3
 # Change to source code path
 cd $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM
 
+if [ ! -z $UPDATE_DISTRIB ];then
+{
+  updateDistribution
+}
 if [ ! -z $SELECTED_BUILD ];then
 {
   printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}$SELECTED_BUILD${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
@@ -145,7 +160,7 @@ elif [ -z $ADDON_BUILD ];then
     CONFIG_EXTRA="$CONFIG_EXTRA --enable-gtest";fi
   export CONFIG_EXTRA
 
-  if [ -z $DIRECT_KODI_BUILD ] || 
+  if [ -z $DIRECT_KODI_BUILD ] ||
      [[ $KODI_CONF_IN_DIRECT_BUILD = "TRUE" ]] ||
      [ ! -f $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/Makefile ];then
   {
@@ -159,10 +174,8 @@ elif [ -z $ADDON_BUILD ];then
   printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}make-xbmc${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
   sleep 2
   ./tools/buildsteps/linux${BIT_SIZE}/make-xbmc
-  make install
-  createKodiKeyboardHelper
-  printf $CURS_UP
   log_success_msg
+  updateDistribution
 
   if [ -z $DIRECT_KODI_BUILD ] && [[ $INCLUDE_KODI_ADDONS != FALSE ]];then
   {

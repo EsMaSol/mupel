@@ -164,16 +164,18 @@ GIT______________SHOW_SSH_KEY=15
 BUILD__BTN_____BUILD_COMPLETE=0
 BUILD__BTN__BUILD_KODI_DIRECT=1
 BUILD__BTN___BUILD_CEF_DIRECT=2
-BUILD__BTN____BUILD_SEL_ADDON=3
-BUILD__BTN_________STOP_BUILD=4
-BUILD__BTN__________CLEAR_LOG=5
-BUILD__BTN_____OPEN_LAST_LOGS=6
-BUILD__BTN________LAUNCH_KODI=7
-BUILD__BTN___________DEBUGGER=8
-BUILD__BTN___FORCE_BUILD_STEP=9
-BUILD__BTN_PERF_CODE_DEPCLEAN=10
-BUILD__CB______________ADD_ON=11
-BUILD__TERMPROC_____BUILD_LOG=13
+BUILD__BTN___BUILD_CEF_DIRECT=2
+BUILD__BTN_UPDATE_BINARY_DIST=3
+BUILD__BTN____BUILD_SEL_ADDON=4
+BUILD__BTN_________STOP_BUILD=5
+BUILD__BTN__________CLEAR_LOG=6
+BUILD__BTN_____OPEN_LAST_LOGS=7
+BUILD__BTN________LAUNCH_KODI=8
+BUILD__BTN___________DEBUGGER=9
+BUILD__BTN___FORCE_BUILD_STEP=10
+BUILD__BTN_PERF_CODE_DEPCLEAN=11
+BUILD__CB______________ADD_ON=12
+BUILD__TERMPROC_____BUILD_LOG=14
 
 # Setting control id's
 SET_LINUX_______________SEP__=0
@@ -807,6 +809,7 @@ function buildThreadForOS
   local caller="$2"
   local direct_build_cef=$3
   local direct_build_kodi=$4
+  local update_binary_distrib=$5
   local own_ip=$(ifconfig $NET_CONNECTION | grep inet | grep -v inet6 | awk '{print $2}' | cut -d':' -f2);
   local ssh_name;
   local ssh_port;
@@ -917,8 +920,13 @@ Checking ssh connection for independent OS build system (can take some seconds):
     bar_position=0;
 
     mutexLock_BaseBuild
-    if [ $? = 0 ] && [ ! -f "$TEMP_DIR/build_thread-base_general.pid" ] && [[ $direct_build_cef = 0 ]] && [[ $direct_build_kodi = 0 ]];then
-      buildThreadBaseGeneralProcess 0;fi
+    if [ $? = 0 ] && [ ! -f "$TEMP_DIR/build_thread-base_general.pid" ] &&
+       [[ $direct_build_cef = 0 ]] &&
+       [[ $direct_build_kodi = 0 ]] &&
+       [[ $update_binary_distrib = 0 ]];then
+    {
+      buildThreadBaseGeneralProcess 0;
+    } fi
     mutexUnlock_BaseBuild
 
     trap 'exitBuildThreadForOS' EXIT SIGHUP SIGINT SIGTERM;
@@ -949,10 +957,8 @@ Checking ssh connection for independent OS build system (can take some seconds):
               sleep 3
               loadConfigFile
 
-              if [[ $direct_build_cef = 1 ]];then
-                direct="--build-direct";
-              else
-                direct="";fi
+              [[ $direct_build_cef = 1 ]] && direct="--build-direct" || direct="";
+              [[ $update_binary_distrib = 1 ]] && update_distrib="--update-distrib" || update_distrib="";
 
               base_pid=$(cat "$TEMP_DIR/build_thread-$system.pid");
               echo $base_pid > "$TEMP_DIR/build_thread-cef_active";
@@ -961,7 +967,8 @@ Checking ssh connection for independent OS build system (can take some seconds):
 
               if [[ $system = win* ]];then
                 sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $WINDOWS_SSH_USERNAME -- \
-                  bash --login //$own_ip/qemu/build/tools/cef-$system.build $direct >> "$BASE_PATH/build/creation-cef-$system.log" 2>&1
+                  bash --login //$own_ip/qemu/build/tools/cef-$system.build $direct $update_distrib \
+                                    >> "$BASE_PATH/build/creation-cef-$system.log" 2>&1
                 chmod -f $BASE_PATH/build/cef-$GIT_CEF_USER/binary_distrib/*
               elif [[ $system = osx* ]] || [[ $system = ios ]];then
                 sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
@@ -970,12 +977,14 @@ Checking ssh connection for independent OS build system (can take some seconds):
 [[ ! -d \$HOME/Desktop/Mupel/remote_access ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access
 [[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access" 2>&1
                 sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
-                  bash --login -c "\$HOME/Desktop/Mupel/remote_access/build/tools/cef-$system.build" >> "$BASE_PATH/build/creation-cef-$system.log" 2>&1
+                  bash --login -c "\$HOME/Desktop/Mupel/remote_access/build/tools/cef-$system.build $direct $update_distrib" \
+                                    >> "$BASE_PATH/build/creation-cef-$system.log" 2>&1
                 sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
                   bash --login -c "\#\!/bin/bash; umount -f //guest:@$own_ip/qemu" 2>&1
                 chmod -f $BASE_PATH/build/cef-$GIT_CEF_USER/binary_distrib/*
               else
-                $caller bash "$BASE_PATH/tools/cef-$system.build" $direct >> "$BASE_PATH/build/creation-cef-$system.log" 2>&1
+                $caller bash "$BASE_PATH/tools/cef-$system.build" $direct $update_distrib \
+                                    >> "$BASE_PATH/build/creation-cef-$system.log" 2>&1
               fi
 
               if [ -f $TEMP_DIR/cef-$system.failed ];then
@@ -1027,10 +1036,8 @@ Checking ssh connection for independent OS build system (can take some seconds):
             sleep 3
             loadConfigFile
 
-            if [[ $direct_build_kodi = 1 ]];then
-              direct="--build-direct";
-            else
-              direct="";fi
+            [[ $direct_build_kodi = 1 ]] && direct="--build-direct" || direct="";
+            [[ $update_binary_distrib = 1 ]] && update_distrib="--update-distrib" || update_distrib="";
 
             base_pid=$(cat "$TEMP_DIR/build_thread-$system.pid");
             echo $base_pid > "$TEMP_DIR/build_thread-kodi_active";
@@ -1039,7 +1046,8 @@ Checking ssh connection for independent OS build system (can take some seconds):
 
             if [[ $system = win* ]];then
               sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $WINDOWS_SSH_USERNAME -- \
-                bash --login //$own_ip/qemu/build/tools/kodi-$system.build $direct >> "$BASE_PATH/build/creation-kodi-$system.log" 2>&1
+                bash --login //$own_ip/qemu/build/tools/kodi-$system.build $direct $update_distrib \
+                                    >> "$BASE_PATH/build/creation-kodi-$system.log" 2>&1
             elif [[ $system = osx* ]] || [[ $system = ios ]];then
               sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
                 bash --login -c "\
@@ -1047,11 +1055,13 @@ Checking ssh connection for independent OS build system (can take some seconds):
 [[ ! -d \$HOME/Desktop/Mupel/remote_access ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access
 [[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access" 2>&1
               sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
-                bash --login -c "\#\!/bin/bash; \$HOME/Desktop/Mupel/remote_access/build/tools/kodi-$system.build $direct"  >> "$BASE_PATH/build/creation-kodi-$system.log" 2>&1
+                bash --login -c "\#\!/bin/bash; \$HOME/Desktop/Mupel/remote_access/build/tools/kodi-$system.build $direct $update_distrib"  \
+                                    >> "$BASE_PATH/build/creation-kodi-$system.log" 2>&1
               sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
                 bash --login -c "\#\!/bin/bash; umount -f //guest:@$own_ip/qemu" 2>&1
             else
-              $caller bash "$BASE_PATH/tools/kodi-$system.build" $direct >> "$BASE_PATH/build/creation-kodi-$system.log" 2>&1
+              $caller bash "$BASE_PATH/tools/kodi-$system.build" $direct $update_distrib \
+                                    >> "$BASE_PATH/build/creation-kodi-$system.log" 2>&1
             fi
 
             if [ -f $TEMP_DIR/kodi-$system.failed ];then
@@ -1102,9 +1112,12 @@ Checking ssh connection for independent OS build system (can take some seconds):
             echo $base_pid > "$TEMP_DIR/build_thread-user-script_active-$system";
             touch $TEMP_DIR/user_script-$system.failed
 
+            [[ $update_binary_distrib = 1 ]] && update_distrib="--update-distrib" || update_distrib="";
+
             if [[ $system = win* ]];then
               sshpass -p $WINDOWS_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $WINDOWS_SSH_USERNAME -- \
-                bash --login //$own_ip/qemu/build/tools/user-script-$system.build $direct >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1
+                bash --login //$own_ip/qemu/build/tools/user-script-$system.build $direct $update_distrib \
+                                    >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1
             elif [[ $system = osx* ]] || [[ $system = ios ]];then
               sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
                 bash --login -c "\
@@ -1112,11 +1125,13 @@ Checking ssh connection for independent OS build system (can take some seconds):
 [[ ! -d \$HOME/Desktop/Mupel/remote_access ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access
 [[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access" 2>&1
               sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
-                bash --login -c "\#\!/bin/bash; \$HOME/Desktop/Mupel/remote_access/build/tools/user-script-$system.build $direct"  >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1
+                bash --login -c "\#\!/bin/bash; \$HOME/Desktop/Mupel/remote_access/build/tools/user-script-$system.build $direct $update_distrib"  \
+                                    >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1
               sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
                 bash --login -c "\#\!/bin/bash; umount -f //guest:@$own_ip/qemu" 2>&1
             else
-              $caller bash "$BASE_PATH/tools/user-script-$system.build" >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1
+              $caller bash "$BASE_PATH/tools/user-script-$system.build $direct $update_distrib" \
+                                    >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1
             fi
 
             if [ -f $TEMP_DIR/user_script-$system.failed ];then
@@ -2578,17 +2593,19 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
         {
           if [[ "$line" == "#< msg"* ]];then
           {
-            if [[ "$line" = *"start_direct_build_kodi"* ]];then
-              is_direct_kodi=1
-            else
-              is_direct_kodi=0;fi
-            if [[ "$line" = *"start_direct_build_cef"* ]];then
-              is_direct_cef=1
-            else
-              is_direct_cef=0;fi
+            [[ "$line" = *"start_direct_build_kodi"* ]] &&
+              is_direct_kodi=1 || is_direct_kodi=0;
+            [[ "$line" = *"start_direct_build_cef"* ]] &&
+              is_direct_cef=1 || is_direct_cef=0;
+            [[ "$line" = *"update_binary_distrib"* ]] &&
+              is_update=1 || is_update=0;
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] ||
-               [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
+            if [[ "$line" = *"start_build"* ]] ||
+               [[ "$is_direct_cef" = 1 ]] ||
+               [[ "$is_direct_kodi" = 1 ]] ||
+               [[ "$line" = *"start_addon_build"* ]] ||
+               [[ "$line" = *"kodi_force_build_step"* ]] ||
+               [[ "$line" = *"update_binary_distrib"* ]];then
             {
               loadConfigFile;
 
@@ -2597,6 +2614,7 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 0;";
               echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 0;";
               echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 0;";
+              echo "#> msg field $BUILD__BTN_UPDATE_BINARY_DIST:visible 0;";
               echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 1;";
               echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable 0;";
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 0;";
@@ -2608,7 +2626,7 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
               pulse_on=1
               echo "#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "linux-$LINUX_BUILD_TYPE" "${USE_LINUX_X86_DISTR}${BITSIZE}" $is_direct_cef $is_direct_kodi;
+                buildThreadForOS "linux-$LINUX_BUILD_TYPE" "${USE_LINUX_X86_DISTR}${BITSIZE}" $is_direct_cef $is_direct_kodi $is_update;
               elif [[ "$line" = *"start_addon_build"* ]];then
                 buildThreadKodiAddonForOS "linux-$LINUX_BUILD_TYPE" "${USE_LINUX_X86_DISTR}${BITSIZE}" "$KODI_SEL_ADDON";
               elif [[ "$line" = *"kodi_force_build_step"* ]];then
@@ -2639,6 +2657,7 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 1;";
               echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
               echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
+              echo "#> msg field $BUILD__BTN_UPDATE_BINARY_DIST:visible 1;";
               echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
               if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-$LINUX_BUILD_TYPE/kodi.bin" ];then
                 kodi_direct=1
@@ -2646,6 +2665,7 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
                 kodi_direct=0;fi
               echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable $([ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-$LINUX_BUILD_TYPE/configure" ] && echo 1 || echo 0);";
               echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable $kodi_direct;";
+              echo "#> msg field $BUILD__BTN_UPDATE_BINARY_DIST:enable $kodi_direct;";
               echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable $kodi_direct;";
               echo "#> msg field $BUILD__BTN___________DEBUGGER:visible 0;";
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
@@ -2664,6 +2684,7 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
                 echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 1;";
                 echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:enable 0;";
                 echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:enable 0;";
+                echo "#> msg field $BUILD__BTN_UPDATE_BINARY_DIST:enable 0;";
                 echo "#> msg field $BUILD__BTN_PERF_CODE_DEPCLEAN:enable 0;";
                 echo "#> msg field $BUILD__CB______________ADD_ON:enable 0;";
               } fi
@@ -2835,7 +2856,8 @@ This give 10 seconds time to start debugger."
              --xcom-log=$thread3_in \
              --field="Build complete:FBTN@0,1,0,2"        "bash -c 'echo \"#< msg start_build\" >> $thread3_in'" \
              --field="Build kodi direct:FBTN@2,3,0,2"     "bash -c 'echo \"#< msg start_direct_build_kodi\" >> $thread3_in'" \
-             --field="Build CEF direct:FBTN@4,5,0,2"      "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread3_in'" \
+             --field="Build CEF direct:FBTN@4,4,0,2"      "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread3_in'" \
+             --field="Update binary distrib:FBTN@5,5,0,2" "bash -c 'echo \"#< msg update_binary_distrib\" >> $thread3_in'" \
              --field="Build selected addon:FBTN@8,8,0,2"  "bash -c 'echo \"#< msg start_addon_build\" >> $thread3_in'" \
              --field="Stop build:FBTN@0,8,2,4"            "bash -c 'echo \"#< msg stop_build\" >> $thread3_in'" \
              --field="Clear log:FBTN@0,0,4,6"             "bash -c 'echo \"#> msg field 12:clear;\" >> $thread3_in'" \
@@ -2881,6 +2903,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
       echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
       echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
+      echo "#> msg field $BUILD__BTN_UPDATE_BINARY_DIST:visible 0;"; # Set off (currenly not supported)
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-linux-rpbi/kodi.bin" ];then
       {
         kodi_direct=1
@@ -2920,17 +2943,19 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
         {
           if [[ "$line" == "#< msg"* ]];then
           {
-            if [[ "$line" = *"start_direct_build_kodi"* ]];then
-              is_direct_kodi=1
-            else
-              is_direct_kodi=0;fi
-            if [[ "$line" = *"start_direct_build_cef"* ]];then
-              is_direct_cef=1
-            else
-              is_direct_cef=0;fi
+            [[ "$line" = *"start_direct_build_kodi"* ]] &&
+              is_direct_kodi=1 || is_direct_kodi=0;
+            [[ "$line" = *"start_direct_build_cef"* ]] &&
+              is_direct_cef=1 || is_direct_cef=0;
+            [[ "$line" = *"update_binary_distrib"* ]] &&
+              is_update=1 || is_update=0;
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] ||
-               [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
+            if [[ "$line" = *"start_build"* ]] ||
+               [[ "$is_direct_cef" = 1 ]] ||
+               [[ "$is_direct_kodi" = 1 ]] ||
+               [[ "$line" = *"start_addon_build"* ]] ||
+               [[ "$line" = *"kodi_force_build_step"* ]] ||
+               [[ "$line" = *"update_binary_distrib"* ]];then
             {
               loadConfigFile
 
@@ -2939,6 +2964,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 0;";
               echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 0;";
               echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 0;";
+              echo "#> msg field $BUILD__BTN_UPDATE_BINARY_DIST:visible 0;";
               echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 1;";
               echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable 0;";
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 0;";
@@ -2948,7 +2974,7 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
               pulse_on=1
               echo "#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}32" $is_direct_cef $is_direct_kodi;
+                buildThreadForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}32" $is_direct_cef $is_direct_kodi $is_update;
               elif [[ "$line" = *"start_addon_build"* ]];then
                 buildThreadKodiAddonForOS "linux-rpbi" "${USE_LINUX_X86_DISTR}32" "$KODI_SEL_ADDON";
               elif [[ "$line" = *"kodi_force_build_step"* ]];then
@@ -3083,7 +3109,8 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
              --xcom-log=$thread4_in \
              --field="Build complete:FBTN@0,1,0,2"        "bash -c 'echo \"#< msg start_build\" >> $thread4_in'" \
              --field="Build kodi direct:FBTN@2,3,0,2"     "bash -c 'echo \"#< msg start_direct_build_kodi\" >> $thread4_in'" \
-             --field="Build CEF direct:FBTN@4,5,0,2"      "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread4_in'" \
+             --field="Build CEF direct:FBTN@4,4,0,2"      "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread4_in'" \
+             --field="Update binary distrib:FBTN@5,6,0,2" "bash -c 'echo \"#< msg update_binary_distrib\" >> $thread4_in'" \
              --field="Build selected addon:FBTN@8,8,0,2"  "bash -c 'echo \"#< msg start_addon_build\" >> $thread4_in'" \
              --field="Stop build:FBTN@0,8,2,4"            "bash -c 'echo \"#< msg stop_build\" >> $thread4_in'" \
              --field="Clear log:FBTN@0,0,4,6"             "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread4_in'" \
@@ -3129,6 +3156,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
       echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
       echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
+      echo "#> msg field $BUILD__BTN_UPDATE_BINARY_DIST:visible 0;"; # Set off (currenly not supported)
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-win-${WINDOWS_BUILD_TYPE}/kodi.bin" ];then
       {
         kodi_direct=1
@@ -3168,17 +3196,19 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
         {
           if [[ "$line" == "#< msg"* ]];then
           {
-            if [[ "$line" = *"start_direct_build_kodi"* ]];then
-              is_direct_kodi=1
-            else
-              is_direct_kodi=0;fi
-            if [[ "$line" = *"start_direct_build_cef"* ]];then
-              is_direct_cef=1
-            else
-              is_direct_cef=0;fi
+            [[ "$line" = *"start_direct_build_kodi"* ]] &&
+              is_direct_kodi=1 || is_direct_kodi=0;
+            [[ "$line" = *"start_direct_build_cef"* ]] &&
+              is_direct_cef=1 || is_direct_cef=0;
+            [[ "$line" = *"update_binary_distrib"* ]] &&
+              is_update=1 || is_update=0;
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] ||
-               [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
+            if [[ "$line" = *"start_build"* ]] ||
+               [[ "$is_direct_cef" = 1 ]] ||
+               [[ "$is_direct_kodi" = 1 ]] ||
+               [[ "$line" = *"start_addon_build"* ]] ||
+               [[ "$line" = *"kodi_force_build_step"* ]] ||
+               [[ "$line" = *"update_binary_distrib"* ]];then
             {
               loadConfigFile
 
@@ -3187,6 +3217,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 0;";
               echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 0;";
               echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 0;";
+              echo "#> msg field $BUILD__BTN_UPDATE_BINARY_DIST:visible 0;";
               echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 1;";
               echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable 0;";
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 0;";
@@ -3196,7 +3227,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
               pulse_on=1
               echo "#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "win-${WINDOWS_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi;
+                buildThreadForOS "win-${WINDOWS_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi $is_update;
               elif [[ "$line" = *"start_addon_build"* ]];then
                 buildThreadKodiAddonForOS "win-${WINDOWS_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" "$KODI_SEL_ADDON";
               elif [[ "$line" = *"kodi_force_build_step"* ]];then
@@ -3335,7 +3366,8 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
              --xcom-log=$thread5_in \
              --field="Build complete:FBTN@0,1,0,2"        "bash -c 'echo \"#< msg start_build\" >> $thread5_in'" \
              --field="Build kodi direct:FBTN@2,3,0,2"     "bash -c 'echo \"#< msg start_direct_build_kodi\" >> $thread5_in'" \
-             --field="Build CEF direct:FBTN@4,5,0,2"      "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread5_in'" \
+             --field="Build CEF direct:FBTN@4,4,0,2"      "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread5_in'" \
+             --field="Update binary distrib:FBTN@5,6,0,2" "bash -c 'echo \"#< msg update_binary_distrib\" >> $thread5_in'" \
              --field="Build selected addon:FBTN@8,8,0,2"  "bash -c 'echo \"#< msg start_addon_build\" >> $thread5_in'" \
              --field="Stop build:FBTN@0,8,2,4"            "bash -c 'echo \"#< msg stop_build\" >> $thread5_in'" \
              --field="Clear log:FBTN@0,0,4,6"             "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread5_in'" \
@@ -3381,6 +3413,7 @@ if [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
       echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
       echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
+      echo "#> msg field $BUILD__BTN_UPDATE_BINARY_DIST:visible 0;"; # Set off (currenly not supported)
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-osx-x86_64/kodi.bin" ];then
       {
         kodi_direct=1
@@ -3419,17 +3452,19 @@ if [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
         {
           if [[ "$line" == "#< msg"* ]];then
           {
-            if [[ "$line" = *"start_direct_build_kodi"* ]];then
-              is_direct_kodi=1
-            else
-              is_direct_kodi=0;fi
-            if [[ "$line" = *"start_direct_build_cef"* ]];then
-              is_direct_cef=1
-            else
-              is_direct_cef=0;fi
+            [[ "$line" = *"start_direct_build_kodi"* ]] &&
+              is_direct_kodi=1 || is_direct_kodi=0;
+            [[ "$line" = *"start_direct_build_cef"* ]] &&
+              is_direct_cef=1 || is_direct_cef=0;
+            [[ "$line" = *"update_binary_distrib"* ]] &&
+              is_update=1 || is_update=0;
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] ||
-               [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
+            if [[ "$line" = *"start_build"* ]] ||
+               [[ "$is_direct_cef" = 1 ]] ||
+               [[ "$is_direct_kodi" = 1 ]] ||
+               [[ "$line" = *"start_addon_build"* ]] ||
+               [[ "$line" = *"kodi_force_build_step"* ]] ||
+               [[ "$line" = *"update_binary_distrib"* ]];then
             {
               loadConfigFile
 
@@ -3438,6 +3473,7 @@ if [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 0;";
               echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 0;";
               echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 0;";
+              echo "#> msg field $BUILD__BTN_UPDATE_BINARY_DIST:visible 0;";
               echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 1;";
               echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable 0;";
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 0;";
@@ -3447,7 +3483,7 @@ if [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
               pulse_on=1
               echo "#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "osx-x86_64" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi;
+                buildThreadForOS "osx-x86_64" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi $is_update;
               elif [[ "$line" = *"start_addon_build"* ]];then
                 buildThreadKodiAddonForOS "osx-x86_64" "${USE_LINUX_X86_DISTR}64" "$KODI_SEL_ADDON";
               elif [[ "$line" = *"kodi_force_build_step"* ]];then
@@ -3582,7 +3618,8 @@ if [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
              --xcom-log=$thread6_in \
              --field="Build complete:FBTN@0,1,0,2"        "bash -c 'echo \"#< msg start_build\" >> $thread6_in'" \
              --field="Build kodi direct:FBTN@2,3,0,2"     "bash -c 'echo \"#< msg start_direct_build_kodi\" >> $thread6_in'" \
-             --field="Build CEF direct:FBTN@4,5,0,2"      "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread6_in'" \
+             --field="Build CEF direct:FBTN@4,4,0,2"      "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread6_in'" \
+             --field="Update binary distrib:FBTN@5,6,0,2" "bash -c 'echo \"#< msg update_binary_distrib\" >> $thread6_in'" \
              --field="Build selected addon:FBTN@8,8,0,2"  "bash -c 'echo \"#< msg start_addon_build\" >> $thread6_in'" \
              --field="Stop build:FBTN@0,8,2,4"            "bash -c 'echo \"#< msg stop_build\" >> $thread6_in'" \
              --field="Clear log:FBTN@0,0,4,6"             "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread6_in'" \
@@ -3628,6 +3665,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
       echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
       echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
+      echo "#> msg field $BUILD__BTN_UPDATE_BINARY_DIST:visible 0;"; # Set off (currenly not supported)
       if [ -f $BASE_PATH/build/kodi-$GIT_USER/kodi-android-x86/*.apk ];then
       {
         kodi_direct=1
@@ -3667,17 +3705,19 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
         {
           if [[ "$line" == "#< msg"* ]];then
           {
-            if [[ "$line" = *"start_direct_build_kodi"* ]];then
-              is_direct_kodi=1
-            else
-              is_direct_kodi=0;fi
-            if [[ "$line" = *"start_direct_build_cef"* ]];then
-              is_direct_cef=1
-            else
-              is_direct_cef=0;fi
+            [[ "$line" = *"start_direct_build_kodi"* ]] &&
+              is_direct_kodi=1 || is_direct_kodi=0;
+            [[ "$line" = *"start_direct_build_cef"* ]] &&
+              is_direct_cef=1 || is_direct_cef=0;
+            [[ "$line" = *"update_binary_distrib"* ]] &&
+              is_update=1 || is_update=0;
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] ||
-               [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
+            if [[ "$line" = *"start_build"* ]] ||
+               [[ "$is_direct_cef" = 1 ]] ||
+               [[ "$is_direct_kodi" = 1 ]] ||
+               [[ "$line" = *"start_addon_build"* ]] ||
+               [[ "$line" = *"kodi_force_build_step"* ]] ||
+               [[ "$line" = *"update_binary_distrib"* ]];then
             {
               loadConfigFile
 
@@ -3686,6 +3726,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 0;";
               echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 0;";
               echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 0;";
+              echo "#> msg field $BUILD__BTN_UPDATE_BINARY_DIST:visible 0;";
               echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 1;";
               echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable 0;";
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 0;";
@@ -3695,7 +3736,7 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
               pulse_on=1
               echo "#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "android-${ANDROID_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi
+                buildThreadForOS "android-${ANDROID_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi $is_update
               elif [[ "$line" = *"start_addon_build"* ]];then
                 buildThreadKodiAddonForOS "android-${ANDROID_BUILD_TYPE}" "${USE_LINUX_X86_DISTR}64" "$KODI_SEL_ADDON";
               elif [[ "$line" = *"kodi_force_build_step"* ]];then
@@ -3834,7 +3875,8 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
              --xcom-log=$thread7_in \
              --field="Build complete:FBTN@0,1,0,2"        "bash -c 'echo \"#< msg start_build\" >> $thread7_in'" \
              --field="Build kodi direct:FBTN@2,3,0,2"     "bash -c 'echo \"#< msg start_direct_build_kodi\" >> $thread7_in'" \
-             --field="Build CEF direct:FBTN@4,5,0,2"      "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread7_in'" \
+             --field="Build CEF direct:FBTN@4,4,0,2"      "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread7_in'" \
+             --field="Update binary distrib:FBTN@5,6,0,2" "bash -c 'echo \"#< msg update_binary_distrib\" >> $thread7_in'" \
              --field="Build selected addon:FBTN@8,8,0,2"  "bash -c 'echo \"#< msg start_addon_build\" >> $thread7_in'" \
              --field="Stop build:FBTN@0,8,2,4"            "bash -c 'echo \"#< msg stop_build\" >> $thread7_in'" \
              --field="Clear log:FBTN@0,0,4,6"             "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread7_in'" \
@@ -3880,6 +3922,7 @@ if [[ $USE_IOS = "TRUE" ]];then
       echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 1;";
       echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 1;";
       echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 0;";
+      echo "#> msg field $BUILD__BTN_UPDATE_BINARY_DIST:visible 0;"; # Set off (currenly not supported)
       if [ -f "$BASE_PATH/build/kodi-$GIT_USER/kodi-ios.build/kodi.bin" ];then
       {
         kodi_direct=1
@@ -3919,17 +3962,19 @@ if [[ $USE_IOS = "TRUE" ]];then
         {
           if [[ "$line" == "#< msg"* ]];then
           {
-            if [[ "$line" = *"start_direct_build_kodi"* ]];then
-              is_direct_kodi=1
-            else
-              is_direct_kodi=0;fi
-            if [[ "$line" = *"start_direct_build_cef"* ]];then
-              is_direct_cef=1
-            else
-              is_direct_cef=0;fi
+            [[ "$line" = *"start_direct_build_kodi"* ]] &&
+              is_direct_kodi=1 || is_direct_kodi=0;
+            [[ "$line" = *"start_direct_build_cef"* ]] &&
+              is_direct_cef=1 || is_direct_cef=0;
+            [[ "$line" = *"update_binary_distrib"* ]] &&
+              is_update=1 || is_update=0;
 
-            if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]] ||
-               [[ "$line" = *"start_addon_build"* ]] || [[ "$line" = *"kodi_force_build_step"* ]];then
+            if [[ "$line" = *"start_build"* ]] ||
+               [[ "$is_direct_cef" = 1 ]] ||
+               [[ "$is_direct_kodi" = 1 ]] ||
+               [[ "$line" = *"start_addon_build"* ]] ||
+               [[ "$line" = *"kodi_force_build_step"* ]] ||
+               [[ "$line" = *"update_binary_distrib"* ]];then
             {
               loadConfigFile
 
@@ -3938,6 +3983,7 @@ if [[ $USE_IOS = "TRUE" ]];then
               echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 0;";
               echo "#> msg field $BUILD__BTN___BUILD_CEF_DIRECT:visible 0;";
               echo "#> msg field $BUILD__BTN____BUILD_SEL_ADDON:visible 0;";
+              echo "#> msg field $BUILD__BTN_UPDATE_BINARY_DIST:visible 0;";
               echo "#> msg field $BUILD__BTN_________STOP_BUILD:visible 1;";
               echo "#> msg field $BUILD__BTN________LAUNCH_KODI:enable 0;";
               echo "#> msg field $BUILD__BTN___FORCE_BUILD_STEP:enable 0;";
@@ -3947,7 +3993,7 @@ if [[ $USE_IOS = "TRUE" ]];then
               pulse_on=1
               echo "#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;"
               if [[ "$line" = *"start_build"* ]] || [[ "$is_direct_cef" = 1 ]] || [[ "$is_direct_kodi" = 1 ]];then
-                buildThreadForOS "iOS" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi;
+                buildThreadForOS "iOS" "${USE_LINUX_X86_DISTR}64" $is_direct_cef $is_direct_kodi $is_update;
               elif [[ "$line" = *"start_addon_build"* ]];then
                 buildThreadKodiAddonForOS "iOS" "${USE_LINUX_X86_DISTR}64" "$KODI_SEL_ADDON";
               elif [[ "$line" = *"kodi_force_build_step"* ]];then
@@ -4082,7 +4128,8 @@ if [[ $USE_IOS = "TRUE" ]];then
              --xcom-log=$thread8_in \
              --field="Build complete:FBTN@0,1,0,2"        "bash -c 'echo \"#< msg start_build\" >> $thread8_in'" \
              --field="Build kodi direct:FBTN@2,3,0,2"     "bash -c 'echo \"#< msg start_direct_build_kodi\" >> $thread8_in'" \
-             --field="Build CEF direct:FBTN@4,5,0,2"      "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread8_in'" \
+             --field="Build CEF direct:FBTN@4,4,0,2"      "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread8_in'" \
+             --field="Update binary distrib:FBTN@5,6,0,2" "bash -c 'echo \"#< msg update_binary_distrib\" >> $thread8_in'" \
              --field="Build selected addon:FBTN@8,8,0,2"  "bash -c 'echo \"#< msg start_addon_build\" >> $thread8_in'" \
              --field="Stop build:FBTN@0,8,2,4"            "bash -c 'echo \"#< msg stop_build\" >> $thread8_in'" \
              --field="Clear log:FBTN@0,0,4,6"             "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread8_in'" \
@@ -4637,7 +4684,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
 <i><span size=\"larger\">Multi platform build environment for Kodi on Linux (Mupel)</span></i>
 <i>Version:</i> $MUPEL_VERSION" \
              --key=$KEY \
-             --tab-pos=left \
+             --tab-pos=top \
              --tab="General" \
              $TAB_LIST \
              --tab="Settings" \
