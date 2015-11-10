@@ -115,7 +115,7 @@ if [ ! -z $UPDATE_DISTRIB ];then
 {
   updateDistribution
 }
-if [ ! -z $SELECTED_BUILD ];then
+elif [ ! -z $SELECTED_BUILD ];then
 {
   printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}$SELECTED_BUILD${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
   sleep 2
