@@ -56,7 +56,7 @@ KODI_DEP_CLEAN="FALSE"
 KODI_SEL_ADDON=""
 CEF_SOURCE_URL=$CEF_SOURCE_DEFAULT_URL
 CEF_SOURCE_URL_INACTIVE=""
-CEF_SOURCE_URL_BASE="https://bitbucket.org/chromiumembedded/cef"
+CEF_SOURCE_URL_BASE=$CEF_SOURCE_URL_BASE
 CEF_SOURCE_BRANCH=$CEF_SOURCE_DEFAULT_BRANCH
 CEF_SOURCE_USE_BASE="FALSE"
 CEF_DEBUG="FALSE"
@@ -176,71 +176,74 @@ BUILD__CB______________ADD_ON=11
 BUILD__TERMPROC_____BUILD_LOG=13
 
 # Setting control id's
-SET_KODI______________LABEL__=0
-SET_KODI________SOURCE_REPOSI=1
-SET_KODI__________SOURCE_BASE=2
-SET_KODI________SOURCE_BRANCH=3
-SET_KODI____________RUN_TESTS=4
-SET_KODI_CONF_IN_DIRECT_BUILD=5
-SET_KODI____________DEP_CLEAN=6
-SET_CEF_________________SEP__=7
-SET_CEF_______________LABEL__=8
-SET_CEF_________SOURCE_REPOSI=9
-SET_CEF___________SOURCE_BASE=10
-SET_CEF_________SOURCE_BRANCH=11
-SET_CEF_________________DEBUG=12
-SET_CEF__________FORCE_UPDATE=13
-SET_CEF_____________NO_UPDATE=14
-SET_CEF__________FORCE_CONFIG=15
-SET_CEF___________FORCE_CLEAN=16
-SET_CEF______FORCE_CLEAN_DEPS=17
-SET_CEF___________BUILD_TESTS=18
-SET_CEF_________VERBOSE_BUILD=19
-SET_LINUX_______________SEP__=20
-SET_LINUX_____________LABEL__=21
-SET_LINUX_____USED_LINUX_DIST=22
-SET_LINUX_____OPEN_DIST_CONTR=23
-SET_LINUX_______USE_GUI_DEBUG=24
-SET_LINUX__________BUILD_TYPE=25
-SET_WINDOWS_____________SEP__=26
-SET_WINDOWS___________LABEL__=27
-SET_WINDOWS____________TARGET=28
-SET_WINDOWS_________INSTALLER=29
-SET_WINDOWS________BUILD_TYPE=30
-SET_WINDOWS______OPEN_CONTROL=31
-SET_WINDOWS_____________START=32
-SET_WINDOWS________SSH_ACCESS=33
-SET_WINDOWS______SSH_USERNAME=34
-SET_WINDOWS______SSH_PASSWORD=35
-SET_WINDOWS____________SSH_IP=36
-SET_WINDOWS__________SSH_PORT=37
-SET_MAC_________________SEP__=38
-SET_MAC_______________LABEL__=39
-SET_MAC________________TARGET=40
-SET_MAC_____________INSTALLER=41
-SET_MAC__________OPEN_CONTROL=42
-SET_MAC_________________START=43
-SET_MAC____________SSH_ACCESS=44
-SET_MAC__________SSH_USERNAME=45
-SET_MAC__________SSH_PASSWORD=46
-SET_MAC________________SSH_IP=47
-SET_MAC______________SSH_PORT=48
-SET_ANDROID_____________SEP__=49
-SET_ANDROID___________LABEL__=50
-SET_ANDROID________BUILD_TYPE=51
-SET_ANDROID__BUILD_SYS_TARGET=52
-SET_ANDROID_________INSTALLER=53
-SET_ANDROID_______AVD_MANAGER=54
-SET_ANDROID____ARM_EMU_SOURCE=55
-SET_ANDROID____x86_EMU_SOURCE=56
+SET_LINUX_______________SEP__=0
+SET_LINUX_____________LABEL__=1
+SET_LINUX_____USED_LINUX_DIST=2
+SET_LINUX_____OPEN_DIST_CONTR=3
+SET_LINUX_______USE_GUI_DEBUG=4
+SET_LINUX__________BUILD_TYPE=5
+SET_WINDOWS_____________SEP__=6
+SET_WINDOWS___________LABEL__=7
+SET_WINDOWS____________TARGET=8
+SET_WINDOWS_________INSTALLER=9
+SET_WINDOWS________BUILD_TYPE=10
+SET_WINDOWS______SSH_USERNAME=11
+SET_WINDOWS______SSH_PASSWORD=12
+SET_WINDOWS______OPEN_CONTROL=13
+SET_WINDOWS_____________START=14
+SET_WINDOWS________SSH_ACCESS=15
+SET_WINDOWS____________SSH_IP=16
+SET_WINDOWS__________SSH_PORT=17
+SET_MAC_________________SEP__=18
+SET_MAC_______________LABEL__=19
+SET_MAC________________TARGET=20
+SET_MAC_____________INSTALLER=21
+SET_MAC__________OPEN_CONTROL=22
+SET_MAC_________________START=23
+SET_MAC____________SSH_ACCESS=24
+SET_MAC__________SSH_USERNAME=25
+SET_MAC__________SSH_PASSWORD=26
+SET_MAC________________SSH_IP=27
+SET_MAC______________SSH_PORT=28
+SET_ANDROID_____________SEP__=29
+SET_ANDROID___________LABEL__=30
+SET_ANDROID________BUILD_TYPE=31
+SET_ANDROID__BUILD_SYS_TARGET=32
+SET_ANDROID_________INSTALLER=33
+SET_ANDROID____ARM_EMU_SOURCE=34
+SET_ANDROID____x86_EMU_SOURCE=35
+SET_ANDROID_VIRT_DISK_MANAGER=36
+SET_ANDROID_____OPEN_X86_DISK=37
+SET_ANDROID_______AVD_MANAGER=38
 
 # Setting control id's 2
-SET_2_KODI______________LABEL__=0
-SET_2_VAR_________CPU_PROC_JOBS=1
-SET_2_VAR____EMU_INSTALL_PREFIX=2
-SET_2_VAR_INCLUDE_OPEN_REQUESTS=3
-SET_2_VAR____NO_WARNING_ON_FAIL=4
-SET_2_VAR_________________SEP__=5
+SET_2_VAR_________________SEP__=0
+SET_2_VAR_______________LABEL__=1
+SET_2_VAR_________CPU_PROC_JOBS=2
+SET_2_VAR____EMU_INSTALL_PREFIX=3
+SET_2_VAR_INCLUDE_OPEN_REQUESTS=4
+SET_2_VAR____NO_WARNING_ON_FAIL=5
+SET_2_KODI________________SEP__=6
+SET_2_KODI______________LABEL__=7
+SET_2_KODI________SOURCE_REPOSI=8
+SET_2_KODI__________SOURCE_BASE=9
+SET_2_KODI________SOURCE_BRANCH=10
+SET_2_KODI____________RUN_TESTS=11
+SET_2_KODI_CONF_IN_DIRECT_BUILD=12
+SET_2_KODI____________DEP_CLEAN=13
+SET_2_CEF_________________SEP__=14
+SET_2_CEF_______________LABEL__=15
+SET_2_CEF_________SOURCE_REPOSI=16
+SET_2_CEF___________SOURCE_BASE=17
+SET_2_CEF_________SOURCE_BRANCH=18
+SET_2_CEF_________________DEBUG=19
+SET_2_CEF__________FORCE_UPDATE=20
+SET_2_CEF_____________NO_UPDATE=21
+SET_2_CEF__________FORCE_CONFIG=22
+SET_2_CEF___________FORCE_CLEAN=23
+SET_2_CEF______FORCE_CLEAN_DEPS=24
+SET_2_CEF___________BUILD_TESTS=25
+SET_2_CEF_________VERBOSE_BUILD=26
 
 ###############################################################################
 # Functions
@@ -346,55 +349,24 @@ function parse_values
   elif [ "$field" = "settings2" ];then
   {
     #####
-    # General
-    if [[ $id = $SET_2_VAR_________CPU_PROC_JOBS ]];then
-    {
-      value=${value%|}
-      [ -z $value ] && value=8;
-      CPU_PROC_JOBS=${value%,000000}
-    }
-    elif [[ $id = $SET_2_VAR____EMU_INSTALL_PREFIX ]];then
-    {
-      value=${value%|}
-      EMU_INSTALL_PREFIX=${value:-$INSTALL_PREFIX/systems}
-      echo "#> msg field $SET_MAC________________TARGET:set $(getMacOSXTargets x86);";
-      echo "#> msg field $SET_WINDOWS____________TARGET:set $(getWindowsTargets x86);";
-    }
-    elif [[ $id = $SET_2_VAR_INCLUDE_OPEN_REQUESTS ]];then
-    {
-      INCLUDE_OPEN_PULL_REQUESTS=${value%|}
-      echo "#> msg field $SET_KODI________SOURCE_REPOSI:set ${KODI_SOURCE_URL};";
-      echo "#> msg field $SET_CEF_________SOURCE_REPOSI:set ${CEF_SOURCE_URL};";
-    }
-    elif [[ $id = $SET_2_VAR____NO_WARNING_ON_FAIL ]];then
-    {
-      NO_WARNING_ON_FAIL=${value%|:-FALSE}
-    } fi
-  }
-  elif [ "$field" = "settings" ];then
-  {
-    IFS_BU=$IFS
-    unset IFS
-
-    #####
     # Kodi
-    if [[ $id = 1 ]] || [[ $id = $SET_KODI________SOURCE_REPOSI ]];then
+    if [[ $id = 6 ]] || [[ $id = $SET_2_KODI________SOURCE_REPOSI ]];then
     { # handle 'kodi git url' change
-      echo "#> msg field $SET_KODI________SOURCE_BRANCH:enable 0;"
+      echo "#> msg field $SET_2_KODI________SOURCE_BRANCH:enable 0;"
 
       local targets=$(loadGitBranches ${value%|} $KODI_SOURCE_BRANCH $BASE_PATH/build/kodi-$GIT_USER/kodi);
       if [ $? = 0 ];then
       {
         KODI_SOURCE_URL=${value%|};
-        [[ $id != $SET_KODI________SOURCE_REPOSI ]] && echo "#> msg field $SET_KODI________SOURCE_REPOSI:set ${KODI_SOURCE_URL};";
-        echo "#> msg field $SET_KODI________SOURCE_BRANCH:set ${targets};";
-        echo "#> msg field $SET_KODI________SOURCE_BRANCH:enable 1;";
+        [[ $id != $SET_2_KODI________SOURCE_REPOSI ]] && echo "#> msg field $SET_2_KODI________SOURCE_REPOSI:set ${KODI_SOURCE_URL};";
+        echo "#> msg field $SET_2_KODI________SOURCE_BRANCH:set ${targets};";
+        echo "#> msg field $SET_2_KODI________SOURCE_BRANCH:enable 1;";
       } fi
-      echo "#> msg field $SET_KODI________SOURCE_REPOSI:enable $([ $KODI_SOURCE_USE_BASE = "TRUE" ] && echo 0 || echo 1);";
+      echo "#> msg field $SET_2_KODI________SOURCE_REPOSI:enable $([ $KODI_SOURCE_USE_BASE = "TRUE" ] && echo 0 || echo 1);";
     }
-    elif [[ $id = $SET_KODI__________SOURCE_BASE ]];then
+    elif [[ $id = $SET_2_KODI__________SOURCE_BASE ]];then
     {
-      echo "#> msg field $SET_KODI________SOURCE_BRANCH:enable 0;"
+      echo "#> msg field $SET_2_KODI________SOURCE_BRANCH:enable 0;"
 
       KODI_SOURCE_USE_BASE=${value%|}
       KODI_SOURCE_USE_BASE=${KODI_SOURCE_USE_BASE:-FALSE}
@@ -412,14 +384,14 @@ function parse_values
       local targets=$(loadGitBranches $KODI_SOURCE_URL $KODI_SOURCE_BRANCH $BASE_PATH/build/kodi-xbmc/kodi);
       if [ $? = 0 ];then
       {
-        echo "#> msg field $SET_KODI________SOURCE_REPOSI:set ${KODI_SOURCE_URL};";
-        echo "#> msg field $SET_KODI________SOURCE_BRANCH:set ${targets};";
-        echo "#> msg field $SET_KODI________SOURCE_BRANCH:enable 1;";
+        echo "#> msg field $SET_2_KODI________SOURCE_REPOSI:set ${KODI_SOURCE_URL};";
+        echo "#> msg field $SET_2_KODI________SOURCE_BRANCH:set ${targets};";
+        echo "#> msg field $SET_2_KODI________SOURCE_BRANCH:enable 1;";
       } fi
 
-      echo "#> msg field $SET_KODI________SOURCE_REPOSI:enable $([ $KODI_SOURCE_USE_BASE = "TRUE" ] && echo 0 || echo 1);";
+      echo "#> msg field $SET_2_KODI________SOURCE_REPOSI:enable $([[ $KODI_SOURCE_USE_BASE = "TRUE" ]] && echo 0 || echo 1);";
     }
-    elif [[ $id = $SET_KODI________SOURCE_BRANCH ]];then
+    elif [[ $id = $SET_2_KODI________SOURCE_BRANCH ]];then
     {
       # Trigger for update
       if [[ $KODI_SOURCE_BRANCH != ${value%|} ]] && [[ ${value%|} = "refs/pull"* ]];then
@@ -433,40 +405,40 @@ function parse_values
       KODI_SOURCE_BRANCH=${value%|}
       KODI_SOURCE_BRANCH=${KODI_SOURCE_BRANCH:-KODI_SOURCE_DEFAULT_BRANCH}
     }
-    elif [[ $id = $SET_KODI____________RUN_TESTS ]];then
+    elif [[ $id = $SET_2_KODI____________RUN_TESTS ]];then
     {
       KODI_RUN_TESTS=${value%|}
     }
-    elif [[ $id = $SET_KODI_CONF_IN_DIRECT_BUILD ]];then
+    elif [[ $id = $SET_2_KODI_CONF_IN_DIRECT_BUILD ]];then
     {
       KODI_CONF_IN_DIRECT_BUILD=${value%|}
     }
-    elif [[ $id = $SET_KODI____________DEP_CLEAN ]];then
+    elif [[ $id = $SET_2_KODI____________DEP_CLEAN ]];then
     {
       KODI_DEP_CLEAN=${value%|}
     }
     #####
     # CEF
-    elif [[ $id = 8 ]] || [[ $id = $SET_CEF_________SOURCE_REPOSI ]];then
+    elif [[ $id = 14 ]] || [[ $id = $SET_2_CEF_________SOURCE_REPOSI ]];then
     {  # handle 'cef git url' change
-      echo "#> msg field $SET_CEF_________SOURCE_BRANCH:enable 0;"
+      echo "#> msg field $SET_2_CEF_________SOURCE_BRANCH:enable 0;"
 
       local targets=$(loadGitBranches ${value%|} $CEF_SOURCE_BRANCH $BASE_PATH/build/cef-$GIT_CEF_USER/cef);
       if [ $? = 0 ];then
       {
         CEF_SOURCE_URL=${value%|};
-        [[ $id != $SET_CEF_________SOURCE_REPOSI ]] && echo "#> msg field $SET_CEF_________SOURCE_REPOSI:set ${CEF_SOURCE_URL};";
-        echo "#> msg field $SET_CEF_________SOURCE_BRANCH:set ${targets};";
-        echo "#> msg field $SET_CEF_________SOURCE_BRANCH:enable 1;"
+        [[ $id != $SET_2_CEF_________SOURCE_REPOSI ]] && echo "#> msg field $SET_2_CEF_________SOURCE_REPOSI:set ${CEF_SOURCE_URL};";
+        echo "#> msg field $SET_2_CEF_________SOURCE_BRANCH:set ${targets};";
+        echo "#> msg field $SET_2_CEF_________SOURCE_BRANCH:enable 1;"
       } fi
-      echo "#> msg field $SET_CEF_________SOURCE_REPOSI:enable $([ $CEF_SOURCE_USE_BASE = "TRUE" ] && echo 0 || echo 1);";
+      echo "#> msg field $SET_2_CEF_________SOURCE_REPOSI:enable $([ $CEF_SOURCE_USE_BASE = "TRUE" ] && echo 0 || echo 1);";
     }
-    elif [[ $id = $SET_CEF___________SOURCE_BASE ]];then
+    elif [[ $id = $SET_2_CEF___________SOURCE_BASE ]];then
     {
-      echo "#> msg field $SET_CEF_________SOURCE_BRANCH:enable 0;"
+      echo "#> msg field $SET_2_CEF_________SOURCE_BRANCH:enable 0;"
 
       CEF_SOURCE_USE_BASE=${value%|}
-      if [ $CEF_SOURCE_USE_BASE = "TRUE" ];then
+      if [[ $CEF_SOURCE_USE_BASE = "TRUE" ]];then
       {
         CEF_SOURCE_URL_INACTIVE=$CEF_SOURCE_URL
         CEF_SOURCE_URL=$CEF_SOURCE_URL_BASE
@@ -480,15 +452,15 @@ function parse_values
       local targets=$(loadGitBranches $CEF_SOURCE_URL $CEF_SOURCE_BRANCH $BASE_PATH/build/cef-chromiumembedded/cef);
       if [ $? = 0 ];then
       {
-        echo "#> msg field $SET_CEF_________SOURCE_REPOSI:set ${CEF_SOURCE_URL};"
-        echo "#> msg field $SET_CEF_________SOURCE_REPOSI:set ${CEF_SOURCE_URL};";
-        echo "#> msg field $SET_CEF_________SOURCE_BRANCH:set ${targets};";
-        echo "#> msg field $SET_CEF_________SOURCE_BRANCH:enable 1;"
+        echo "#> msg field $SET_2_CEF_________SOURCE_REPOSI:set ${CEF_SOURCE_URL};"
+        echo "#> msg field $SET_2_CEF_________SOURCE_REPOSI:set ${CEF_SOURCE_URL};";
+        echo "#> msg field $SET_2_CEF_________SOURCE_BRANCH:set ${targets};";
+        echo "#> msg field $SET_2_CEF_________SOURCE_BRANCH:enable 1;"
       } fi
 
-      echo "#> msg field $SET_CEF_________SOURCE_REPOSI:enable $([ $CEF_SOURCE_USE_BASE = "TRUE" ] && echo 0 || echo 1);";
+      echo "#> msg field $SET_2_CEF_________SOURCE_REPOSI:enable $([[ $CEF_SOURCE_USE_BASE = "TRUE" ]] && echo 0 || echo 1);";
     }
-    elif [[ $id = $SET_CEF_________SOURCE_BRANCH ]];then
+    elif [[ $id = $SET_2_CEF_________SOURCE_BRANCH ]];then
     {
       # Trigger for update
       if [[ $CEF_SOURCE_BRANCH != ${value%|} ]] && [[ ${value%|} = "refs/pull"* ]];then
@@ -502,41 +474,72 @@ function parse_values
       CEF_SOURCE_BRANCH=${value%|}
       CEF_SOURCE_BRANCH=${CEF_SOURCE_BRANCH:-CEF_SOURCE_DEFAULT_BRANCH}
     }
-    elif [[ $id = $SET_CEF_________________DEBUG ]];then
+    elif [[ $id = $SET_2_CEF_________________DEBUG ]];then
     {
       CEF_DEBUG=${value%|}
     }
-    elif [[ $id = $SET_CEF__________FORCE_UPDATE ]];then
+    elif [[ $id = $SET_2_CEF__________FORCE_UPDATE ]];then
     {
       CEF_FORCE_UPDATE=${value%|}
     }
-    elif [[ $id = $SET_CEF_____________NO_UPDATE ]];then
+    elif [[ $id = $SET_2_CEF_____________NO_UPDATE ]];then
     {
       CEF_NO_UPDATE=${value%|}
     }
-    elif [[ $id = $SET_CEF__________FORCE_CONFIG ]];then
+    elif [[ $id = $SET_2_CEF__________FORCE_CONFIG ]];then
     {
       CEF_FORCE_CONFIG=${value%|}
     }
-    elif [[ $id = $SET_CEF___________FORCE_CLEAN ]];then
+    elif [[ $id = $SET_2_CEF___________FORCE_CLEAN ]];then
     {
       CEF_FORCE_CLEAN=${value%|}
     }
-    elif [[ $id = $SET_CEF______FORCE_CLEAN_DEPS ]];then
+    elif [[ $id = $SET_2_CEF______FORCE_CLEAN_DEPS ]];then
     {
       CEF_FORCE_CLEAN_DEPS=${value%|}
     }
-    elif [[ $id = $SET_CEF___________BUILD_TESTS ]];then
+    elif [[ $id = $SET_2_CEF___________BUILD_TESTS ]];then
     {
       CEF_BUILD_TESTS=${value%|}
     }
-    elif [[ $id = $SET_CEF_________VERBOSE_BUILD ]];then
+    elif [[ $id = $SET_2_CEF_________VERBOSE_BUILD ]];then
     {
       CEF_VERBOSE_BUILD=${value%|}
     }
     #####
+    # General
+    elif [[ $id = $SET_2_VAR_________CPU_PROC_JOBS ]];then
+    {
+      value=${value%|}
+      [ -z $value ] && value=8;
+      CPU_PROC_JOBS=${value%,000000}
+    }
+    elif [[ $id = $SET_2_VAR____EMU_INSTALL_PREFIX ]];then
+    {
+      value=${value%|}
+      EMU_INSTALL_PREFIX=${value:-$INSTALL_PREFIX/systems}
+      echo "#> msg field $SET_MAC________________TARGET:set $(getMacOSXTargets x86);" >> $thread9_in;
+      echo "#> msg field $SET_WINDOWS____________TARGET:set $(getWindowsTargets x86);" >> $thread9_in;
+    }
+    elif [[ $id = $SET_2_VAR_INCLUDE_OPEN_REQUESTS ]];then
+    {
+      INCLUDE_OPEN_PULL_REQUESTS=${value%|}
+      echo "#> msg field $SET_2_KODI________SOURCE_REPOSI:set ${KODI_SOURCE_URL};";
+      echo "#> msg field $SET_2_CEF_________SOURCE_REPOSI:set ${CEF_SOURCE_URL};";
+    }
+    elif [[ $id = $SET_2_VAR____NO_WARNING_ON_FAIL ]];then
+    {
+      NO_WARNING_ON_FAIL=${value%|:-FALSE}
+    } fi
+  }
+  elif [ "$field" = "settings" ];then
+  {
+    IFS_BU=$IFS
+    unset IFS
+
+    #####
     # Linux
-    elif [[ $id = $SET_LINUX_____USED_LINUX_DIST ]];then
+    if [[ $id = $SET_LINUX_____USED_LINUX_DIST ]];then
     {
       USE_LINUX_X86_DISTR=${value%|}
       export USE_LINUX_X86_DISTR
@@ -1327,6 +1330,8 @@ function cleanup
     ps -p $pid_thread8; [[ $? = 0 ]] && killtree $pid_thread8 KILL;fi
   if [[ ! -z $pid_thread9 ]];then
     ps -p $pid_thread9; [[ $? = 0 ]] && killtree $pid_thread9 KILL;fi
+  if [[ ! -z $pid_thread10 ]];then
+    ps -p $pid_thread10; [[ $? = 0 ]] && killtree $pid_thread10 KILL;fi
 }
 
 function usage
@@ -1464,11 +1469,6 @@ function showGitCommandHelp
              --text-info \
              --filename="$BASE_PATH/help/git-help.txt" \
              --text="<tt><b><i><span size=\"large\">Usable Git commands:</span></i></b></tt>" 2> /dev/null
-}
-
-function open_krusader
-{
-  krusader $HOME
 }
 
 function ssh_access_windows
@@ -1751,6 +1751,8 @@ thread8_in=${TEMP_DIR}/thread8_in
 touch ${TEMP_DIR}/thread8_in
 thread9_in=${TEMP_DIR}/thread9_in
 touch ${TEMP_DIR}/thread9_in
+thread10_in=${TEMP_DIR}/thread10_in
+touch ${TEMP_DIR}/thread10_in
 
 ###############################################################################
 # Thread one: General handling
@@ -1978,19 +1980,19 @@ Are you sure?</b>"
             --text="General settings" \
             --pulsate \
             --xcom-log=$thread1_in \
-            --field="Start build all:FBTN@0,8,0,2" "bash -c 'echo \"#< msg start_build;\" >> $thread1_in'" \
-            --field="Stop build all:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build;\" >> $thread1_in'" \
-            --field="Create and install Mupel system:FBTN@0,8,4,6" "bash $BASE_PATH/mupel-install --main-msg $thread1_in" \
-            --field="Download/Update only:FBTN@0,0,12,14" "bash -c 'echo \"#< msg download_only;\" >> $thread1_in'" \
-            --field="Open console window:FBTN@1,1,12,14" "bash -c 'echo \"#< msg open_console;\" >> $thread1_in'" \
-            --field="dummy:FBTN@2,2,12,14" "" \
-            --field="Delete old log files:FBTN@7,7,12,14" "bash -c 'echo \"#< msg delete_old_logs;\" >> $thread1_in'" \
-            --field="Clear log:FBTN@8,8,12,14" "bash -c 'echo \"#> msg field 15:clear;\" >> $thread1_in'" \
-            --field=":lbl@0,8,16,18" \
-            --field="Include Kodi:chk@0,0,20,22" $INCLUDE_KODI \
-            --field="Include Kodi add-ons:chk@1,1,20,22" $INCLUDE_KODI_ADDONS \
-            --field="Include CEF:chk@2,2,20,22" $INCLUDE_CEF \
-            --field="Disable build git update:chk@7,8,20,22" $DISABLE_GIT_UPDATE \
+            --field="Start build all:FBTN@0,8,0,2"                  "bash -c 'echo \"#< msg start_build;\" >> $thread1_in'" \
+            --field="Stop build all:FBTN@0,8,2,4"                   "bash -c 'echo \"#< msg stop_build;\" >> $thread1_in'" \
+            --field="Create and install Mupel system:FBTN@0,8,4,6"  "bash $BASE_PATH/mupel-install --main-msg $thread1_in" \
+            --field="Download/Update only:FBTN@0,0,12,14"           "bash -c 'echo \"#< msg download_only;\" >> $thread1_in'" \
+            --field="Open console window:FBTN@1,1,12,14"            "bash -c 'echo \"#< msg open_console;\" >> $thread1_in'" \
+            --field="dummy:FBTN@2,2,12,14"                          "" \
+            --field="Delete old log files:FBTN@7,7,12,14"           "bash -c 'echo \"#< msg delete_old_logs;\" >> $thread1_in'" \
+            --field="Clear log:FBTN@8,8,12,14"                      "bash -c 'echo \"#> msg field 15:clear;\" >> $thread1_in'" \
+            --field=":lbl@0,8,16,18"                                "" \
+            --field="Include Kodi:chk@0,0,20,22"                    $INCLUDE_KODI \
+            --field="Include Kodi add-ons:chk@1,1,20,22"            $INCLUDE_KODI_ADDONS \
+            --field="Include CEF:chk@2,2,20,22"                     $INCLUDE_CEF \
+            --field="Disable build git update:chk@7,8,20,22"        $DISABLE_GIT_UPDATE \
             --field="dummy:FBTN@0,1,24,26" "" \
             --field="Build log:termproc@0,9,28,30" "" > /dev/null 2>&1 &
   pid_thread1=$!
@@ -2227,7 +2229,7 @@ Creating new kodi branch '$new_kodi_branch' ...
                 } fi;
                 git -C $BASE_PATH/build/kodi-$GIT_USER/kodi checkout $KODI_SOURCE_BRANCH
                 # Trigger to reload available branches
-                echo "#< msg field 2:$KODI_SOURCE_URL;" >> $thread9_in
+                echo "#< msg field SET_2_KODI________SOURCE_REPOSI:$KODI_SOURCE_URL;" >> $thread10_in
 
                 printf "\
 Done for '$BASE_PATH/build/kodi-$GIT_USER/kodi'
@@ -2404,7 +2406,7 @@ Creating new CEF branch '$new_cef_branch' ...
                 } fi;
                 git -C $BASE_PATH/build/cef-$GIT_CEF_USER/cef checkout $CEF_SOURCE_BRANCH
                 # Trigger to reload available branches
-                echo "#< msg field 2:$CEF_SOURCE_URL;" >> $thread9_in
+                echo "#< msg field SET_2_CEF_________SOURCE_REPOSI:$CEF_SOURCE_URL;" >> $thread10_in
 
                 printf "\
 Done for '$BASE_PATH/build/cef-$GIT_CEF_USER/cef'
@@ -2420,9 +2422,7 @@ Done for '$BASE_PATH/build/cef-$GIT_CEF_USER/cef'
               echo "#> msg field $GIT_CEF_____CREATE_NEW_BRANCH:enable 1;";
             }
             else
-            {
-              echo "Wrong command! $line" > /dev/stderr;
-            } fi
+              echo "Wrong command! $line" > /dev/stderr;fi
           }
           else
           {
@@ -2475,20 +2475,20 @@ Done for '$BASE_PATH/build/cef-$GIT_CEF_USER/cef'
                    --pulsate \
                    --xcom-log=$thread2_in \
                    --field="<b>Kodi:</b>:LBL@0,8,0,2" '' \
-                   --field="Pull requests (Own):FBTN@0,1,2,4" "bash -c 'echo \"#< msg show_own_kodi_requests;\" >> $thread2_in'" \
-                   --field="Pull requests (Base):FBTN@2,3,2,4" "bash -c 'echo \"#< msg show_base_kodi_requests;\" >> $thread2_in'" \
-                   --field="Create new branch:FBTN@4,4,2,4" "bash -c 'echo \"#< msg kodi_new_branch;\" >> $thread2_in'" \
-                   --field="Show changes:FBTN@5,5,2,4" "bash -c 'echo \"#< msg kodi_prepare_patches;\" >> $thread2_in'" \
-                   --field="Add and commit changes:FBTN@6,7,2,4" "bash -c 'echo \"#< msg kodi_add_commit;\" >> $thread2_in'" \
-                   --field=":LBL@0,8,4,6" '' \
+                   --field="Pull requests (Own):FBTN@0,1,2,4"     "bash -c 'echo \"#< msg show_own_kodi_requests;\" >> $thread2_in'" \
+                   --field="Pull requests (Base):FBTN@2,3,2,4"    "bash -c 'echo \"#< msg show_base_kodi_requests;\" >> $thread2_in'" \
+                   --field="Create new branch:FBTN@4,4,2,4"       "bash -c 'echo \"#< msg kodi_new_branch;\" >> $thread2_in'" \
+                   --field="Show changes:FBTN@5,5,2,4"            "bash -c 'echo \"#< msg kodi_prepare_patches;\" >> $thread2_in'" \
+                   --field="Add and commit changes:FBTN@6,7,2,4"  "bash -c 'echo \"#< msg kodi_add_commit;\" >> $thread2_in'" \
+                   --field=":LBL@0,8,4,6"                         '' \
                    --field="<b>CEF (Chromium embedded framwork):</b>:LBL@0,8,6,8" '' \
-                   --field="Pull requests (Own):FBTN@0,1,8,10" "bash -c 'echo \"#< msg show_own_cef_requests;\" >> $thread2_in'" \
-                   --field="Pull requests (Base):FBTN@2,3,8,10" "bash -c 'echo \"#< msg show_base_cef_requests;\" >> $thread2_in'" \
-                   --field="Create new branch:FBTN@4,4,8,10" "bash -c 'echo \"#< msg cef_new_branch;\" >> $thread2_in'" \
-                   --field="Show changes:FBTN@5,5,8,10" "bash -c 'echo \"#< msg cef_prepare_patches;\" >> $thread2_in'" \
+                   --field="Pull requests (Own):FBTN@0,1,8,10"    "bash -c 'echo \"#< msg show_own_cef_requests;\" >> $thread2_in'" \
+                   --field="Pull requests (Base):FBTN@2,3,8,10"   "bash -c 'echo \"#< msg show_base_cef_requests;\" >> $thread2_in'" \
+                   --field="Create new branch:FBTN@4,4,8,10"      "bash -c 'echo \"#< msg cef_new_branch;\" >> $thread2_in'" \
+                   --field="Show changes:FBTN@5,5,8,10"           "bash -c 'echo \"#< msg cef_prepare_patches;\" >> $thread2_in'" \
                    --field="Add and commit changes:FBTN@6,7,8,10" "bash -c 'echo \"#< msg cef_add_commit;\" >> $thread2_in'" \
-                   --field=":LBL@0,8,10,12" '' \
-                   --field="<b>Other options:</b>:LBL@0,8,12,14" '' \
+                   --field=":LBL@0,8,10,12"                       '' \
+                   --field="<b>Other options:</b>:LBL@0,8,12,14"  '' \
                    --field="Show used Git SSH key:FBTN@0,1,14,16" "$BASE_PATH/tools/send-button-msg showSSHkey" \
                    --field=":XTALK" '' > /dev/null 2>&1 &
   pid_thread2=$!
@@ -2833,16 +2833,16 @@ This give 10 seconds time to start debugger."
              --text="Linux x86 (Debian/Ubuntu based)" \
              --pulsate \
              --xcom-log=$thread3_in \
-             --field="Build complete:FBTN@0,1,0,2" "bash -c 'echo \"#< msg start_build\" >> $thread3_in'" \
-             --field="Build kodi direct:FBTN@2,3,0,2" "bash -c 'echo \"#< msg start_direct_build_kodi\" >> $thread3_in'" \
-             --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread3_in'" \
-             --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" >> $thread3_in'" \
-             --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" >> $thread3_in'" \
-             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field 12:clear;\" >> $thread3_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" >> $thread3_in'" \
-             --field="Launch Kodi:FBTN@2,3,4,6" "bash -c 'echo \"#< msg kodilaunch\" >> $thread3_in'" \
-             --field="Open debugger:FBTN@2,3,4,6" "bash -c 'echo \"#< msg debugger\" >> $thread3_in'" \
-             --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread3_in'" \
+             --field="Build complete:FBTN@0,1,0,2"        "bash -c 'echo \"#< msg start_build\" >> $thread3_in'" \
+             --field="Build kodi direct:FBTN@2,3,0,2"     "bash -c 'echo \"#< msg start_direct_build_kodi\" >> $thread3_in'" \
+             --field="Build CEF direct:FBTN@4,5,0,2"      "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread3_in'" \
+             --field="Build selected addon:FBTN@8,8,0,2"  "bash -c 'echo \"#< msg start_addon_build\" >> $thread3_in'" \
+             --field="Stop build:FBTN@0,8,2,4"            "bash -c 'echo \"#< msg stop_build\" >> $thread3_in'" \
+             --field="Clear log:FBTN@0,0,4,6"             "bash -c 'echo \"#> msg field 12:clear;\" >> $thread3_in'" \
+             --field="Open last logs:FBTN@1,1,4,6"        "bash -c 'echo \"#< msg openlogs\" >> $thread3_in'" \
+             --field="Launch Kodi:FBTN@2,3,4,6"           "bash -c 'echo \"#< msg kodilaunch\" >> $thread3_in'" \
+             --field="Open debugger:FBTN@2,3,4,6"         "bash -c 'echo \"#< msg debugger\" >> $thread3_in'" \
+             --field="Force build step:FBTN@4,4,4,6"      "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread3_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" >> $thread3_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
              --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
@@ -3081,16 +3081,16 @@ if [[ $USE_LINUX_RPBI = "TRUE" ]];then
              --text="Linux Raspberry PI build" \
              --pulsate \
              --xcom-log=$thread4_in \
-             --field="Build complete:FBTN@0,1,0,2" "bash -c 'echo \"#< msg start_build\" >> $thread4_in'" \
-             --field="Build kodi direct:FBTN@2,3,0,2" "bash -c 'echo \"#< msg start_direct_build_kodi\" >> $thread4_in'" \
-             --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread4_in'" \
-             --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" >> $thread4_in'" \
-             --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" >> $thread4_in'" \
-             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread4_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" >> $thread4_in'" \
-             --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-linux-rpbi $thread4_in" \
-             --field="Open debugger:FBTN@2,3,4,6" "bash -c 'echo \"#< msg debugger\" >> $thread4_in'" \
-             --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread4_in'" \
+             --field="Build complete:FBTN@0,1,0,2"        "bash -c 'echo \"#< msg start_build\" >> $thread4_in'" \
+             --field="Build kodi direct:FBTN@2,3,0,2"     "bash -c 'echo \"#< msg start_direct_build_kodi\" >> $thread4_in'" \
+             --field="Build CEF direct:FBTN@4,5,0,2"      "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread4_in'" \
+             --field="Build selected addon:FBTN@8,8,0,2"  "bash -c 'echo \"#< msg start_addon_build\" >> $thread4_in'" \
+             --field="Stop build:FBTN@0,8,2,4"            "bash -c 'echo \"#< msg stop_build\" >> $thread4_in'" \
+             --field="Clear log:FBTN@0,0,4,6"             "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread4_in'" \
+             --field="Open last logs:FBTN@1,1,4,6"        "bash -c 'echo \"#< msg openlogs\" >> $thread4_in'" \
+             --field="Launch Kodi:FBTN@2,3,4,6"           "bash $BASE_PATH/tools/kodi.launch kodi-linux-rpbi $thread4_in" \
+             --field="Open debugger:FBTN@2,3,4,6"         "bash -c 'echo \"#< msg debugger\" >> $thread4_in'" \
+             --field="Force build step:FBTN@4,4,4,6"      "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread4_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" >> $thread4_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
              --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
@@ -3333,16 +3333,16 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] || [[ $USE_MS_WINDOWS_64 = "TRUE" ]];then
              --text="Windows build" \
              --pulsate \
              --xcom-log=$thread5_in \
-             --field="Build complete:FBTN@0,1,0,2" "bash -c 'echo \"#< msg start_build\" >> $thread5_in'" \
-             --field="Build kodi direct:FBTN@2,3,0,2" "bash -c 'echo \"#< msg start_direct_build_kodi\" >> $thread5_in'" \
-             --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread5_in'" \
-             --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" >> $thread5_in'" \
-             --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" >> $thread5_in'" \
-             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread5_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" >> $thread5_in'" \
-             --field="Launch Kodi:FBTN@2,3,4,6" "bash -c 'echo \"#< msg kodilaunch\" >> $thread5_in'" \
-             --field="Open debugger:FBTN@2,3,4,6" "bash -c 'echo \"#< msg debugger\" >> $thread5_in'" \
-             --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread5_in'" \
+             --field="Build complete:FBTN@0,1,0,2"        "bash -c 'echo \"#< msg start_build\" >> $thread5_in'" \
+             --field="Build kodi direct:FBTN@2,3,0,2"     "bash -c 'echo \"#< msg start_direct_build_kodi\" >> $thread5_in'" \
+             --field="Build CEF direct:FBTN@4,5,0,2"      "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread5_in'" \
+             --field="Build selected addon:FBTN@8,8,0,2"  "bash -c 'echo \"#< msg start_addon_build\" >> $thread5_in'" \
+             --field="Stop build:FBTN@0,8,2,4"            "bash -c 'echo \"#< msg stop_build\" >> $thread5_in'" \
+             --field="Clear log:FBTN@0,0,4,6"             "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread5_in'" \
+             --field="Open last logs:FBTN@1,1,4,6"        "bash -c 'echo \"#< msg openlogs\" >> $thread5_in'" \
+             --field="Launch Kodi:FBTN@2,3,4,6"           "bash -c 'echo \"#< msg kodilaunch\" >> $thread5_in'" \
+             --field="Open debugger:FBTN@2,3,4,6"         "bash -c 'echo \"#< msg debugger\" >> $thread5_in'" \
+             --field="Force build step:FBTN@4,4,4,6"      "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread5_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" >> $thread5_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
              --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
@@ -3580,16 +3580,16 @@ if [[ $USE_MAC_OS_X_64 = "TRUE" ]];then
              --text="Mac OS X build" \
              --pulsate \
              --xcom-log=$thread6_in \
-             --field="Build complete:FBTN@0,1,0,2" "bash -c 'echo \"#< msg start_build\" >> $thread6_in'" \
-             --field="Build kodi direct:FBTN@2,3,0,2" "bash -c 'echo \"#< msg start_direct_build_kodi\" >> $thread6_in'" \
-             --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread6_in'" \
-             --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" >> $thread6_in'" \
-             --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" >> $thread6_in'" \
-             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread6_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" >> $thread6_in'" \
-             --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-osx64 $thread6_in" \
-             --field="Open debugger:FBTN@2,3,4,6" "bash -c 'echo \"#< msg debugger\" >> $thread6_in'" \
-             --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread6_in'" \
+             --field="Build complete:FBTN@0,1,0,2"        "bash -c 'echo \"#< msg start_build\" >> $thread6_in'" \
+             --field="Build kodi direct:FBTN@2,3,0,2"     "bash -c 'echo \"#< msg start_direct_build_kodi\" >> $thread6_in'" \
+             --field="Build CEF direct:FBTN@4,5,0,2"      "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread6_in'" \
+             --field="Build selected addon:FBTN@8,8,0,2"  "bash -c 'echo \"#< msg start_addon_build\" >> $thread6_in'" \
+             --field="Stop build:FBTN@0,8,2,4"            "bash -c 'echo \"#< msg stop_build\" >> $thread6_in'" \
+             --field="Clear log:FBTN@0,0,4,6"             "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread6_in'" \
+             --field="Open last logs:FBTN@1,1,4,6"        "bash -c 'echo \"#< msg openlogs\" >> $thread6_in'" \
+             --field="Launch Kodi:FBTN@2,3,4,6"           "bash $BASE_PATH/tools/kodi.launch kodi-osx64 $thread6_in" \
+             --field="Open debugger:FBTN@2,3,4,6"         "bash -c 'echo \"#< msg debugger\" >> $thread6_in'" \
+             --field="Force build step:FBTN@4,4,4,6"      "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread6_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" >> $thread6_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
              --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
@@ -3832,16 +3832,16 @@ if [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]];then
              --text="Android" \
              --pulsate \
              --xcom-log=$thread7_in \
-             --field="Build complete:FBTN@0,1,0,2" "bash -c 'echo \"#< msg start_build\" >> $thread7_in'" \
-             --field="Build kodi direct:FBTN@2,3,0,2" "bash -c 'echo \"#< msg start_direct_build_kodi\" >> $thread7_in'" \
-             --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread7_in'" \
-             --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" >> $thread7_in'" \
-             --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" >> $thread7_in'" \
-             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread7_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" >> $thread7_in'" \
-             --field="Launch Kodi:FBTN@2,3,4,6" "bash -c 'echo \"#< msg kodilaunch\" >> $thread7_in'" \
-             --field="Open debugger:FBTN@2,3,4,6" "bash -c 'echo \"#< msg debugger\" >> $thread7_in'" \
-             --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread7_in'" \
+             --field="Build complete:FBTN@0,1,0,2"        "bash -c 'echo \"#< msg start_build\" >> $thread7_in'" \
+             --field="Build kodi direct:FBTN@2,3,0,2"     "bash -c 'echo \"#< msg start_direct_build_kodi\" >> $thread7_in'" \
+             --field="Build CEF direct:FBTN@4,5,0,2"      "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread7_in'" \
+             --field="Build selected addon:FBTN@8,8,0,2"  "bash -c 'echo \"#< msg start_addon_build\" >> $thread7_in'" \
+             --field="Stop build:FBTN@0,8,2,4"            "bash -c 'echo \"#< msg stop_build\" >> $thread7_in'" \
+             --field="Clear log:FBTN@0,0,4,6"             "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread7_in'" \
+             --field="Open last logs:FBTN@1,1,4,6"        "bash -c 'echo \"#< msg openlogs\" >> $thread7_in'" \
+             --field="Launch Kodi:FBTN@2,3,4,6"           "bash -c 'echo \"#< msg kodilaunch\" >> $thread7_in'" \
+             --field="Open debugger:FBTN@2,3,4,6"         "bash -c 'echo \"#< msg debugger\" >> $thread7_in'" \
+             --field="Force build step:FBTN@4,4,4,6"      "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread7_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" >> $thread7_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
              --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
@@ -4080,16 +4080,16 @@ if [[ $USE_IOS = "TRUE" ]];then
              --text="iOS" \
              --pulsate \
              --xcom-log=$thread8_in \
-             --field="Build complete:FBTN@0,1,0,2" "bash -c 'echo \"#< msg start_build\" >> $thread8_in'" \
-             --field="Build kodi direct:FBTN@2,3,0,2" "bash -c 'echo \"#< msg start_direct_build_kodi\" >> $thread8_in'" \
-             --field="Build CEF direct:FBTN@4,5,0,2" "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread8_in'" \
-             --field="Build selected addon:FBTN@8,8,0,2" "bash -c 'echo \"#< msg start_addon_build\" >> $thread8_in'" \
-             --field="Stop build:FBTN@0,8,2,4" "bash -c 'echo \"#< msg stop_build\" >> $thread8_in'" \
-             --field="Clear log:FBTN@0,0,4,6" "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread8_in'" \
-             --field="Open last logs:FBTN@1,1,4,6" "bash -c 'echo \"#< msg openlogs\" >> $thread8_in'" \
-             --field="Launch Kodi:FBTN@2,3,4,6" "bash $BASE_PATH/tools/kodi.launch kodi-ios $thread8_in" \
-             --field="Open debugger:FBTN@2,3,4,6" "bash -c 'echo \"#< msg debugger\" >> $thread8_in'" \
-             --field="Force build step:FBTN@4,4,4,6" "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread8_in'" \
+             --field="Build complete:FBTN@0,1,0,2"        "bash -c 'echo \"#< msg start_build\" >> $thread8_in'" \
+             --field="Build kodi direct:FBTN@2,3,0,2"     "bash -c 'echo \"#< msg start_direct_build_kodi\" >> $thread8_in'" \
+             --field="Build CEF direct:FBTN@4,5,0,2"      "bash -c 'echo \"#< msg start_direct_build_cef\" >> $thread8_in'" \
+             --field="Build selected addon:FBTN@8,8,0,2"  "bash -c 'echo \"#< msg start_addon_build\" >> $thread8_in'" \
+             --field="Stop build:FBTN@0,8,2,4"            "bash -c 'echo \"#< msg stop_build\" >> $thread8_in'" \
+             --field="Clear log:FBTN@0,0,4,6"             "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread8_in'" \
+             --field="Open last logs:FBTN@1,1,4,6"        "bash -c 'echo \"#< msg openlogs\" >> $thread8_in'" \
+             --field="Launch Kodi:FBTN@2,3,4,6"           "bash $BASE_PATH/tools/kodi.launch kodi-ios $thread8_in" \
+             --field="Open debugger:FBTN@2,3,4,6"         "bash -c 'echo \"#< msg debugger\" >> $thread8_in'" \
+             --field="Force build step:FBTN@4,4,4,6"      "bash -c 'echo \"#< msg kodi_force_build_step\" >> $thread8_in'" \
              --field="Perform code depclean:FBTN@5,5,4,6" "bash -c 'echo \"#< msg depclean\" >> $thread8_in'" \
              --field="Add-on:CB@7,8,4,6" '' \
              --field="Build log:termproc@0,9,8,10" "" > /dev/null 2>&1 &
@@ -4123,18 +4123,6 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       } fi
 
       loadConfigFile
-
-      [ $KODI_SOURCE_USE_BASE != "TRUE" ] &&
-        use_it=1 || use_it=0
-      echo "#> msg field $SET_KODI________SOURCE_REPOSI:enable $use_it;"
-
-      [ $CEF_SOURCE_USE_BASE != "TRUE" ] &&
-        use_it=1 || use_it=0
-      echo "#> msg field $SET_CEF_________SOURCE_REPOSI:enable $use_it;"
-      [[ $SUPPORT_CEF = "TRUE" ]] &&
-        use_it=1 || use_it=0
-      echo "#> msg field $SET_CEF_________SOURCE_BRANCH:visible $use_it;"
-      echo "#> msg field $SET_CEF_________VERBOSE_BUILD:visible $use_it;"
 
       if [ $SYSTEM_BITS = 64 ];then
       {
@@ -4226,9 +4214,6 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
         use_it=1 || use_it=0
       echo "#> msg field $SET_ANDROID____x86_EMU_SOURCE:visible $use_it;"
 
-      parse_values "settings" 1 "$KODI_SOURCE_URL";
-      parse_values "settings" 8 "$CEF_SOURCE_URL";
-
       update_counter=10
 
       # Main loop
@@ -4286,10 +4271,6 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
                 echo "#> msg field $SET_WINDOWS____________TARGET:set $(getWindowsTargets x86);";
               ) &
             }
-            elif [[ "$line" = *"ssh_access_windows"* ]];then
-            {
-              ssh_access_windows &
-            }
             elif [[ "$line" = *"open_android_x86_emu"* ]];then
             {
               /usr/local/bin/qemu-android-x86 &
@@ -4317,10 +4298,6 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
                 $BASE_PATH/tools/mac-osx/install-systembuild-mac-osx;
                 echo "#> msg field $SET_MAC________________TARGET:set $(getMacOSXTargets x86);";
               ) &
-            }
-            elif [[ "$line" = *"ssh_access_mac_os_x"* ]];then
-            {
-              ssh_access_mac_os_x &
             }
             elif [[ "$line" = *"open_android_virt_disk"* ]];then
             {
@@ -4408,67 +4385,61 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
     } done
   ) | \
   $YAD_MUPEL --plug=$KEY --tabnum=$TAB_NUM --form \
-             --pulsate \
              --xcom-log=$thread9_in \
-             --field="<b>Kodi:</b>:LBL@0,8,2,4" '' \
-             --field="Repository:@0,3,4,6" "$KODI_SOURCE_URL" \
-             --field="Use base:CHK@4,5,4,6" "${KODI_SOURCE_USE_BASE:-FALSE}" \
-             --field="Branch:CB@6,8,4,6" '' \
-             --field="Run tests:CHK@0,0,6,8" "${KODI_RUN_TESTS:-FALSE}" \
-             --field="Configure in direct build:CHK@1,2,6,8" "${KODI_CONF_IN_DIRECT_BUILD:-FALSE}" \
-             --field="Depclean on branch change:CHK@3,4,6,8" "${KODI_DEP_CLEAN:-FALSE}" \
-             --field=":LBL@0,8,10,11" '' \
-             --field="<b>CEF (Chromium embedded framwork):</b>:LBL@0,8,11,12" '' \
-             --field="Repository:@0,3,12,13" "$CEF_SOURCE_URL" \
-             --field="Use base:CHK@4,5,12,13" "${CEF_SOURCE_USE_BASE:-FALSE}" \
-             --field="Branch:CB@6,8,12,13" '' \
-             --field="Debug:CHK@0,0,13,14" "${CEF_DEBUG:-FALSE}" \
-             --field="Force update:CHK@1,1,13,14" "${CEF_FORCE_UPDATE:-FALSE}" \
-             --field="No update:CHK@2,2,13,14" "${CEF_NO_UPDATE:-FALSE}" \
-             --field="Force config:CHK@3,3,13,14" "${CEF_FORCE_CONFIG:-FALSE}" \
-             --field="Force clean:CHK@4,4,13,14" "${CEF_FORCE_CLEAN:-FALSE}" \
-             --field="Force clean deps:CHK@5,6,13,14" "${CEF_FORCE_CLEAN_DEPS:-FALSE}" \
-             --field="Build tests:CHK@7,7,13,14" "${CEF_BUILD_TESTS:-FALSE}" \
-             --field="Verbose build:CHK@8,8,13,14" "${CEF_VERBOSE_BUILD:-FALSE}" \
              --field=":LBL@0,8,15,16" '' \
              --field="<b>Linux settings:</b>:LBL@0,0,16,17" '' \
              --field="Used 32/64bit Distribution:CB@1,2,16,17" "$(getLinuxTargetDist)" \
              --field="Distribution control:FBTN@3,4,16,17" "bash -c 'echo \"#< msg open_dist_control\" >> $thread9_in'" \
              --field="Use GUI debug:CHK@5,5,16,17" "${USE_GUI_DEBUG:-TRUE}" \
-             --field="Build type:CB@7,8,16,17" 'x86_32!x86_64' \
+             \
+             --field="Build type:CB@1,2,17,18" 'x86_32!x86_64' \
+             \
+             \
              --field=":LBL@0,8,21,22" '' \
              --field="<b>Windows settings:</b>:LBL@0,0,22,23" '' \
              --field="Build system target:CB@1,4,22,23" "$(getWindowsTargets)" \
              --field="Installer:FBTN@5,6,22,23" "bash -c 'echo \"#< msg open_windows_installer\" >> $thread9_in'" \
-             --field="Build type:CB@7,8,22,23" 'x86_32!x86_64' \
-             --field="Emulation control:FBTN@0,0,23,24" "bash -c 'echo \"#< msg open_windows_control\" >> $thread9_in'" \
-             --field="Start Windows:FBTN@0,0,23,24" "bash -c 'echo \"#< msg start_windows\" >> $thread9_in'" \
-             --field="SSH access:FBTN@1,1,23,24" "bash -c 'echo \"#< msg ssh_access_windows\" >> $thread9_in'" \
-             --field="Username / Password (ssh):@2,3,23,24" "$WINDOWS_SSH_USERNAME" \
-             --field=":H@3,4,23,24" "$WINDOWS_SSH_PASSWORD" \
-             --field="URL or IP / Port (ssh):@6,7,23,24" "$WINDOWS_SSH_IP" \
-             --field=":NUM@7,8,23,24" "$WINDOWS_SSH_PORT" \
+             \
+             --field="Build type:CB@1,2,23,24" 'x86_32!x86_64' \
+             --field="Username / Password (ssh):@3,4,23,24" "$WINDOWS_SSH_USERNAME" \
+             --field=":H@4,5,23,24" "$WINDOWS_SSH_PASSWORD" \
+             \
+             --field="Emulation control:FBTN@1,1,25,26" "bash -c 'echo \"#< msg open_windows_control\" >> $thread9_in'" \
+             --field="Start Windows:FBTN@1,1,25,26" "bash -c 'echo \"#< msg start_windows\" >> $thread9_in'" \
+             --field="SSH access:FBTN@2,2,25,26" "bash -c 'echo \"#< msg ssh_access_windows\" >> $thread9_in'" \
+             --field="URL or IP / Port (ssh):@3,4,25,26" "$WINDOWS_SSH_IP" \
+             --field=":NUM@4,5,25,26" "$WINDOWS_SSH_PORT" \
+             \
+             \
              --field=":LBL@0,8,28,29" '' \
              --field="<b>Mac OS X settings:</b>:LBL@0,8,29,30" '' \
              --field="Build system target:CB@1,4,29,30" "$(getMacOSXTargets)" \
              --field="Installer:FBTN@5,6,29,30" "bash -c 'echo \"#< msg open_mac_os_x_installer\" >> $thread9_in'" \
-             --field="Emulation control:FBTN@0,0,30,31" "bash -c 'echo \"#< msg open_mac_os_x_control\" >> $thread9_in'" \
-             --field="Start Mac OS X:FBTN@0,0,30,31" "bash -c 'echo \"#< msg start_mac_os_x\" >> $thread9_in'" \
-             --field="SSH access:FBTN@1,1,30,31" "bash -c 'echo \"#< msg ssh_access_mac_os_x\" >> $thread9_in'" \
-             --field="Username / Password (ssh):@2,3,30,31" "$MAC_OS_X_SSH_USERNAME" \
-             --field=":H@3,4,30,31" "$MAC_OS_X_SSH_PASSWORD" \
-             --field="URL or IP / Port (ssh):@6,7,30,31" "$MAC_OS_X_SSH_IP" \
-             --field=":NUM@7,8,30,31" "$MAC_OS_X_SSH_PORT" \
+             \
+             --field="Emulation control:FBTN@1,1,30,31" "bash -c 'echo \"#< msg open_mac_os_x_control\" >> $thread9_in'" \
+             --field="Start Mac OS X:FBTN@1,1,30,31" "bash -c 'echo \"#< msg start_mac_os_x\" >> $thread9_in'" \
+             --field="SSH access:FBTN@2,2,30,31" "bash -c 'echo \"#< msg ssh_access_mac_os_x\" >> $thread9_in'" \
+             --field="Username / Password (ssh):@3,4,30,31" "$MAC_OS_X_SSH_USERNAME" \
+             --field=":H@4,5,30,31" "$MAC_OS_X_SSH_PASSWORD" \
+             \
+             --field="URL or IP / Port (ssh):@3,4,31,32" "$MAC_OS_X_SSH_IP" \
+             --field=":NUM@4,5,31,32" "$MAC_OS_X_SSH_PORT" \
+             \
+             \
              --field=":LBL@0,8,37,38" '' \
              --field="<b>Android settings:</b>:LBL@0,8,38,39" '' \
              --field="Build type:CB@1,2,38,39" 'arm!x86' \
              --field="Build system target:CB@3,4,38,39" "$(getAndroidTargets)" \
              --field="Installer:FBTN@5,6,38,39" "bash -c 'echo \"#< msg open_android_installer\" >> $thread9_in'" \
-             --field="Android Virtual Device (AVD) Manager:FBTN@7,8,38,39" "bash -c 'echo \"#< msg open_avd_control\" >> $thread9_in'" \
-             --field="ARM | x86 AVD emulation:CB@1,4,39,40" "$(getAndroidAVDS arm)" \
-             --field=":CB@4,8,39,40" "$(getAndroidAVDS x86)" \
-             --field="Virtual disk manager:FBTN@5,6,40,41" "bash -c 'echo \"#< msg android_virtual_sdcard\" >> $thread9_in'" \
-             --field="Open x86 disk:FBTN@7,8,40,41" "bash -c 'echo \"#< msg open_android_x86_image\" >> $thread9_in'" \
+             \
+             --field="ARM AVD emulation:CB@1,6,39,40" "$(getAndroidAVDS arm)" \
+             \
+             --field="x86 AVD emulation:CB@1,6,40,41" "$(getAndroidAVDS x86)" \
+             \
+             --field="Virtual disk manager:FBTN@1,2,41,42" "bash -c 'echo \"#< msg android_virtual_sdcard\" >> $thread9_in'" \
+             --field="Open x86 disk:FBTN@3,4,41,42" "bash -c 'echo \"#< msg open_android_x86_image\" >> $thread9_in'" \
+             --field="Android Virtual Device (AVD) Manager:FBTN@5,6,41,42" "bash -c 'echo \"#< msg open_avd_control\" >> $thread9_in'" \
+             \
              --field=":XTALK" '' > /dev/null &
   pid_thread9=$!
   ((TAB_NUM++))
@@ -4491,9 +4462,23 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
 
       loadConfigFile
 
-      echo "#> msg field $SET_CEF_________VERBOSE_BUILD:set $CEF_VERBOSE_BUILD;";
-      echo "#> msg field $SET_VAR_________CPU_PROC_JOBS:set $CPU_PROC_JOBS;"
-      echo "#> msg field $SET_VAR____EMU_INSTALL_PREFIX:set $EMU_INSTALL_PREFIX;"
+      [ $KODI_SOURCE_USE_BASE != "TRUE" ] &&
+        use_it=1 || use_it=0
+      echo "#> msg field $SET_2_KODI________SOURCE_REPOSI:enable $use_it;"
+
+      [ $CEF_SOURCE_USE_BASE != "TRUE" ] &&
+        use_it=1 || use_it=0
+      echo "#> msg field $SET_2_CEF_________SOURCE_REPOSI:enable $use_it;"
+      [[ $SUPPORT_CEF = "TRUE" ]] &&
+        use_it=1 || use_it=0
+      echo "#> msg field $SET_2_CEF_________SOURCE_BRANCH:visible $use_it;"
+      echo "#> msg field $SET_2_CEF_________VERBOSE_BUILD:visible $use_it;"
+      echo "#> msg field $SET_2_CEF_________VERBOSE_BUILD:set $CEF_VERBOSE_BUILD;";
+      echo "#> msg field $SET_2_VAR_________CPU_PROC_JOBS:set $CPU_PROC_JOBS;"
+      echo "#> msg field $SET_2_VAR____EMU_INSTALL_PREFIX:set $EMU_INSTALL_PREFIX;"
+
+      parse_values "settings2" 6 "$KODI_SOURCE_URL";
+      parse_values "settings2" 14 "$CEF_SOURCE_URL";
 
       update_counter=10
 
@@ -4536,6 +4521,14 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
                 fi; IFS=$'\n';
               } done; unset IFS;
             }
+            elif [[ "$line" = *"ssh_access_windows"* ]];then
+            {
+              ssh_access_windows &
+            }
+            elif [[ "$line" = *"ssh_access_mac_os_x"* ]];then
+            {
+              ssh_access_mac_os_x &
+            }
             elif [[ "$line" = *"android_emu_keys"* ]];then
             {
               showAndroidEmulatorKeyHelp &
@@ -4546,7 +4539,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
             }
             elif [[ "$line" = *"open_krusader"* ]];then
             {
-              open_krusader &
+              krusader $HOME &
             }
             elif [[ "$line" = *"jenkins"* ]];then
             {
@@ -4578,23 +4571,53 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
   ) | \
   $YAD_MUPEL --plug=$KEY --tabnum=$TAB_NUM --form \
              --text="Settings / Help" \
-             --field=":LBL@0,8,0,1" '' \
-             --field="CPU process jobs:NUM@0,1,1,2" "${CPU_PROC_JOBS:-8}!1..32" \
-             --field="Emulation prefix:MDIR@3,4,1,2" "${EMU_INSTALL_PREFIX:-$HOME/.mupel/systems}" \
-             --field="Include last open requests in branch:CHK@5,6,1,2" "${INCLUDE_OPEN_PULL_REQUESTS:-FALSE}" \
-             --field="No warning dialog on fail:CHK@7,8,1,2" "${NO_WARNING_ON_FAIL:-FALSE}" \
-             --field=":LBL@0,8,2,3" '' \
-             --field="<b>Helper commands:</b>:LBL@0,8,3,4" '' \
-             --field="Open file browser (Krusader):FBTN@0,1,4,5" "bash -c 'echo \"#< msg open_krusader\" >> $thread10_in'" \
-             --field="Open ssh access console to Windows:FBTN@0,4,5,6" "bash -c 'echo \"#< msg ssh_access_windows\" >> $thread10_in'" \
-             --field="Open ssh access console to Mac OS X:FBTN@5,8,5,6" "bash -c 'echo \"#< msg ssh_access_mac_os_x\" >> $thread10_in'" \
-             --field=":LBL@0,8,7,8" '' \
-             --field="<b>Help documentation:</b>:LBL@0,8,8,9" '' \
-             --field="Git command help:FBTN@0,4,9,10" "bash -c 'echo \"#< msg git_command_help\" >> $thread10_in'" \
-             --field="Android emulator keys:FBTN@5,8,9,10" "bash -c 'echo \"#< msg android_emu_keys\" >> $thread10_in'" \
-             --field=":LBL@0,8,11,12" '' \
-             --field="What does jenkins?:FBTN@0,8,12,13" "bash -c 'echo \"#< msg hello_jenkins\" >> $thread10_in'" \
-             --field="About:FBTN@0,8,13,14" "bash ./mupel --info" > /dev/null &
+             --xcom-log=$thread10_in \
+             --field=":LBL@0,8,0,1"                                       '' \
+             --field="<b>General:</b>:LBL@0,8,2,3"                        '' \
+             --field="CPU process jobs:NUM@0,1,4,5"                       "${CPU_PROC_JOBS:-8}!1..32" \
+             --field="Emulation prefix:MDIR@2,4,4,5"                      "${EMU_INSTALL_PREFIX:-$HOME/.mupel/systems}" \
+             --field="Include last open requests in branch:CHK@5,6,4,5"   "${INCLUDE_OPEN_PULL_REQUESTS:-FALSE}" \
+             --field="No warning dialog on fail:CHK@7,8,4,5"              "${NO_WARNING_ON_FAIL:-FALSE}" \
+             \
+             --field=":LBL@0,8,10,11"                                     '' \
+             --field="<b>Kodi:</b>:LBL@0,8,12,13"                         '' \
+             --field="Repository:@0,3,14,15"                              "$KODI_SOURCE_URL" \
+             --field="Use base:CHK@4,5,14,15"                             "${KODI_SOURCE_USE_BASE:-FALSE}" \
+             --field="Branch:CB@6,8,14,15"                                '' \
+             --field="Run tests:CHK@0,0,17,18"                            "${KODI_RUN_TESTS:-FALSE}" \
+             --field="Configure in direct build:CHK@1,2,17,18"            "${KODI_CONF_IN_DIRECT_BUILD:-FALSE}" \
+             --field="Depclean on branch change:CHK@3,4,17,18"            "${KODI_DEP_CLEAN:-FALSE}" \
+             \
+             --field=":LBL@0,8,20,21"                                     '' \
+             --field="<b>CEF (Chromium embedded framwork):</b>:LBL@0,8,21,22" '' \
+             --field="Repository:@0,3,22,23"                              "$CEF_SOURCE_URL" \
+             --field="Use base:CHK@4,5,22,23"                             "${CEF_SOURCE_USE_BASE:-FALSE}" \
+             --field="Branch:CB@6,8,22,23"                                '' \
+             --field="Debug:CHK@0,0,24,25"                                "${CEF_DEBUG:-FALSE}" \
+             --field="Force update:CHK@1,1,24,25"                         "${CEF_FORCE_UPDATE:-FALSE}" \
+             --field="No update:CHK@2,2,24,25"                            "${CEF_NO_UPDATE:-FALSE}" \
+             --field="Force config:CHK@3,3,24,25"                         "${CEF_FORCE_CONFIG:-FALSE}" \
+             --field="Force clean:CHK@4,4,24,25"                          "${CEF_FORCE_CLEAN:-FALSE}" \
+             --field="Force clean deps:CHK@5,6,24,25"                     "${CEF_FORCE_CLEAN_DEPS:-FALSE}" \
+             --field="Build tests:CHK@7,7,24,25"                          "${CEF_BUILD_TESTS:-FALSE}" \
+             --field="Verbose build:CHK@8,8,24,25"                        "${CEF_VERBOSE_BUILD:-FALSE}" \
+             \
+             --field=":LBL@0,8,40,41"                                     '' \
+             --field="<b>Helper commands:</b>:LBL@0,8,41,42"              '' \
+             --field="Open file browser (Krusader):FBTN@0,2,42,43"        "bash -c 'echo \"#< msg open_krusader\" >> $thread10_in'" \
+             --field="Open ssh access console to Windows:FBTN@3,5,42,43"  "bash -c 'echo \"#< msg ssh_access_windows\" >> $thread10_in'" \
+             --field="Open ssh access console to Mac OS X:FBTN@6,8,42,43" "bash -c 'echo \"#< msg ssh_access_mac_os_x\" >> $thread10_in'" \
+             \
+             --field=":LBL@0,8,47,48"                                     '' \
+             --field="<b>Help documentation:</b>:LBL@0,8,48,49"           '' \
+             --field="Git command help:FBTN@0,4,49,50"                    "bash -c 'echo \"#< msg git_command_help\" >> $thread10_in'" \
+             --field="Android emulator keys:FBTN@5,8,49,50"               "bash -c 'echo \"#< msg android_emu_keys\" >> $thread10_in'" \
+             \
+             --field=":LBL@0,8,51,52"                                     '' \
+             --field="What does jenkins?:FBTN@0,3,52,53"                  "bash -c 'echo \"#< msg hello_jenkins\" >> $thread10_in'" \
+             --field="About:FBTN@4,8,52,53"                               "bash ./mupel --info" \
+             \
+             --field=":XTALK" '' > /dev/null &
   pid_thread10=$!
   ((TAB_NUM++))
 }

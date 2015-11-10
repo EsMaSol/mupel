@@ -354,16 +354,16 @@ RELEASE_BUILD=${RELEASE_BUILD:-TRUE}
 DEBUG_BUILD=${DEBUG_BUILD:-FALSE}
 SYSTEM_BITS=${SYSTEM_BITS:-64}
 
-KODI_SOURCE_URL=${KODI_SOURCE_URL:-https://github.com/xbmc/xbmc}
+KODI_SOURCE_URL=${KODI_SOURCE_URL:-$KODI_SOURCE_DEFAULT_URL_BASE}
 KODI_SOURCE_URL_INACTIVE=$KODI_SOURCE_URL_INACTIVE
-KODI_SOURCE_USE_BASE=${CEF_SOURCE_USE_BASE:-FALSE}
+KODI_SOURCE_USE_BASE=${KODI_SOURCE_USE_BASE:-FALSE}
 KODI_SOURCE_BRANCH=${KODI_SOURCE_BRANCH:-master}
 KODI_SEL_ADDON=$KODI_SEL_ADDON
 KODI_RUN_TESTS=${KODI_RUN_TESTS:-FALSE}
 KODI_CONF_IN_DIRECT_BUILD=${KODI_CONF_IN_DIRECT_BUILD:-FALSE}
 KODI_DEP_CLEAN=${KODI_DEP_CLEAN:-FALSE}
 
-CEF_SOURCE_URL=${CEF_SOURCE_URL:-https://github.com/kodi-web/cef}
+CEF_SOURCE_URL=${CEF_SOURCE_URL:-$CEF_SOURCE_DEFAULT_URL}
 CEF_SOURCE_URL_INACTIVE=$CEF_SOURCE_URL_INACTIVE
 CEF_SOURCE_USE_BASE=${CEF_SOURCE_USE_BASE:-FALSE}
 CEF_SOURCE_BRANCH=${CEF_SOURCE_BRANCH:-$CEF_SOURCE_DEFAULT_SOURCE_BRANCH}
@@ -375,7 +375,7 @@ CEF_FORCE_CLEAN=${CEF_FORCE_CLEAN:-FALSE}
 CEF_FORCE_CLEAN_DEPS=${CEF_FORCE_CLEAN_DEPS:-FALSE}
 CEF_BUILD_TESTS=${CEF_BUILD_TESTS:-FALSE}
 CEF_VERBOSE_BUILD=${CEF_VERBOSE_BUILD:-FALSE}
-DEPOT_TOOLS_URL=${DEPOT_TOOLS_URL:-https://chromium.googlesource.com/chromium/tools/depot_tools.git}
+DEPOT_TOOLS_URL=${DEPOT_TOOLS_URL:-$DEPOT_TOOLS_DEFAULT_URL}
 
 INCLUDE_KODI=${INCLUDE_KODI:-TRUE}
 INCLUDE_KODI_ADDONS=${INCLUDE_KODI_ADDONS:-FALSE}
@@ -924,7 +924,7 @@ if [[ $USE_MS_WINDOWS_32 = "TRUE" ]] ||
       ret=0;fi
     if [[ $ret != 0 ]];then
     {
-      show_warning_dialog_yes_no "Creation of Windows system failed! \n\nTry again?";
+      showWarningDialog_YesNo "Creation of Windows system failed! \n\nTry again?";
       if [ $? != 0 ];then
       {
         showQuestionDialog "<b>Continue without Windows system install?</b>";
@@ -952,7 +952,7 @@ if [[ $USE_MAC_OS_X_64 = "TRUE" ]] &&
       ret=0;fi
     if [[ $ret != 0 ]];then
     {
-      show_warning_dialog_yes_no "Creation of Mac OS X system failed! \n\nTry again?";
+      showWarningDialog_YesNo "Creation of Mac OS X system failed! \n\nTry again?";
       if [ $? != 0 ];then
       {
         showQuestionDialog "<b>Continue without Mac OS X system install?</b>";
@@ -981,7 +981,7 @@ if [[ $USE_ANDROID_X86 = "TRUE" ]] ||
       ret=0;fi
     if [[ $ret != 0 ]];then
     {
-      show_warning_dialog_yes_no "Creation of Android system failed! \n\nTry again?";
+      showWarningDialog_YesNo "Creation of Android system failed! \n\nTry again?";
       if [ $? != 0 ];then
       {
         showQuestionDialog "<b>Continue without Android system install?</b>";
@@ -1009,7 +1009,7 @@ if [[ $USE_IOS = "TRUE" ]] &&
       ret=0;fi
     if [[ $ret != 0 ]];then
     {
-      show_warning_dialog_yes_no "Creation of iOS system failed! \n\nTry again?";
+      showWarningDialog_YesNo "Creation of iOS system failed! \n\nTry again?";
       if [ $? != 0 ];then
       {
         showQuestionDialog "<b>Continue without iOS system install?</b>";
@@ -1050,6 +1050,7 @@ X-KDE-SubstituteUID=false
 X-KDE-Username=
 X-MultipleArgs=false
 EOF
+chmod 775 $DESKTOP_FILE
 
 xdg-desktop-menu  install --novendor --noupdate $DESKTOP_FILE
 xdg-icon-resource install --novendor --size  32 "$BASE_PATH/icons/icon-mupel-32x32.png"   $ICON_NAME

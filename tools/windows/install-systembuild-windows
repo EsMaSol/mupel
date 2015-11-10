@@ -1272,7 +1272,7 @@ X-KDE-SubstituteUID=false
 X-KDE-Username=
 X-MultipleArgs=false
 EOF
-chmod 755 $DESKTOP_FILE
+chmod 775 $DESKTOP_FILE
 
   xdg-desktop-menu  install --novendor --noupdate $DESKTOP_FILE
   xdg-icon-resource install --novendor --size  32 "$BASE_PATH/icons/icon-microsoft-windows-32x32.png"   $ICON_NAME

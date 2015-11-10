@@ -9,3 +9,5 @@ KODI_SOURCE_DEFAULT_BRANCH=master
 CEF_SOURCE_URL_BASE="https://bitbucket.org/chromiumembedded/cef"
 CEF_SOURCE_DEFAULT_URL="https://github.com/kodi-web/cef"
 CEF_SOURCE_DEFAULT_SOURCE_BRANCH=2526-kodi
+DEPOT_TOOLS_DEFAULT_URL=https://chromium.googlesource.com/chromium/tools/depot_tools.git
+DEFAULT_BUILD_DISTR="xenial"
