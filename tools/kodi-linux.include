@@ -39,7 +39,6 @@ function updateDistribution
   printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}updateDistribution${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
   make install
   createKodiKeyboardHelper
-  printf $CURS_UP
   log_success_msg
 }
 
@@ -74,6 +73,7 @@ export BUILDTHREADS=$CPU_PROC_JOBS;
 export XBMC_PLATFORM_DIR="linux${BIT_SIZE}";
 export WORKSPACE=$BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM;
 export XBMC_DEPENDS_ROOT=$BASE_PATH/build/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE/kodi;
+export BUILD_BINARY_ADDONS=true;
 
 if [ ! -z $UPDATE_DISTRIB ];then
   KODI_BUILD="Update of binary distribution only"
@@ -130,10 +130,15 @@ elif [ -z $ADDON_BUILD ];then
   if [ -z $DIRECT_KODI_BUILD ];then
   {
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}prepare-depends${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
-    sleep 2
-    ./tools/buildsteps/linux${BIT_SIZE}/prepare-depends
-    printf $CURS_UP
-    log_success_msg
+    if [[ $KODI_NO_PREPARE_DEPENDS = "FALSE" ]];then
+    {
+      sleep 2
+      ./tools/buildsteps/linux${BIT_SIZE}/prepare-depends
+      printf $CURS_UP
+      log_success_msg
+    }
+    else
+      log_skip_msg;fi
 
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}configure-depends${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
@@ -209,7 +214,8 @@ else
   CONFIGURE=1
 
   trap '' ERR
-  if [ -f ./tools/depends/target/binary-addons/x86_${BIT_SIZE}-linux-gnu/Makefile ];then
+  if [ $KODI_FORCE_ADDON_CONFIGURE != TRUE ] &&
+     [ -f ./tools/depends/target/binary-addons/x86_${BIT_SIZE}-linux-gnu/Makefile ];then
   {
     grep -q $ADDON_BUILD ./tools/depends/target/binary-addons/x86_${BIT_SIZE}-linux-gnu/Makefile
     [[ $? = 0 ]] && CONFIGURE=0

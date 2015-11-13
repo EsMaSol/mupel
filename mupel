@@ -53,6 +53,8 @@ KODI_SOURCE_USE_BASE="FALSE"
 KODI_RUN_TESTS="FALSE"
 KODI_CONF_IN_DIRECT_BUILD="FALSE"
 KODI_DEP_CLEAN="FALSE"
+KODI_FORCE_ADDON_CONFIGURE="FALSE"
+KODI_NO_PREPARE_DEPENDS="TRUE"
 KODI_SEL_ADDON=""
 CEF_SOURCE_URL=$CEF_SOURCE_DEFAULT_URL
 CEF_SOURCE_URL_INACTIVE=""
@@ -233,19 +235,21 @@ SET_2_KODI________SOURCE_BRANCH=10
 SET_2_KODI____________RUN_TESTS=11
 SET_2_KODI_CONF_IN_DIRECT_BUILD=12
 SET_2_KODI____________DEP_CLEAN=13
-SET_2_CEF_________________SEP__=14
-SET_2_CEF_______________LABEL__=15
-SET_2_CEF_________SOURCE_REPOSI=16
-SET_2_CEF___________SOURCE_BASE=17
-SET_2_CEF_________SOURCE_BRANCH=18
-SET_2_CEF_________________DEBUG=19
-SET_2_CEF__________FORCE_UPDATE=20
-SET_2_CEF_____________NO_UPDATE=21
-SET_2_CEF__________FORCE_CONFIG=22
-SET_2_CEF___________FORCE_CLEAN=23
-SET_2_CEF______FORCE_CLEAN_DEPS=24
-SET_2_CEF___________BUILD_TESTS=25
-SET_2_CEF_________VERBOSE_BUILD=26
+SET_2_KODI___FORCE_ADDON_CONFIG=14
+SET_2_KODI___NO_PREPARE_DEPENDS=15
+SET_2_CEF_________________SEP__=16
+SET_2_CEF_______________LABEL__=17
+SET_2_CEF_________SOURCE_REPOSI=18
+SET_2_CEF___________SOURCE_BASE=19
+SET_2_CEF_________SOURCE_BRANCH=20
+SET_2_CEF_________________DEBUG=21
+SET_2_CEF__________FORCE_UPDATE=22
+SET_2_CEF_____________NO_UPDATE=23
+SET_2_CEF__________FORCE_CONFIG=24
+SET_2_CEF___________FORCE_CLEAN=25
+SET_2_CEF______FORCE_CLEAN_DEPS=26
+SET_2_CEF___________BUILD_TESTS=27
+SET_2_CEF_________VERBOSE_BUILD=28
 
 ###############################################################################
 # Functions
@@ -419,9 +423,17 @@ function parse_values
     {
       KODI_DEP_CLEAN=${value%|}
     }
+    elif [[ $id = $SET_2_KODI___FORCE_ADDON_CONFIG ]];then
+    {
+      KODI_FORCE_ADDON_CONFIGURE=${value%|}
+    }
+    elif [[ $id = $SET_2_KODI___NO_PREPARE_DEPENDS ]];then
+    {
+      KODI_NO_PREPARE_DEPENDS=${value%|}
+    }
     #####
     # CEF
-    elif [[ $id = 14 ]] || [[ $id = $SET_2_CEF_________SOURCE_REPOSI ]];then
+    elif [[ $id = 15 ]] || [[ $id = $SET_2_CEF_________SOURCE_REPOSI ]];then
     {  # handle 'cef git url' change
       echo "#> msg field $SET_2_CEF_________SOURCE_BRANCH:enable 0;"
 
@@ -531,7 +543,8 @@ function parse_values
     }
     elif [[ $id = $SET_2_VAR____NO_WARNING_ON_FAIL ]];then
     {
-      NO_WARNING_ON_FAIL=${value%|:-FALSE}
+      NO_WARNING_ON_FAIL=${value%|}
+      NO_WARNING_ON_FAIL${NO_WARNING_ON_FAIL:-FALSE}
     } fi
   }
   elif [ "$field" = "settings" ];then
@@ -4543,7 +4556,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       echo "#> msg field $SET_2_VAR____EMU_INSTALL_PREFIX:set $EMU_INSTALL_PREFIX;"
 
       parse_values "settings2" 6 "$KODI_SOURCE_URL";
-      parse_values "settings2" 14 "$CEF_SOURCE_URL";
+      parse_values "settings2" 15 "$CEF_SOURCE_URL";
 
       update_counter=10
 
@@ -4652,6 +4665,8 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field="Run tests:CHK@0,0,17,18"                            "${KODI_RUN_TESTS:-FALSE}" \
              --field="Configure in direct build:CHK@1,2,17,18"            "${KODI_CONF_IN_DIRECT_BUILD:-FALSE}" \
              --field="Depclean on branch change:CHK@3,4,17,18"            "${KODI_DEP_CLEAN:-FALSE}" \
+             --field="Force add-on configure:CHK@5,6,17,18"               "${KODI_FORCE_ADDON_CONFIGURE:-FALSE}" \
+             --field="No prepare depends:CHK@7,8,17,18"                   "${KODI_NO_PREPARE_DEPENDS:-TRUE}" \
              \
              --field=":LBL@0,8,20,21"                                     '' \
              --field="<b>CEF (Chromium embedded framwork):</b>:LBL@0,8,21,22" '' \

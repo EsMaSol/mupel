@@ -152,10 +152,14 @@ elif [ -z $ADDON_BUILD ];then
   if [ -z $DIRECT_KODI_BUILD ];then
   {
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}prepare-depends${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
-    sleep 2
-    bash $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/tools/buildsteps/android${ADDIT_BUILD_DIR_NAME}/prepare-depends
-    printf $CURS_UP
-    log_success_msg
+    if [[ $KODI_NO_PREPARE_DEPENDS = "FALSE" ]];then
+    {
+      sleep 2
+      bash $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/tools/buildsteps/android${ADDIT_BUILD_DIR_NAME}/prepare-depends
+      log_success_msg
+    }
+    else
+      log_skip_msg;fi
 
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}configure-depends${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
@@ -182,7 +186,7 @@ elif [ -z $ADDON_BUILD ];then
     CONFIG_EXTRA="$CONFIG_EXTRA --enable-gtest";fi
   export CONFIG_EXTRA
 
-  if [ -z $DIRECT_KODI_BUILD ] || 
+  if [ -z $DIRECT_KODI_BUILD ] ||
      [[ $KODI_CONF_IN_DIRECT_BUILD = "TRUE" ]] ||
      [ ! -f $BASE_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM/Makefile ];then
   {
