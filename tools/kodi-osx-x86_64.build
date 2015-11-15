@@ -130,7 +130,10 @@ elif [ -z $ADDON_BUILD ];then
       log_success_msg
     }
     else
-      log_skip_msg;fi
+    {
+      ( cd $WORKSPACE/tools/depends/;./bootstrap )
+      log_skip_msg;
+    } fi
 
     printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}configure-depends${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
     sleep 2
