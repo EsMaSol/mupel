@@ -227,29 +227,30 @@ SET_2_VAR_________CPU_PROC_JOBS=2
 SET_2_VAR____EMU_INSTALL_PREFIX=3
 SET_2_VAR_INCLUDE_OPEN_REQUESTS=4
 SET_2_VAR____NO_WARNING_ON_FAIL=5
-SET_2_KODI________________SEP__=6
-SET_2_KODI______________LABEL__=7
-SET_2_KODI________SOURCE_REPOSI=8
-SET_2_KODI__________SOURCE_BASE=9
-SET_2_KODI________SOURCE_BRANCH=10
-SET_2_KODI____________RUN_TESTS=11
-SET_2_KODI_CONF_IN_DIRECT_BUILD=12
-SET_2_KODI____________DEP_CLEAN=13
-SET_2_KODI___FORCE_ADDON_CONFIG=14
-SET_2_KODI___NO_PREPARE_DEPENDS=15
-SET_2_CEF_________________SEP__=16
-SET_2_CEF_______________LABEL__=17
-SET_2_CEF_________SOURCE_REPOSI=18
-SET_2_CEF___________SOURCE_BASE=19
-SET_2_CEF_________SOURCE_BRANCH=20
-SET_2_CEF_________________DEBUG=21
-SET_2_CEF__________FORCE_UPDATE=22
-SET_2_CEF_____________NO_UPDATE=23
-SET_2_CEF__________FORCE_CONFIG=24
-SET_2_CEF___________FORCE_CLEAN=25
-SET_2_CEF______FORCE_CLEAN_DEPS=26
-SET_2_CEF___________BUILD_TESTS=27
-SET_2_CEF_________VERBOSE_BUILD=28
+SET_2_VAR______GIT_INCLUDE_REFS=6
+SET_2_KODI________________SEP__=7
+SET_2_KODI______________LABEL__=8
+SET_2_KODI________SOURCE_REPOSI=9
+SET_2_KODI__________SOURCE_BASE=10
+SET_2_KODI________SOURCE_BRANCH=11
+SET_2_KODI____________RUN_TESTS=12
+SET_2_KODI_CONF_IN_DIRECT_BUILD=13
+SET_2_KODI____________DEP_CLEAN=14
+SET_2_KODI___FORCE_ADDON_CONFIG=15
+SET_2_KODI___NO_PREPARE_DEPENDS=16
+SET_2_CEF_________________SEP__=17
+SET_2_CEF_______________LABEL__=18
+SET_2_CEF_________SOURCE_REPOSI=19
+SET_2_CEF___________SOURCE_BASE=20
+SET_2_CEF_________SOURCE_BRANCH=21
+SET_2_CEF_________________DEBUG=22
+SET_2_CEF__________FORCE_UPDATE=23
+SET_2_CEF_____________NO_UPDATE=24
+SET_2_CEF__________FORCE_CONFIG=25
+SET_2_CEF___________FORCE_CLEAN=26
+SET_2_CEF______FORCE_CLEAN_DEPS=27
+SET_2_CEF___________BUILD_TESTS=28
+SET_2_CEF_________VERBOSE_BUILD=29
 
 ###############################################################################
 # Functions
@@ -257,15 +258,21 @@ SET_2_CEF_________VERBOSE_BUILD=28
 
 function loadGitBranches
 {
-  local load_url=$1
-  local selected_branch=$2
-  local repo_path=$3
+  IFS_BU=$IFS
+  unset IFS
 
-  local git_entries=$(git ls-remote "$load_url")
+  local load_url=$1;
+  local selected_branch=$2;
+  local repo_path=$3;
+
+  local git_entries;
+  local git_entries_in=$(git ls-remote "$load_url");
   ret=$?
   if [[ $ret = 0 ]];then
   {
-    git_entries=$(echo "$git_entries" | grep "refs/heads" | awk -F '/' '{print $3}')
+    git_entries=$(echo "$git_entries_in" | grep "refs/heads" | awk -F '/' '{print $3}')
+    if [[ $GIT_INCLUDE_REFS = TRUE ]];then
+      git_entries+=$(echo "$git_entries_in" | grep "refs/tags" | awk -F '/' '{print $3}');fi
 
     local targets=
     local last=""
@@ -280,7 +287,6 @@ function loadGitBranches
     } done
     targets+="!"
 
-    IFS_BU=$IFS;
     IFS=$'\n'
     if [[ $INCLUDE_OPEN_PULL_REQUESTS = TRUE ]];then
     {
@@ -298,6 +304,7 @@ function loadGitBranches
   else
   {
     handleErrorsCodes $ret "git" "$load_url";
+    set IFS=$IFS_BU
     return 1;
   } fi
 }
@@ -356,7 +363,7 @@ function parse_values
   {
     #####
     # Kodi
-    if [[ $id = 6 ]] || [[ $id = $SET_2_KODI________SOURCE_REPOSI ]];then
+    if [[ $id = SET_2_KODI________________SEP__ ]] || [[ $id = $SET_2_KODI________SOURCE_REPOSI ]];then
     { # handle 'kodi git url' change
       echo "#> msg field $SET_2_KODI________SOURCE_BRANCH:enable 0;"
 
@@ -369,6 +376,7 @@ function parse_values
         echo "#> msg field $SET_2_KODI________SOURCE_BRANCH:enable 1;";
       } fi
       echo "#> msg field $SET_2_KODI________SOURCE_REPOSI:enable $([ $KODI_SOURCE_USE_BASE = "TRUE" ] && echo 0 || echo 1);";
+      echo $targets > /dev/stderr
     }
     elif [[ $id = $SET_2_KODI__________SOURCE_BASE ]];then
     {
@@ -433,7 +441,7 @@ function parse_values
     }
     #####
     # CEF
-    elif [[ $id = 15 ]] || [[ $id = $SET_2_CEF_________SOURCE_REPOSI ]];then
+    elif [[ $id = SET_2_CEF_________________SEP__ ]] || [[ $id = $SET_2_CEF_________SOURCE_REPOSI ]];then
     {  # handle 'cef git url' change
       echo "#> msg field $SET_2_CEF_________SOURCE_BRANCH:enable 0;"
 
@@ -544,7 +552,22 @@ function parse_values
     elif [[ $id = $SET_2_VAR____NO_WARNING_ON_FAIL ]];then
     {
       NO_WARNING_ON_FAIL=${value%|}
-      NO_WARNING_ON_FAIL${NO_WARNING_ON_FAIL:-FALSE}
+      NO_WARNING_ON_FAIL=${NO_WARNING_ON_FAIL:-FALSE}
+    }
+    elif [[ $id = $SET_2_VAR______GIT_INCLUDE_REFS ]];then
+    {
+      GIT_INCLUDE_REFS=${value%|}
+      GIT_INCLUDE_REFS=${GIT_INCLUDE_REFS:-FALSE}
+
+      echo "#> msg field $SET_2_KODI________SOURCE_BRANCH:enable 0;"
+
+      local targets=$(loadGitBranches $KODI_SOURCE_URL $KODI_SOURCE_BRANCH $BASE_PATH/build/kodi-$GIT_USER/kodi);
+      if [ $? = 0 ];then
+      {
+        [[ $id != $SET_2_KODI________SOURCE_REPOSI ]] && echo "#> msg field $SET_2_KODI________SOURCE_REPOSI:set ${KODI_SOURCE_URL};";
+        echo "#> msg field $SET_2_KODI________SOURCE_BRANCH:set ${targets};";
+        echo "#> msg field $SET_2_KODI________SOURCE_BRANCH:enable 1;";
+      } fi
     } fi
   }
   elif [ "$field" = "settings" ];then
@@ -2876,7 +2899,7 @@ This give 10 seconds time to start debugger."
              --field="Update binary distrib:FBTN@5,5,0,2" "bash -c 'echo \"#< msg update_binary_distrib\" >> $thread3_in'" \
              --field="Build selected addon:FBTN@8,8,0,2"  "bash -c 'echo \"#< msg start_addon_build\" >> $thread3_in'" \
              --field="Stop build:FBTN@0,8,2,4"            "bash -c 'echo \"#< msg stop_build\" >> $thread3_in'" \
-             --field="Clear log:FBTN@0,0,4,6"             "bash -c 'echo \"#> msg field 12:clear;\" >> $thread3_in'" \
+             --field="Clear log:FBTN@0,0,4,6"             "bash -c 'echo \"#> msg field $BUILD__TERMPROC_____BUILD_LOG:clear;\" >> $thread3_in'" \
              --field="Open last logs:FBTN@1,1,4,6"        "bash -c 'echo \"#< msg openlogs\" >> $thread3_in'" \
              --field="Launch Kodi:FBTN@2,3,4,6"           "bash -c 'echo \"#< msg kodilaunch\" >> $thread3_in'" \
              --field="Open debugger:FBTN@2,3,4,6"         "bash -c 'echo \"#< msg debugger\" >> $thread3_in'" \
@@ -4555,8 +4578,8 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       echo "#> msg field $SET_2_VAR_________CPU_PROC_JOBS:set $CPU_PROC_JOBS;"
       echo "#> msg field $SET_2_VAR____EMU_INSTALL_PREFIX:set $EMU_INSTALL_PREFIX;"
 
-      parse_values "settings2" 6 "$KODI_SOURCE_URL";
-      parse_values "settings2" 15 "$CEF_SOURCE_URL";
+      parse_values "settings2" SET_2_KODI________________SEP__ "$KODI_SOURCE_URL";
+      parse_values "settings2" SET_2_CEF_________________SEP__ "$CEF_SOURCE_URL";
 
       update_counter=10
 
@@ -4654,8 +4677,9 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field="<b>General:</b>:LBL@0,8,2,3"                        '' \
              --field="CPU process jobs:NUM@0,1,4,5"                       "${CPU_PROC_JOBS:-8}!1..32" \
              --field="Emulation prefix:MDIR@2,4,4,5"                      "${EMU_INSTALL_PREFIX:-$HOME/.mupel/systems}" \
-             --field="Include last open requests in branch:CHK@5,6,4,5"   "${INCLUDE_OPEN_PULL_REQUESTS:-FALSE}" \
-             --field="No warning dialog on fail:CHK@7,8,4,5"              "${NO_WARNING_ON_FAIL:-FALSE}" \
+             --field="Include last open requests:CHK@5,6,4,5"             "${INCLUDE_OPEN_PULL_REQUESTS:-FALSE}" \
+             --field="No dialog on fail:CHK@7,7,4,5"                      "${NO_WARNING_ON_FAIL:-FALSE}" \
+             --field="Git include 'refs':CHK@8,8,4,5"                     "${GIT_INCLUDE_REFS:-FALSE}" \
              \
              --field=":LBL@0,8,10,11"                                     '' \
              --field="<b>Kodi:</b>:LBL@0,8,12,13"                         '' \
