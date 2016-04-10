@@ -131,11 +131,6 @@ if [ -d $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/VS2010Express/objs ];t
 if [ -d $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/VS2010Express/libs ];then
   rm -r $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/VS2010Express/libs;fi
 
-# fetch submodules
-if [ -d $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/addons/skin.re-touched ];then
-  rm -r $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/addons/skin.re-touched;fi
-git submodule update --init "./addons/skin.re-touched"
-
 cd $KODI_SOURCE_CYG_PATH/kodi-win${BIT_SIZE}/project/BuildDependencies
 ./DownloadBuildDeps.bat
 ./DownloadMingwBuildEnv.bat
