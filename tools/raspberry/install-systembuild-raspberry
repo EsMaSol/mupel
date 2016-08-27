@@ -34,10 +34,10 @@ BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/../.. ; pwd -P)}
 INSTALL_PREFIX="$HOME/.mupel"
 EMU_INSTALL_PREFIX=${EMU_INSTALL_PREFIX:-$INSTALL_PREFIX/systems}
 
-RPI_IMAGE_SRC_URL="http://downloads.raspberrypi.org/raspbian/images/raspbian-2015-05-07/2015-05-05-raspbian-wheezy.zip"
-RPI_IMAGE_SHA1="cb799af077930ff7cbcfaa251b4c6e25b11483de"
+RPI_IMAGE_SRC_URL="http://downloads.raspberrypi.org/raspbian/images/raspbian-2016-05-31/2016-05-27-raspbian-jessie.zip"
+RPI_IMAGE_SHA1="64c7ed611929ea5178fbb69b5a5f29cc9cc7c157"
 RPI_DISC_SIZE=12
-RPI_KERNEL="$BASE_PATH/tools/raspberry/kernel-qemu-arm6.bin"
+RPI_KERNEL="$BASE_PATH/tools/raspberry/kernel-qemu-4.4.12-jessie"
 target="raspberry"
 
 if [ -f "$HOME/.config/user-dirs.dirs" ];then
@@ -148,9 +148,9 @@ function exit_build()
 #                                                                             #
 
 DIST=`grep DISTRIB_ID /etc/*-release | awk -F '=' '{print $2}'`
-[ $DIST != "Ubuntu" ] && [ $DIST != "Debian" ] && {
-  echo "${RED}${BRIGHT}Build not possible, need performed on ubuntu or debian based system (needed for install of dependencies parts)${NORMAL}" >&2;
-  exit 1 ;
+[ $DIST != "Ubuntu" ] && [ $DIST != "Debian" ] && [ $DIST != "LinuxMint" ] && {
+  echo "${RED}${BRIGHT}Build not possible, need performed on ubuntu, debian or LinuxMint based system (needed for install of dependencies parts)${NORMAL}" >&2;
+  exit 1;
 }
 
 # Check that xserver is running and user is root.

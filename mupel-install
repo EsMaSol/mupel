@@ -267,9 +267,9 @@ function handleSkipPresent
 #                            Start of process points                          #
 #                                                                             #
 DIST=`grep DISTRIB_ID /etc/*-release | awk -F '=' '{print $2}'`
-[[ $DIST != "Ubuntu" ]] && [[ $DIST != "Debian" ]] && {
-  printf "${RED}${BRIGHT}Build not possible, need performed on ubuntu or debian based system (needed for install of dependencies parts)! ${NORMAL}\n" > /dev/stderr
-  exit 1 ;
+[ $DIST != "Ubuntu" ] && [ $DIST != "Debian" ] && [ $DIST != "LinuxMint" ] && {
+  echo "${RED}${BRIGHT}Build not possible, need performed on ubuntu, debian or LinuxMint based system (needed for install of dependencies parts)${NORMAL}" >&2;
+  exit 1;
 }
 
 # Check that xserver is running and user is root.

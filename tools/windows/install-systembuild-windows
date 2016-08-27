@@ -432,10 +432,10 @@ function process_opts()
 trap 'evaluate_ret_error 1; exit 1' INT TERM QUIT HUP
 
 DISTRIB=`grep DISTRIB_ID /etc/*-release | awk -F '=' '{print $2}'`
-if [ $DISTRIB != "Ubuntu" ] && [ $DISTRIB != "Debian" ]; then
-  printf "${RED}${BRIGHT}Build not possible, need performed on ubuntu or debian based system (needed for install of dependencies parts)!${NORMAL}\n" >&2
-  exit 1
-fi
+[ $DIST != "Ubuntu" ] && [ $DIST != "Debian" ] && [ $DIST != "LinuxMint" ] && {
+  echo "${RED}${BRIGHT}Build not possible, need performed on ubuntu, debian or LinuxMint based system (needed for install of dependencies parts)${NORMAL}" >&2;
+  exit 1;
+}
 
 # Check that we are running as a regular user
 [ "$(id -nu)" = root ] && {
