@@ -140,7 +140,7 @@ if [ ! -z $SELECTED_BUILD ];then
 {
   printf "\nRunning ${BRIGHT}${WHITE}${UNDERLINE}$SELECTED_BUILD${NORMAL} on '${BRIGHT}${GREEN}${BUILD_SYSTEM}${NORMAL}'\n"
   sleep 2
-  ./tools/buildsteps/android${ADDIT_BUILD_DIR_NAME}/$SELECTED_BUILD
+  bash ./tools/buildsteps/android${ADDIT_BUILD_DIR_NAME}/$SELECTED_BUILD
   if [ $SELECTED_BUILD = make-xbmc ];then
     make apk;
     make install;
