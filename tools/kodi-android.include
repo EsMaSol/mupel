@@ -24,6 +24,7 @@ BASE_PATH=${BASE_PATH:-$(cd $(dirname $0)/.. ; pwd -P)}
 . "$HOME/.mupel/mupel.conf";
 . "$BASE_PATH/tools/tool_functions";
 . "$BASE_PATH/tools/tool_cef.include";
+. "$BASE_PATH/tools/tool_kodi.include";
 
 TEMP_DIR=$BASE_PATH/build/.tmp;
 BUILD_SYSTEM="android-${ANDROID_SYSTEM}"
