@@ -2579,6 +2579,15 @@ if [[ $USE_LINUX_X86_32 = "TRUE" ]] || [[ $USE_LINUX_X86_64 = "TRUE" ]];then
       [ -f $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/active ] && rm $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_32/active
       [ -f $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/active ] && rm $BASE_PATH/build/kodi-$GIT_USER/kodi-linux-x86_64/active
 
+      if [ -z $USE_LINUX_X86_DISTR ] || $(ls -r /var/lib/chroot/ | grep 64bit | sed 's/64bit//g' | grep -q $USE_LINUX_X86_DISTR) ;then
+        USE_LINUX_X86_DISTR=`ls -r /var/lib/chroot/ | grep 64bit | sed 's/64bit//g' | tail -1`
+        if [ -z $USE_LINUX_X86_DISTR ];then
+          showErrorDialog "<b>\
+No required linux repository for build available!
+</b>"
+        fi
+      fi
+
       # Set buttons to initial state
       echo "#> msg field $BUILD__BTN_____BUILD_COMPLETE:visible 1;";
       echo "#> msg field $BUILD__BTN__BUILD_KODI_DIRECT:visible 1;";
