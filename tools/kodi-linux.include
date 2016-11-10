@@ -121,7 +121,8 @@ elif [ ! -z $SELECTED_BUILD ];then
   sleep 2
   ./tools/buildsteps/linux${BIT_SIZE}/$SELECTED_BUILD
   if [ $SELECTED_BUILD = make-xbmc ];then
-    make install;fi
+    cd $WORKSPACE/build;make install;cd ..
+  fi
   printf $CURS_UP
   log_success_msg
 }

@@ -41,8 +41,8 @@ BUILD_SYSTEM="osx${BIT_SIZE}"
 
 function exitBuild
 {
-  rm -f $TEMP_DIR/build_thread-cef_active-osx-x86_$BIT_SIZE;
-  rm -f $TEMP_DIR/build_thread-cef_active;
+  rm -f $TEMP_DIR/build_thread-kodi_active-osx-x86_$BIT_SIZE;
+  rm -f $TEMP_DIR/build_thread-kodi_active;
 }
 
 ###############################################################################
@@ -58,14 +58,12 @@ initBuildScript_Kodi;
 # Set error return
 trap exitBuild EXIT
 
-# Add failed file which becomes removed if everything is ok, this way is more
-# secure
-touch $TEMP_DIR/kodi-osx-x86_${BIT_SIZE}.failed;
-
 # Load or update kodi
 if [ ! -d $MUPEL_PATH/build/kodi-$GIT_USER/kodi-$BUILD_SYSTEM ] ||
    [[ $DISABLE_GIT_UPDATE = FALSE ]];then
   loadKodiBuildDir $BUILD_SYSTEM "Mac OS X x86 ${BIT_SIZE}bit" "$MUPEL_PATH/kodi-$GIT_USER/";fi
+
+use_xcodebuild=/Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild
 
 export Configuration=$INSTALL_DIR_TYPE;
 export TARBALLS="$BASE_PATH/build/kodi-tarballs"
@@ -73,6 +71,8 @@ export BUILDTHREADS=$CPU_PROC_JOBS
 export XBMC_PLATFORM_DIR="osx${BIT_SIZE}"
 export WORKSPACE="$MUPEL_PATH/kodi-$GIT_USER/kodi-$BUILD_SYSTEM"
 export XBMC_DEPENDS_ROOT="$MUPEL_PATH/kodi-$GIT_USER/binary_distrib/$INSTALL_DIR_TYPE"
+export SDK_VERSION=`$use_xcodebuild -showsdks | sed -E -n 's/.*macosx([0-9]+)\.([0-9]+)/\1.\2/p' | sort  -n -t. -k1,1 -k2,2 | tail -n 1`
+#export DEBUG_SWITCH='--disable-debug'
 
 if [ ! -z $SELECTED_BUILD ];then
   KODI_BUILD="Single selection build of '$SELECTED_BUILD'"
@@ -99,6 +99,8 @@ printf "
 |  XBMC_PLATFORM_DIR : $XBMC_PLATFORM_DIR
 |  XBMC_DEPENDS_ROOT : $XBMC_DEPENDS_ROOT
 |  WORKSPACE :         $WORKSPACE
+|  SDK_VERSION :       $SDK_VERSION
+|  DEBUG_SWITCH :      $DEBUG_SWITCH
 |
 |  Free Disk size :    $(df -h . | tail -1 | tr -s ' ' | cut -d' ' -f4 | awk -F 'Gi' '{print $1}') GByte
 |

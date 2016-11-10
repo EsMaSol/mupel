@@ -442,6 +442,8 @@ which kdbg >/dev/null;
 [ "$?" != "0" ] && packages="$packages kdbg";
 which krusader >/dev/null;
 [ "$?" != "0" ] && packages="$packages krusader";
+which nmap >/dev/null;
+[ "$?" != "0" ] && packages="$packages nmap";
 which kate >/dev/null;
 if [ "$?" != "0" ];then
 {

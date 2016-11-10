@@ -95,7 +95,8 @@ REQUEST_UPDATE_TIMEOUT=1800 # 30 minutes
 INCLUDE_OPEN_PULL_REQUESTS=FALSE
 NO_WARNING_ON_FAIL=FALSE
 
-NET_CONNECTION=eth0 #<TODO
+#NET_CONNECTION=eth0 #<TODO
+NET_CONNECTION=enx000f9d4f013f
 
 ##
 # Set defaults
@@ -189,7 +190,7 @@ SET_LINUX__________BUILD_TYPE=5
 SET_WINDOWS_____________SEP__=6
 SET_WINDOWS___________LABEL__=7
 SET_WINDOWS____________TARGET=8
-SET_WINDOWS_________INSTALLER=9
+SET_WINDOWS___________VB_TYPE=9
 SET_WINDOWS________BUILD_TYPE=10
 SET_WINDOWS______SSH_USERNAME=11
 SET_WINDOWS______SSH_PASSWORD=12
@@ -198,27 +199,29 @@ SET_WINDOWS_____________START=14
 SET_WINDOWS________SSH_ACCESS=15
 SET_WINDOWS____________SSH_IP=16
 SET_WINDOWS__________SSH_PORT=17
-SET_MAC_________________SEP__=18
-SET_MAC_______________LABEL__=19
-SET_MAC________________TARGET=20
-SET_MAC_____________INSTALLER=21
-SET_MAC__________OPEN_CONTROL=22
-SET_MAC_________________START=23
-SET_MAC____________SSH_ACCESS=24
-SET_MAC__________SSH_USERNAME=25
-SET_MAC__________SSH_PASSWORD=26
-SET_MAC________________SSH_IP=27
-SET_MAC______________SSH_PORT=28
-SET_ANDROID_____________SEP__=29
-SET_ANDROID___________LABEL__=30
-SET_ANDROID________BUILD_TYPE=31
-SET_ANDROID__BUILD_SYS_TARGET=32
-SET_ANDROID_________INSTALLER=33
-SET_ANDROID____ARM_EMU_SOURCE=34
-SET_ANDROID____x86_EMU_SOURCE=35
-SET_ANDROID_VIRT_DISK_MANAGER=36
-SET_ANDROID_____OPEN_X86_DISK=37
-SET_ANDROID_______AVD_MANAGER=38
+SET_WINDOWS_________INSTALLER=18
+SET_MAC_________________SEP__=19
+SET_MAC_______________LABEL__=20
+SET_MAC________________TARGET=21
+SET_MAC_______________VB_TYPE=22
+SET_MAC__________OPEN_CONTROL=23
+SET_MAC_________________START=24
+SET_MAC____________SSH_ACCESS=25
+SET_MAC__________SSH_USERNAME=26
+SET_MAC__________SSH_PASSWORD=27
+SET_MAC________________SSH_IP=28
+SET_MAC______________SSH_PORT=29
+SET_MAC_____________INSTALLER=30
+SET_ANDROID_____________SEP__=31
+SET_ANDROID___________LABEL__=32
+SET_ANDROID________BUILD_TYPE=33
+SET_ANDROID__BUILD_SYS_TARGET=34
+SET_ANDROID_________INSTALLER=35
+SET_ANDROID____ARM_EMU_SOURCE=36
+SET_ANDROID____x86_EMU_SOURCE=37
+SET_ANDROID_VIRT_DISK_MANAGER=38
+SET_ANDROID_____OPEN_X86_DISK=39
+SET_ANDROID_______AVD_MANAGER=40
 
 # Setting control id's 2
 SET_2_VAR_________________SEP__=0
@@ -540,8 +543,8 @@ function parse_values
     {
       value=${value%|}
       EMU_INSTALL_PREFIX=${value:-$INSTALL_PREFIX/systems}
-      echo "#> msg field $SET_MAC________________TARGET:set $(getMacOSXTargets x86);" >> $thread9_in;
-      echo "#> msg field $SET_WINDOWS____________TARGET:set $(getWindowsTargets x86);" >> $thread9_in;
+      echo "#> msg field $SET_MAC________________TARGET:set $(getMacOSXTargets x86);"
+      echo "#> msg field $SET_WINDOWS____________TARGET:set $(getWindowsTargets x86);"
     }
     elif [[ $id = $SET_2_VAR_INCLUDE_OPEN_REQUESTS ]];then
     {
@@ -605,7 +608,7 @@ function parse_values
       WINDOWS_DEFAULT_RUN=${value%|}
       export WINDOWS_DEFAULT_RUN
 
-      [[ $WINDOWS_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
+      [[ $WINDOWS_VB_TYPE = "VirtualBox" ]] || [[ $WINDOWS_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
       echo "#> msg field $SET_WINDOWS____________SSH_IP:enable $use_it;"
       echo "#> msg field $SET_WINDOWS__________SSH_PORT:enable $use_it;"
       [[ $WINDOWS_DEFAULT_RUN = "emu-"* ]] && use_it_2=1 || use_it_2=0;
@@ -629,8 +632,14 @@ function parse_values
     }
     elif [[ $id = $SET_WINDOWS__________SSH_PORT ]];then
     {
-      WINDOWS_SSH_PORT=${value%|}
+      WINDOWS_SSH_PORT=`echo ${value%|} | awk -F ',' '{print $1}'`
       export WINDOWS_SSH_PORT
+    }
+    elif [[ $id = $SET_WINDOWS___________VB_TYPE ]];then
+    {
+      WINDOWS_VB_TYPE=${value%|}
+      export WINDOWS_VB_TYPE
+      echo "#> msg field $SET_WINDOWS____________TARGET:set $(getWindowsTargets x86);" >> $thread9_in;
     }
     elif [[ $id = $SET_WINDOWS______OPEN_CONTROL ]];then
     {
@@ -663,12 +672,19 @@ function parse_values
       MAC_OS_X_DEFAULT_RUN=${value%|}
       export MAC_OS_X_DEFAULT_RUN
 
-      [[ $MAC_OS_X_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
+      [[ $MAC_OS_X_VB_TYPE = "VirtualBox" ]] || [[ $MAC_OS_X_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
       echo "#> msg field $SET_MAC________________SSH_IP:enable $use_it;"
       echo "#> msg field $SET_MAC______________SSH_PORT:enable $use_it;"
       [[ $MAC_OS_X_DEFAULT_RUN = "emu-"* ]] && use_it_2=1 || use_it_2=0;
       echo "#> msg field $SET_MAC_________________START:enable $use_it_2;"
       echo "#> msg field $SET_MAC_________________START:visible $use_it_2;"
+    }
+    elif [[ $id = $SET_MAC_______________VB_TYPE ]];then
+    {
+      MAC_OS_X_VB_TYPE=${value%|}
+      export MAC_OS_X_VB_TYPE
+      echo "#> msg field $SET_MAC________________TARGET:set $(getMacOSXTargets x86);" >> $thread9_in;
+      echo "#> msg field $SET_MAC________________TARGET:visible 1;"
     }
     elif [[ $id = $SET_MAC__________OPEN_CONTROL ]];then
     {
@@ -703,7 +719,7 @@ function parse_values
     }
     elif [[ $id = $SET_MAC______________SSH_PORT ]];then
     {
-      MAC_OS_X_SSH_PORT=${value%|}
+      MAC_OS_X_SSH_PORT=`echo ${value%|} | awk -F ',' '{print $1}'`
       export MAC_OS_X_SSH_PORT
     }
     #####
@@ -886,11 +902,18 @@ function buildThreadForOS
     ssh_name=$([[ $own_ip = 10.0.2.4 ]] && echo "$WINDOWS_DEFAULT_RUN" | tr '(' '_' | tr ')' '_' || echo $WINDOWS_SSH_IP);
     ssh_port=$([[ $own_ip = 10.0.2.4 ]] && echo 2222 || echo $WINDOWS_SSH_PORT);
 
-    if [[ -z `ps aux | grep qemu-system-x86_64 | grep emu-windows-` ]];then
+    if [[ $WINDOWS_VB_TYPE != "VirtualBox" ]];then
     {
-      echo "Found Windows not active and becomes started now ..."
-      qemu-windows --start "$WINDOWS_DEFAULT_RUN" &
-      sleep 5;
+      if [[ -z `ps aux | grep qemu-system-x86_64 | grep emu-windows-` ]];then
+      {
+	echo "Found Windows not active and becomes started now ..."
+	qemu-windows --start "$WINDOWS_DEFAULT_RUN" &
+	sleep 5;
+      } fi
+    }
+    else
+    {
+      VBoxManage startvm "$WINDOWS_DEFAULT_RUN"
     } fi
   } fi
 
@@ -900,11 +923,18 @@ function buildThreadForOS
     ssh_name=$([[ $own_ip = 10.0.2.4 ]] && echo "$MAC_OS_X_DEFAULT_RUN" | tr '(' '_' | tr ')' '_' || echo $MAC_OS_X_SSH_IP);
     ssh_port=$([[ $own_ip = 10.0.2.4 ]] && echo 2223 || echo $MAC_OS_X_SSH_PORT);
 
-    if [[ -z `ps aux | grep qemu-system-x86_64 | grep emu-mac-osx-` ]];then
+    if [[ $MAC_OS_X_VB_TYPE != "VirtualBox" ]];then
     {
-      echo "Found Mac OS X not active and becomes started now ..."
-      qemu-mac-osx --start "$MAC_OS_X_DEFAULT_RUN" &
-      sleep 5;
+      if [[ -z `ps aux | grep qemu-system-x86_64 | grep emu-mac-osx-` ]];then
+      {
+	echo "Found Mac OS X not active and becomes started now ..."
+	qemu-mac-osx --start "$MAC_OS_X_DEFAULT_RUN" &
+	sleep 5;
+      } fi
+    }
+    else
+    {
+      VBoxManage startvm "$MAC_OS_X_DEFAULT_RUN"
     } fi
   } fi
 
@@ -916,7 +946,13 @@ function buildThreadForOS
 
     trap 'exitBuildThreadForOS' EXIT SIGHUP SIGINT SIGTERM;
 
-    if [[ $system = win* ]] || [[ $system = osx* ]] || [[ $system = ios ]];then
+    use_qemu=0
+    [[ $MAC_OS_X_VB_TYPE != "VirtualBox" ]] && [[ $system = osx* ]] || [[ $system = ios ]] && use_qemu=1 || use_qemu=0
+    if [ $use_qemu = "0" ];then
+    {
+      [[ $WINDOWS_VB_TYPE != "VirtualBox" ]] && [[ $system = win* ]] && use_qemu=1 || use_qemu=0
+    } fi
+    if [ $use_qemu == 1 ];then
     {
       printf "\
 Remote network connection:
@@ -1010,13 +1046,26 @@ Checking ssh connection for independent OS build system (can take some seconds):
                 sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
                   bash --login -c "\
 \#\!/bin/bash;
-[[ ! -d \$HOME/Desktop/Mupel/remote_access ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access
-[[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access" 2>&1
+if [[ $MAC_OS_X_VB_TYPE != "VirtualBox" ]];then
+  [[ ! -d \$HOME/Desktop/Mupel/remote_access/build ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access/build
+  [[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access
+else
+  [[ ! -d \$HOME/Desktop/Mupel/remote_access/build/remote_access ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access/build/remote_access
+  [[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access/build
+  [[ -z  \`mount | grep //guest:@$own_ip/home\` ]] && mount -t smbfs //guest:@$own_ip/home \$HOME/Desktop/Mupel/remote_access/home
+fi" 2>&1
                 sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
                   bash --login -c "\$HOME/Desktop/Mupel/remote_access/build/tools/cef-$system.build $direct $update_distrib" \
                                     >> "$BASE_PATH/build/creation-cef-$system.log" 2>&1
                 sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
-                  bash --login -c "\#\!/bin/bash; umount -f //guest:@$own_ip/qemu" 2>&1
+		  bash --login -c "\
+\#\!/bin/bash;
+if [[ $MAC_OS_X_VB_TYPE != "VirtualBox" ]];then
+  umount -f //guest:@$own_ip/qemu
+else
+  umount -f //guest:@$own_ip/qemu
+  umount -f //guest:@$own_ip/home
+fi" 2>&1
                 chmod -f $BASE_PATH/build/cef-$GIT_CEF_USER/binary_distrib/*
               else
                 $caller bash "$BASE_PATH/tools/cef-$system.build" $direct $update_distrib \
@@ -1088,13 +1137,26 @@ Checking ssh connection for independent OS build system (can take some seconds):
               sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
                 bash --login -c "\
 \#\!/bin/bash;
-[[ ! -d \$HOME/Desktop/Mupel/remote_access ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access
-[[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access" 2>&1
+if [[ $MAC_OS_X_VB_TYPE != "VirtualBox" ]];then
+  [[ ! -d \$HOME/Desktop/Mupel/remote_access/build ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access/build
+  [[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access
+else
+  [[ ! -d \$HOME/Desktop/Mupel/remote_access/build/remote_access ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access/build/remote_access
+  [[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access/build
+  [[ -z  \`mount | grep //guest:@$own_ip/home\` ]] && mount -t smbfs //guest:@$own_ip/home \$HOME/Desktop/Mupel/remote_access/home
+fi" 2>&1
               sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
                 bash --login -c "\#\!/bin/bash; \$HOME/Desktop/Mupel/remote_access/build/tools/kodi-$system.build $direct $update_distrib"  \
                                     >> "$BASE_PATH/build/creation-kodi-$system.log" 2>&1
               sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
-                bash --login -c "\#\!/bin/bash; umount -f //guest:@$own_ip/qemu" 2>&1
+		bash --login -c "\
+\#\!/bin/bash;
+if [[ $MAC_OS_X_VB_TYPE != "VirtualBox" ]];then
+  umount -f //guest:@$own_ip/qemu
+else
+  umount -f //guest:@$own_ip/qemu
+  umount -f //guest:@$own_ip/home
+fi" 2>&1
             else
               $caller bash "$BASE_PATH/tools/kodi-$system.build" $direct $update_distrib \
                                     >> "$BASE_PATH/build/creation-kodi-$system.log" 2>&1
@@ -1158,13 +1220,26 @@ Checking ssh connection for independent OS build system (can take some seconds):
               sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
                 bash --login -c "\
 \#\!/bin/bash;
-[[ ! -d \$HOME/Desktop/Mupel/remote_access ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access
-[[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access" 2>&1
+if [[ $MAC_OS_X_VB_TYPE != "VirtualBox" ]];then
+  [[ ! -d \$HOME/Desktop/Mupel/remote_access/build ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access/build
+  [[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access
+else
+  [[ ! -d \$HOME/Desktop/Mupel/remote_access/build/remote_access ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access/build/remote_access
+  [[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access/build
+  [[ -z  \`mount | grep //guest:@$own_ip/home\` ]] && mount -t smbfs //guest:@$own_ip/home \$HOME/Desktop/Mupel/remote_access/home
+fi" 2>&1
               sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
                 bash --login -c "\#\!/bin/bash; \$HOME/Desktop/Mupel/remote_access/build/tools/user-script-$system.build $direct $update_distrib"  \
                                     >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1
               sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
-                bash --login -c "\#\!/bin/bash; umount -f //guest:@$own_ip/qemu" 2>&1
+		bash --login -c "\
+\#\!/bin/bash;
+if [[ $MAC_OS_X_VB_TYPE != "VirtualBox" ]];then
+  umount -f //guest:@$own_ip/qemu
+else
+  umount -f //guest:@$own_ip/qemu
+  umount -f //guest:@$own_ip/home
+fi" 2>&1
             else
               $caller bash "$BASE_PATH/tools/user-script-$system.build $direct $update_distrib" \
                                     >> "$BASE_PATH/build/creation-user-script-$system.log" 2>&1
@@ -1230,12 +1305,25 @@ function buildThreadKodiAddonForOS
       sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
         bash --login -c "\
 \#\!/bin/bash;
-[[ ! -d \$HOME/Desktop/Mupel/remote_access ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access
-[[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access" 2>&1
+if [[ $MAC_OS_X_VB_TYPE != "VirtualBox" ]];then
+  [[ ! -d \$HOME/Desktop/Mupel/remote_access/build ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access/build
+  [[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access
+else
+  [[ ! -d \$HOME/Desktop/Mupel/remote_access/build/remote_access ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access/build/remote_access
+  [[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access/build
+  [[ -z  \`mount | grep //guest:@$own_ip/home\` ]] && mount -t smbfs //guest:@$own_ip/home \$HOME/Desktop/Mupel/remote_access/home
+fi" 2>&1
       sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
         bash --login -c "\#\!/bin/bash; \$HOME/Desktop/Mupel/remote_access/build/tools/kodi-$system.build $direct --addon $addon_name" >> "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" 2>&1
       sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
-        bash --login -c "\#\!/bin/bash; umount -f //guest:@$own_ip/qemu" 2>&1
+        bash --login -c "\
+\#\!/bin/bash;
+if [[ $MAC_OS_X_VB_TYPE != "VirtualBox" ]];then
+  umount -f //guest:@$own_ip/qemu
+else
+  umount -f //guest:@$own_ip/qemu
+  umount -f //guest:@$own_ip/home
+fi" 2>&1
     else
       $caller bash "$BASE_PATH/tools/kodi-$system.build" --addon "$addon_name" >> "$BASE_PATH/build/creation-kodi-addon-${addon_name}-$system.log" 2>&1
     fi
@@ -1435,8 +1523,11 @@ function getMacOSXTargets
   if [ -f "$HOME/.mupel/mac-osx.conf" ];then
   {
     . "$HOME/.mupel/mac-osx.conf";
-
-    macosx_targets=$(ls -d $EMU_INSTALL_PREFIX/emu-mac-osx* 2> /dev/null | awk -F"/" '{print $NF}' | tr '\n'  '!');
+    if [[ $MAC_OS_X_VB_TYPE != "VirtualBox" ]];then
+      macosx_targets=$(ls -d $EMU_INSTALL_PREFIX/emu-mac-osx* 2> /dev/null | awk -F"/" '{print $NF}' | tr '\n'  '!');
+    else
+      macosx_targets=$(VBoxManage list vms | cut -d "{" -f1 | cut -d "\"" -f2 | tr '\n'  '!');
+    fi
     macosx_targets+=$(ls -d $EMU_INSTALL_PREFIX/ext-mac-osx* 2> /dev/null | awk -F"/" '{print $NF}' | tr '\n'  '!');
 #    macosx_targets=${macosx_targets::-1} > /dev/null 2>&1
     macosx_targets=$(echo ${macosx_targets//$MAC_OS_X_DEFAULT_RUN/\^${MAC_OS_X_DEFAULT_RUN}});
@@ -1643,12 +1734,25 @@ function forceKodiSelectedBuild
       sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
         bash --login -c "\
 \#\!/bin/bash;
-[[ ! -d \$HOME/Desktop/Mupel/remote_access ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access
-[[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access" 2>&1
+if [[ $MAC_OS_X_VB_TYPE != "VirtualBox" ]];then
+  [[ ! -d \$HOME/Desktop/Mupel/remote_access/build ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access/build
+  [[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access
+else
+  [[ ! -d \$HOME/Desktop/Mupel/remote_access/build/remote_access ]] && mkdir -p \$HOME/Desktop/Mupel/remote_access/build/remote_access
+  [[ -z  \`mount | grep //guest:@$own_ip/qemu\` ]] && mount -t smbfs //guest:@$own_ip/qemu \$HOME/Desktop/Mupel/remote_access/build
+  [[ -z  \`mount | grep //guest:@$own_ip/home\` ]] && mount -t smbfs //guest:@$own_ip/home \$HOME/Desktop/Mupel/remote_access/home
+fi" 2>&1
       sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
         bash --login -c "\#\!/bin/bash; \$HOME/Desktop/Mupel/remote_access/build/tools/kodi-$system.build $direct --selected $selection" >> "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log" 2>&1
       sshpass -p $MAC_OS_X_SSH_PASSWORD ssh $ssh_name -p $ssh_port -l $MAC_OS_X_SSH_USERNAME -- \
-        bash --login -c "\#\!/bin/bash; umount -f //guest:@$own_ip/qemu" 2>&1
+        bash --login -c "\
+\#\!/bin/bash;
+if [[ $MAC_OS_X_VB_TYPE != "VirtualBox" ]];then
+  umount -f //guest:@$own_ip/qemu
+else
+  umount -f //guest:@$own_ip/qemu
+  umount -f //guest:@$own_ip/home
+fi" 2>&1
     else
       $caller bash "$BASE_PATH/tools/kodi-$system.build" --selected $selection >> "$BASE_PATH/build/creation-kodi-selected-$selection-$system.log" 2>&1
     fi
@@ -4256,8 +4360,6 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       echo "#> msg field $SET_WINDOWS____________TARGET:visible $use_it;"
       echo "#> msg field $SET_WINDOWS______SSH_USERNAME:visible $use_it;"
       echo "#> msg field $SET_WINDOWS______SSH_PASSWORD:visible $use_it;"
-      echo "#> msg field $SET_WINDOWS____________SSH_IP:visible $use_it;"
-      echo "#> msg field $SET_WINDOWS__________SSH_PORT:visible $use_it;"
       echo "#> msg field $SET_WINDOWS________SSH_ACCESS:visible $use_it;"
       echo "#> msg field $SET_WINDOWS_________INSTALLER:visible $use_it;"
       echo "#> msg field $SET_WINDOWS______OPEN_CONTROL:visible $use_it;"
@@ -4276,7 +4378,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       echo "#> msg field $SET_WINDOWS_____________START:enable $use_it_2;"
       [[ $WINDOWS_DEFAULT_RUN = "emu-"* ]] && use_it=1 || use_it=0;
       echo "#> msg field $SET_WINDOWS______OPEN_CONTROL:enable $use_it;"
-      [[ $WINDOWS_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
+      [[ $WINDOWS_VB_TYPE = "VirtualBox" ]] || [[ $WINDOWS_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
       echo "#> msg field $SET_WINDOWS____________SSH_IP:enable $use_it;"
       echo "#> msg field $SET_WINDOWS__________SSH_PORT:enable $use_it;"
       [[ $USE_MS_WINDOWS_32 = "TRUE" ]] && [[ $USE_MS_WINDOWS_64 = "TRUE" ]] &&
@@ -4286,12 +4388,14 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       targets=$(echo ${targets//$WINDOWS_BUILD_TYPE/\^${WINDOWS_BUILD_TYPE}});
       echo "#> msg field $SET_WINDOWS________BUILD_TYPE:set $targets;"
 
+      targets="qemu!VirtualBox"
+      targets=$(echo ${targets//$WINDOWS_VB_TYPE/\^${WINDOWS_VB_TYPE}});
+      echo "#> msg field $SET_WINDOWS___________VB_TYPE:set $targets;"
+      
       [[ $SYSTEM_BITS = 64 ]] && [[ $USE_MAC_OS_X_64 = "TRUE" ]] && use_it=1 || use_it=0
       echo "#> msg field $SET_MAC________________TARGET:visible $use_it;"
       echo "#> msg field $SET_MAC__________SSH_USERNAME:visible $use_it;"
       echo "#> msg field $SET_MAC__________SSH_PASSWORD:visible $use_it;"
-      echo "#> msg field $SET_MAC________________SSH_IP:visible $use_it;"
-      echo "#> msg field $SET_MAC______________SSH_PORT:visible $use_it;"
       echo "#> msg field $SET_MAC_________________START:visible $use_it;"
       echo "#> msg field $SET_MAC____________SSH_ACCESS:visible $use_it;"
       echo "#> msg field $SET_MAC__________OPEN_CONTROL:visible $use_it;"
@@ -4309,10 +4413,15 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
       echo "#> msg field $SET_MAC_________________START:enable $use_it_2;"
       [[ $MAC_OS_X_DEFAULT_RUN = "emu-"* ]] && use_it=1 || use_it=0;
       echo "#> msg field $SET_MAC__________OPEN_CONTROL:enable $use_it;"
-      [[ $MAC_OS_X_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
+      [[ $MAC_OS_X_VB_TYPE = "VirtualBox" ]] || [[ $MAC_OS_X_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
       echo "#> msg field $SET_MAC________________SSH_IP:enable $use_it;"
       echo "#> msg field $SET_MAC______________SSH_PORT:enable $use_it;"
 
+      targets="qemu!VirtualBox"
+      targets=$(echo ${targets//$MAC_OS_X_VB_TYPE/\^${MAC_OS_X_VB_TYPE}});
+      echo "#> msg field $SET_MAC_______________VB_TYPE:set $targets;"
+      echo "#> msg field $SET_MAC________________TARGET:set $(getMacOSXTargets x86);" >> $thread9_in;
+    
       [[ $SYSTEM_BITS = 64 ]] && [[ $USE_ANDROID_ARM = "TRUE" ]] || [[ $USE_ANDROID_X86 = "TRUE" ]] &&
         use_it=1 || use_it=0
       echo "#> msg field $SET_ANDROID________BUILD_TYPE:visible $use_it;"
@@ -4369,11 +4478,19 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
             }
             elif [[ "$line" = *"open_windows_control"* ]];then
             {
-              /usr/local/bin/qemu-windows &
+	      if [[ $WINDOWS_VB_TYPE != "VirtualBox" ]];then
+		/usr/local/bin/qemu-windows &
+	      else
+		VBoxManage startvm "$WINDOWS_DEFAULT_RUN"
+	      fi
             }
             elif [[ "$line" = *"start_windows"* ]];then
             {
-              /usr/local/bin/qemu-windows &
+	      if [[ $WINDOWS_VB_TYPE != "VirtualBox" ]];then
+		/usr/local/bin/qemu-windows &
+	      else
+		VBoxManage startvm "$WINDOWS_DEFAULT_RUN"
+	      fi
               update_counter=8
             }
             elif [[ "$line" = *"open_windows_installer"* ]];then
@@ -4397,11 +4514,19 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
             }
             elif [[ "$line" = *"open_mac_os_x_control"* ]];then
             {
-              /usr/local/bin/qemu-mac-osx &
+	      if [[ $MAC_OS_X_VB_TYPE != "VirtualBox" ]];then
+		/usr/local/bin/qemu-mac-osx &
+	      else
+		VBoxManage startvm "$MAC_OS_X_DEFAULT_RUN"
+	      fi
             }
             elif [[ "$line" = *"start_mac_os_x"* ]];then
             {
-              /usr/local/bin/qemu-mac-osx &
+	      if [[ $MAC_OS_X_VB_TYPE != "VirtualBox" ]];then
+		/usr/local/bin/qemu-mac-osx &
+	      else
+		VBoxManage startvm "$MAC_OS_X_DEFAULT_RUN"
+	      fi
               update_counter=8
             }
             elif [[ "$line" = *"open_mac_os_x_installer"* ]];then
@@ -4428,7 +4553,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
             {
               (
                 $BASE_PATH/tools/android/install-systembuild-android;
-                echo "#> msg field $SET_MAC________________TARGET:set $(getAndroidTargets x86);";
+                echo "#> msg field $SET_ANDROID__BUILD_SYS_TARGET:set $(getAndroidTargets x86);";
               ) &
             }
             elif [[ "$line" = *"open_dist_control"* ]];then
@@ -4467,7 +4592,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
             echo "#> msg field $SET_WINDOWS______OPEN_CONTROL:visible 0;"
             echo "#> msg field $SET_WINDOWS_____________START:visible 1;"
           } fi
-          [[ $WINDOWS_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
+          [[ $WINDOWS_VB_TYPE = "VirtualBox" ]] || [[ $WINDOWS_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
           echo "#> msg field $SET_WINDOWS____________SSH_IP:enable $use_it;"
           echo "#> msg field $SET_WINDOWS__________SSH_PORT:enable $use_it;"
 
@@ -4486,7 +4611,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
             echo "#> msg field $SET_MAC__________OPEN_CONTROL:visible 0;"
             echo "#> msg field $SET_MAC_________________START:visible 1;"
           } fi
-          [[ $MAC_OS_X_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
+          [[ $MAC_OS_X_VB_TYPE = "VirtualBox" ]] || [[ $MAC_OS_X_DEFAULT_RUN = "ext-"* ]] && use_it=1 || use_it=0;
           echo "#> msg field $SET_MAC________________SSH_IP:enable $use_it;"
           echo "#> msg field $SET_MAC______________SSH_PORT:enable $use_it;"
 
@@ -4510,7 +4635,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field=":LBL@0,8,21,22" '' \
              --field="<b>Windows settings:</b>:LBL@0,0,22,23" '' \
              --field="Build system target:CB@1,4,22,23" "$(getWindowsTargets)" \
-             --field="Installer:FBTN@5,6,22,23" "bash -c 'echo \"#< msg open_windows_installer\" >> $thread9_in'" \
+             --field="Virtual system type:CB@5,6,22,23" 'qemu!VirtualBox' \
              \
              --field="Build type:CB@1,2,23,24" 'x86_32!x86_64' \
              --field="Username / Password (ssh):@3,4,23,24" "$WINDOWS_SSH_USERNAME" \
@@ -4521,12 +4646,13 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              --field="SSH access:FBTN@2,2,25,26" "bash -c 'echo \"#< msg ssh_access_windows\" >> $thread9_in'" \
              --field="URL or IP / Port (ssh):@3,4,25,26" "$WINDOWS_SSH_IP" \
              --field=":NUM@4,5,25,26" "$WINDOWS_SSH_PORT" \
+             --field="Installer:FBTN@6,6,25,26" "bash -c 'echo \"#< msg open_windows_installer\" >> $thread9_in'" \
              \
              \
              --field=":LBL@0,8,28,29" '' \
              --field="<b>Mac OS X settings:</b>:LBL@0,8,29,30" '' \
              --field="Build system target:CB@1,4,29,30" "$(getMacOSXTargets)" \
-             --field="Installer:FBTN@5,6,29,30" "bash -c 'echo \"#< msg open_mac_os_x_installer\" >> $thread9_in'" \
+             --field="Virtual system type:CB@5,6,29,30" 'qemu!VirtualBox' \
              \
              --field="Emulation control:FBTN@1,1,30,31" "bash -c 'echo \"#< msg open_mac_os_x_control\" >> $thread9_in'" \
              --field="Start Mac OS X:FBTN@1,1,30,31" "bash -c 'echo \"#< msg start_mac_os_x\" >> $thread9_in'" \
@@ -4536,6 +4662,7 @@ if [ -f $HOME/.mupel/mac-osx.conf ];then
              \
              --field="URL or IP / Port (ssh):@3,4,31,32" "$MAC_OS_X_SSH_IP" \
              --field=":NUM@4,5,31,32" "$MAC_OS_X_SSH_PORT" \
+             --field="Installer:FBTN@6,6,31,32" "bash -c 'echo \"#< msg open_mac_os_x_installer\" >> $thread9_in'" \
              \
              \
              --field=":LBL@0,8,37,38" '' \
