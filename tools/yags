@@ -1,0 +1,38 @@
+#!/bin/bash
+#
+# ### YAGS - yet another gksu replacement ###
+#
+
+# fetch command to execute
+execcmd=$@
+
+# fetch current user name
+curuser=$(whoami)
+
+# message to show
+msg="sudo $execcmd\n\nEnter password for $curuser:"
+
+# request user password
+if PASS=$(zenity --entry --hide-text --text "$msg" --title "YAGS" 2> /dev/null); then
+  if ! [ -z $PASS ]; then
+    # check if password is valid
+    echo "$PASS" | sudo -S -i -k pwd > /dev/null 2> /dev/null
+    if ! [ $? -eq 0 ]; then
+      # password is not valid: show warning
+      zenity --warning --no-wrap --text "The password supplied was invalid!" --title "YAGS" 2> /dev/null
+    else
+      # password is valid: execute command
+      echo "$PASS" | sudo -S -i -k $execcmd 2> /dev/null
+      # eval exit code of command
+      if ! [ $? -eq 0 ]; then
+        zenity --warning --no-wrap --text "The command supplied could not be executed!" --title "YAGS" 2> /dev/null
+      fi
+    fi
+  else
+    # empty password: show warning
+    zenity --warning --no-wrap --text "An empty password was supplied!" --title "YAGS" 2> /dev/null
+  fi
+fi
+
+# clean exit
+exit 0

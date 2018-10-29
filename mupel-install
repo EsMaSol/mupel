@@ -402,19 +402,7 @@ which gksudo >/dev/null
 [ "$?" = "0" ] && graphsudo=gksudo;
 which kdesudo >/dev/null
 [ "$?" = "0" ] && graphsudo=kdesudo;
-
-if [ -z $graphsudo ];then
-{
-  [ ! -f /etc/kde4rc ] && graphsudo=gksudo && xterm -T "Graphics sudo install '$graphsudo'" -bg black -fg white -e sudo apt-get install gksu ||
-                                              xterm -T "Graphics sudo install '$graphsudo'" -bg black -fg white -e sudo apt-get install kdesudo
-} fi
-
-which $graphsudo >/dev/null
-if [ "$?" != "0" ];then
-{
-  echo "FATAL: No usable sudo GUI interface present!";
-  exit 1;
-} fi
+[ -z $graphsudo ] && $BASE_PATH/tools/yags
 
 which xterm >/dev/null;
 [ "$?" != "0" ] && $graphsudo -- apt-get -y install xterm;
