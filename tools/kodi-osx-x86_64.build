@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/bash
 ###############################################################################
 #                                                                             #
-#     Copyright (C) 2015 Team KODI                                            #
-#     http://kodi.tv                                                          #
+#     Copyright (C) 2015 Team Kodi                                            #
+#     https://kodi.tv                                                         #
 #                                                                             #
 #  This program is free software: you can redistribute it and/or modify       #
 #  it under the terms of the GNU General Public License as published by       #
@@ -15,16 +15,16 @@
 #  GNU General Public License for more details.                               #
 #                                                                             #
 #  You should have received a copy of the GNU General Public License          #
-#  along with this program.  If not, see <http://www.gnu.org/licenses/>.      #
+#  along with this program.  If not, see <"https://www.gnu.org/licenses">.    #
 #                                                                             #
 ###############################################################################
 #                                                                             #
-# Note: This script becomes called on Mac OS X system!                        #
+#       Note: This script becomes called on Mac OS X system!                  #
 #       Access from muple to them is over a ssh connection.                   #
 #                                                                             #
 ###############################################################################
 
-trap 'echo Error on line ${LINENO} inside Mac OS X system call; exit 1;' ERR SIGHUP SIGINT SIGTERM;
+trap 'echo Error on line ${LINENO} inside Mac OS X system call; exit 1;' ERROR SIGHUP SIGINT SIGTERM;
 
 MUPEL_PATH=$HOME/Desktop/Mupel
 
@@ -41,8 +41,8 @@ BUILD_SYSTEM="osx${BIT_SIZE}"
 
 function exitBuild
 {
-  rm -f $TEMP_DIR/build_thread-kodi_active-osx-x86_$BIT_SIZE;
-  rm -f $TEMP_DIR/build_thread-kodi_active;
+  m -f $TEMP_DIR/build_thread-kodi_active-osx-x86_$BIT_SIZE;
+  m -f $TEMP_DIR/build_thread-kodi_active;
 }
 
 ###############################################################################
@@ -217,7 +217,7 @@ else
 
   if [[ $CONFIGURE = 1 ]];then
   {
-    rm -rf ./tools/depends/target/binary-addons/x86_${BIT_SIZE}-osx-gnu/build/depends/include/GL
+    m -rf ./tools/depends/target/binary-addons/x86_${BIT_SIZE}-osx-gnu/build/depends/include/GL
     make -C ./tools/depends/target/binary-addons PREFIX=$XBMC_DEPENDS_ROOT/x86_${BIT_SIZE}-osx-gnu ADDONS=$ADDON_BUILD
   }
   else
@@ -226,9 +226,9 @@ else
   } fi
 } fi
 
-trap '' ERR
+trap '' ERROR
 
-printf "\n \
+printf "\n\
 ${BRIGHT}${WHITE}All steps successfully performed and test build present and can started on MAC OS X with:${NORMAL}
  - ${BRIGHT}${BLUE}${UNDERLINE}${BASE_PATH}~/Desktop/Mupel/kodi-$GIT_USER/kodi-osx64/build/$INSTALL_DIR_TYPE/Kodi${NORMAL}\n"
 
