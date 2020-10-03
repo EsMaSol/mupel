@@ -74,7 +74,7 @@ General description of CEF can be found here on [wikipedia](http://en.wikipedia.
 
 -------------
 ### License of kodi
-- [GNU GENERAL PUBLIC LICENSE Version 2, June 1991](https://github.com/xbmc/xbmc/raw/master/LICENSE.GPL)
+- [GNU GENERAL PUBLIC LICENSE Version 2, June 1991](https://github.com/username/xbmc/raw/master/LICENSE.GPL)
 
 -------------
 ### License of CEF
